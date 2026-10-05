@@ -61,6 +61,8 @@ public class Info extends SubCommand {
         p.sendMessage(mm.deserialize("<gray>Flags:"));
         p.sendMessage(mm.deserialize(" <gray>- <yellow>Undroppable: <white>" + (undroppable ? "Yes" : "No")));
         p.sendMessage(mm.deserialize(" <gray>- <yellow>Unusable: <white>" + (unusable ? "Yes" : "No")));
+        p.sendMessage(mm.deserialize(" <gray>- <yellow>Unplaceable: <white>"
+                + (data.has(Keys.UNPLACEABLE.get(), PersistentDataType.BOOLEAN) ? "Yes" : "No")));
         p.sendMessage(mm.deserialize(" <gray>- <yellow>Hide Flags: <white>" + (hasHideFlags ? "Yes" : "No")));
 
         NamespacedKey modelKey = meta.getItemModel();

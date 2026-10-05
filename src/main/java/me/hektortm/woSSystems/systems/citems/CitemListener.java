@@ -78,6 +78,16 @@ public class CitemListener implements Listener {
                 .get(Keys.UNUSABLE.get(), PersistentDataType.BOOLEAN));
     }
 
+    /**
+     * Whether the item has the unplaceable flag: it can't be placed as a block,
+     * and everything else it does (eating a consumable one, its actions) stays.
+     */
+    private static boolean isUnplaceable(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        return Boolean.TRUE.equals(item.getItemMeta().getPersistentDataContainer()
+                .get(Keys.UNPLACEABLE.get(), PersistentDataType.BOOLEAN));
+    }
+
     /** An unusable item is not used on a mob or another entity either (name tag, shears, lead …). */
     @EventHandler
     public void onUseOnEntity(PlayerInteractEntityEvent e) {
@@ -87,7 +97,7 @@ public class CitemListener implements Listener {
     // Whatever gets past the click (a client that places or eats anyway) is stopped here.
     @EventHandler
     public void onPlaceUnusable(BlockPlaceEvent e) {
-        if (isUnusable(e.getItemInHand())) e.setCancelled(true);
+        if (isUnusable(e.getItemInHand()) || isUnplaceable(e.getItemInHand())) e.setCancelled(true);
     }
 
     @EventHandler

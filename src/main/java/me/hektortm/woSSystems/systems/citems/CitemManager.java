@@ -184,6 +184,11 @@ public class CitemManager {
         return meta == null ? null : meta.getPersistentDataContainer().get(Keys.ID.get(), PersistentDataType.STRING);
     }
 
+    /** The id of the custom item in the player's main hand, or {@code null} if they hold none. */
+    public String heldCitemId(Player p) {
+        return citemIdOf(p.getInventory().getItemInMainHand());
+    }
+
     /** How many of the custom item {@code id} the player carries (matched by its id tag). */
     public int countCitem(Player p, String id) {
         int found = 0;

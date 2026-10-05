@@ -135,6 +135,10 @@ public final class CitemBuilder {
                 meta.getPersistentDataContainer().set(Keys.UNSTASHABLE.get(), PersistentDataType.BOOLEAN, true);
             }
 
+            if (getBoolean(flags, "unplaceable", false)) {
+                meta.getPersistentDataContainer().set(Keys.UNPLACEABLE.get(), PersistentDataType.BOOLEAN, true);
+            }
+
             if (getBoolean(flags, "unwearable", false)) {
                 meta.getPersistentDataContainer().set(Keys.UNWEARABLE.get(), PersistentDataType.BOOLEAN, true);
             }

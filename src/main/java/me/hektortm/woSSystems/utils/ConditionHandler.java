@@ -70,6 +70,7 @@ public class ConditionHandler {
      *
      * <p>Supported condition names include:
      * {@code has_citem}, {@code has_not_citem},
+     * {@code is_holding_citem}, {@code is_not_holding_citem} (the main hand),
      * {@code has_unlockable}, {@code has_not_unlockable},
      * {@code has_stats_greater_than}, {@code has_stats_less_than}, {@code has_stats_equal_to},
      * {@code global_stats_greater_than}, {@code global_stats_less_than}, {@code global_stats_equal_to},
@@ -94,6 +95,8 @@ public class ConditionHandler {
             switch (condition.getName().toLowerCase()) {
                 case "has_citem":                       return citems.hasCitemAmount(player, condition.getValue(), Integer.parseInt(condition.getParameter())); // Placeholder until i have a correct method for it
                 case "has_not_citem":                   return !citems.hasCitemAmount(player, condition.getValue(), Integer.parseInt(condition.getParameter()));
+                case "is_holding_citem":                return condition.getValue().equals(citems.heldCitemId(player));
+                case "is_not_holding_citem":            return !condition.getValue().equals(citems.heldCitemId(player));
 
                 case "has_unlockable":                  return unlockables.hasPlayerUnlockable(player, condition.getValue());
                 case "has_not_unlockable":              return !unlockables.hasPlayerUnlockable(player, condition.getValue());
@@ -162,6 +165,10 @@ public class ConditionHandler {
             String id = condition.getValue();
             return switch (condition.getName().toLowerCase()) {
                 case "has_citem", "has_not_citem" -> "has " + citems.countCitem(player, id);
+                case "is_holding_citem", "is_not_holding_citem" -> {
+                    String held = citems.heldCitemId(player);
+                    yield held == null ? "holds no custom item" : "holds " + held;
+                }
                 case "has_stats_greater_than", "has_stats_less_than", "has_stats_equal_to" ->
                         "is " + stats.getPlayerStat(player.getUniqueId(), id);
                 case "global_stats_greater_than", "global_stats_less_than", "global_stats_equal_to" ->

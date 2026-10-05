@@ -7,6 +7,7 @@ public enum Keys {
 
     ID("id"),
     UNUSABLE("unusable"),
+    UNPLACEABLE("unplaceable"),
     UNDROPPABLE("undroppable"),
     UNWEARABLE("unwearable"),
     UNSTASHABLE("unstashable"),
