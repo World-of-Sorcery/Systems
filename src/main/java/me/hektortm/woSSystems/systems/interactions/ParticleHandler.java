@@ -75,34 +75,34 @@ public class ParticleHandler {
         if (npc) {
             switch (type) {
                 case "redstone_dust":
-                    spawnRedstoneNPCParticles(player,location, color);
+                    spawnAroundNPC(player, location, Particle.DUST, dust(color));
                     break;
                 case "redstone_dust_circle":
                     spawnRedstoneParticleCircle(player, location, color);
                     break;
                 case "portal":
-                    spawnSurroundingNPCParticles(player, location, Particle.PORTAL);
+                    spawnAroundNPC(player, location, Particle.PORTAL, null);
                     break;
                 case "villager_happy":
-                    spawnVillagerHappyNPCParticles(player, location);
+                    spawnAroundNPC(player, location, Particle.HAPPY_VILLAGER, null);
                     break;
                 case "villager_happy_circle":
                     spawnVillagerHappyCircleParticles(player, location);
                     break;
                 case "flame":
-                    spawnSurroundingNPCParticles(player, location, Particle.SMALL_FLAME);
+                    spawnAroundNPC(player, location, Particle.SMALL_FLAME, null);
                     break;
                 case "totem":
-                    spawnSurroundingNPCParticles(player, location, Particle.TOTEM_OF_UNDYING);
+                    spawnAroundNPC(player, location, Particle.TOTEM_OF_UNDYING, null);
                     break;
                 case "smoke":
-                    spawnSurroundingNPCParticles(player, location, Particle.SMOKE);
+                    spawnAroundNPC(player, location, Particle.SMOKE, null);
                     break;
                 case "explosion":
-                    spawnSurroundingNPCParticles(player, location, Particle.EXPLOSION);
+                    spawnAroundNPC(player, location, Particle.EXPLOSION, null);
                     break;
                 case "mycelium":
-                    spawnSurroundingNPCParticles(player, location, Particle.MYCELIUM);
+                    spawnAroundNPC(player, location, Particle.MYCELIUM, null);
                     break;
                 default:
                     // Default behavior if the particle type is unknown
@@ -112,34 +112,34 @@ public class ParticleHandler {
         } else {
             switch (type) {
                 case "redstone_dust":
-                    spawnRedstoneParticles(player, location, color);
+                    spawnAroundBlock(player, location, Particle.DUST, dust(color));
                     break;
                 case "redstone_dust_circle":
                     spawnRedstoneParticleCircle(player, location, color);
                     break;
                 case "portal":
-                    spawnSurroundingParticles(player, location, Particle.PORTAL);
+                    spawnAroundBlock(player, location, Particle.PORTAL, null);
                     break;
                 case "villager_happy":
-                    spawnVillagerHappyParticles(player, location);
+                    spawnAroundBlock(player, location, Particle.HAPPY_VILLAGER, null);
                     break;
                 case "villager_happy_circle":
                     spawnVillagerHappyCircleParticles(player, location);
                     break;
                 case "flame":
-                    spawnSurroundingParticles(player, location, Particle.SMALL_FLAME);
+                    spawnAroundBlock(player, location, Particle.SMALL_FLAME, null);
                     break;
                 case "totem":
-                    spawnSurroundingParticles(player, location, Particle.TOTEM_OF_UNDYING);
+                    spawnAroundBlock(player, location, Particle.TOTEM_OF_UNDYING, null);
                     break;
                 case "smoke":
-                    spawnSurroundingParticles(player, location, Particle.SMOKE);
+                    spawnAroundBlock(player, location, Particle.SMOKE, null);
                     break;
                 case "explosion":
-                    spawnSurroundingParticles(player, location, Particle.EXPLOSION);
+                    spawnAroundBlock(player, location, Particle.EXPLOSION, null);
                     break;
                 case "mycelium":
-                    spawnSurroundingParticles(player, location, Particle.MYCELIUM);
+                    spawnAroundBlock(player, location, Particle.MYCELIUM, null);
                     break;
                 default:
                     // Default behavior if the particle type is unknown
@@ -148,104 +148,31 @@ public class ParticleHandler {
         }
     }
 
-    private void spawnSurroundingParticles(Player player, Location location, Particle particle) {
-        double radius = 2.5;
-        int countPerLayer = 1; // Number of particles to spawn per layer
-        double offset = 0.28; // Half of the block size for offsetting (smaller value for tighter surrounding)
+    // One packet per effect: the client scatters the particles itself around the
+    // point it is given. The spreads are those of the box / ring the particles
+    // used to be sent in, one packet each.
 
-        // Loop to create a cuboid shape around the block
-        for (int x = -1; x <= 1; x++) { // X dimension
-            for (int z = -1; z <= 1; z++) { // Z dimension
-                for (int y = 0; y <= 1; y++) { // Y dimension, only the top and middle
-                    for (int i = 0; i < countPerLayer; i++) {
-                        double randomX = radius * (Math.random() * offset * 2) - offset+0.1; // Random x offset within the range
-                        double randomZ = radius * (Math.random() * offset * 1.9) - offset+0.1; // Random z offset within the range
-                        double randomY = radius * Math.random() * 0.4; // Random y offset to create vertical variation
-
-                        // Spawn particles at the calculated position relative to the block
-                        player.spawnParticle(particle,
-                                location.getX() + randomX,
-                                location.getY() + randomY,
-                                location.getZ() + randomZ,
-                                1);
-                    }
-                }
-            }
-        }
+    /** Particles around a block; {@code data} is null for particles that take none. */
+    private <T> void spawnAroundBlock(Player player, Location location, Particle particle, T data) {
+        player.spawnParticle(particle, location.getX() + 0.5, location.getY() + 0.5, location.getZ() + 0.5,
+                18, 0.4, 0.3, 0.4, data);
     }
 
-    private void spawnSurroundingNPCParticles(Player player, Location location, Particle particle) {
+    /** Particles around an NPC, over its whole height; {@code data} is null for particles that take none. */
+    private <T> void spawnAroundNPC(Player player, Location location, Particle particle, T data) {
         location.add(0, 1.0, 0); // Shift upward to center on NPC's body (adjust as needed)
-
-        // Parameters for the particle effect
-        double radius = 0.5; // The radius around the NPC
-        int particleCount = 10; // Number of particles to spawn
-        double height = 2.0; // Height of the NPC's hitbox to spread particles vertically
-
-        // Loop to spawn particles in a circular pattern around the NPC
-        for (int i = 0; i < particleCount; i++) {
-            double angle = 2 * Math.PI * i / particleCount; // Evenly distribute particles around a circle
-            double xOffset = radius * Math.cos(angle); // Calculate X offset
-            double zOffset = radius * Math.sin(angle); // Calculate Z offset
-            double yOffset = Math.random() * height - (height / 2); // Random height offset centered on NPC
-
-            // Spawn the particle at the calculated position
-            player.spawnParticle(particle,
-                    location.getX() + xOffset,
-                    location.getY() + yOffset,
-                    location.getZ() + zOffset,
-                    1);
-        }
+        player.spawnParticle(particle, location.getX(), location.getY(), location.getZ(),
+                10, 0.35, 0.6, 0.35, data);
     }
 
-    public void spawnVillagerHappyParticles(Player player, Location location) {
-        double radius = 2.5;
-        int countPerLayer = 1; // Number of particles to spawn per layer
-        double offset = 0.28; // Half of the block size for offsetting (smaller value for tighter surrounding)
-
-        // Loop to create a cuboid shape around the block
-        for (int x = -1; x <= 1; x++) { // X dimension
-            for (int z = -1; z <= 1; z++) { // Z dimension
-                for (int y = 0; y <= 1; y++) { // Y dimension, only the top and middle
-                    for (int i = 0; i < countPerLayer; i++) {
-                        double randomX = radius * (Math.random() * offset * 2) - offset+0.1; // Random x offset within the range
-                        double randomZ = radius * (Math.random() * offset * 1.9) - offset+0.1; // Random z offset within the range
-                        double randomY = radius * Math.random() * 0.4; // Random y offset to create vertical variation
-
-                        // Spawn particles at the calculated position relative to the block
-                        player.spawnParticle(Particle.HAPPY_VILLAGER,
-                                location.getX() + randomX,
-                                location.getY() + randomY,
-                                location.getZ() + randomZ,
-                                1);
-                    }
-                }
-            }
-        }
-    }
-
-    public void spawnVillagerHappyNPCParticles(Player player, Location location) {
-        location.add(0, 1.0, 0); // Shift upward to center on NPC's body (adjust as needed)
-
-        // Parameters for the particle effect
-        double radius = 0.5; // The radius around the NPC
-        int particleCount = 10; // Number of particles to spawn
-        double height = 2.0; // Height of the NPC's hitbox to spread particles vertically
-
-        // Loop to spawn particles in a circular pattern around the NPC
-        for (int i = 0; i < particleCount; i++) {
-            double angle = 2 * Math.PI * i / particleCount; // Evenly distribute particles around a circle
-            double xOffset = radius * Math.cos(angle); // Calculate X offset
-            double zOffset = radius * Math.sin(angle); // Calculate Z offset
-            double yOffset = Math.random() * height - (height / 2); // Random height offset centered on NPC
-
-            // Spawn the particle at the calculated position
-            player.spawnParticle(Particle.HAPPY_VILLAGER,
-                    location.getX() + xOffset,
-                    location.getY() + yOffset,
-                    location.getZ() + zOffset,
-                    1);
-        }
+    /** The dust of a "#RRGGBB" colour. */
+    private static Particle.DustOptions dust(String colorHex) {
+        Color color = Color.fromRGB(
+                Integer.valueOf(colorHex.substring(1, 3), 16),
+                Integer.valueOf(colorHex.substring(3, 5), 16),
+                Integer.valueOf(colorHex.substring(5, 7), 16)
+        );
+        return new Particle.DustOptions(color, 1.0F);
     }
 
     public void spawnVillagerHappyCircleParticles(Player player, Location location) {
@@ -263,98 +190,11 @@ public class ParticleHandler {
         }
     }
 
-    public void spawnRedstoneParticles(Player player, Location location, String colorHex) {
-        // Ensure the player meets the conditions for the interaction
-        // Get the color from the interaction data (assumed to be in hex format)
-
-        Color color = Color.fromRGB(
-                Integer.valueOf(colorHex.substring(1, 3), 16),
-                Integer.valueOf(colorHex.substring(3, 5), 16),
-                Integer.valueOf(colorHex.substring(5, 7), 16)
-        );
-
-        // Create the DustOptions for the redstone particle
-        Particle.DustOptions dustOptions = new Particle.DustOptions(color, 1.0F);
-
-        // Spawn the redstone particles around the location for the player
-        double radius = 2.5; // The radius in which particles will spawn around the target location
-        int countPerLayer = 1; // Number of particles to spawn per layer
-        double offset = 0.28; // The offset for randomness (to make the particles more spread out)
-
-        // Loop to create a cuboid shape around the block
-        for (int x = -1; x <= 1; x++) { // X dimension
-            for (int z = -1; z <= 1; z++) { // Z dimension
-                for (int y = 0; y <= 1; y++) { // Y dimension, only the top and middle
-                    for (int i = 0; i < countPerLayer; i++) {
-                        // Randomize the position a bit around the location to create a spread
-                        double randomX = radius * (Math.random() * offset * 2) - offset + 0.1; // Random x offset within the range
-                        double randomZ = radius * (Math.random() * offset * 1.9) - offset + 0.1; // Random z offset within the range
-                        double randomY = radius * Math.random() * 0.4; // Random y offset to create vertical variation
-
-                        // Spawn the particle at the randomized position relative to the location
-                        player.spawnParticle(Particle.DUST,
-                                location.getX() + randomX,
-                                location.getY() + randomY,
-                                location.getZ() + randomZ,
-                                1, dustOptions);
-                    }
-                }
-            }
-        }
-    }
-
-    public void spawnRedstoneNPCParticles(Player player, Location location, String colorHex) {
-        // Ensure the player meets the conditions for the interaction
-
-
-
-        // Get the color from the interaction data (assumed to be in hex format)
-
-        Color color = Color.fromRGB(
-                Integer.valueOf(colorHex.substring(1, 3), 16),
-                Integer.valueOf(colorHex.substring(3, 5), 16),
-                Integer.valueOf(colorHex.substring(5, 7), 16)
-        );
-
-        // Create the DustOptions for the redstone particle
-        Particle.DustOptions dustOptions = new Particle.DustOptions(color, 1.0F);
-
-        location.add(0, 1.0, 0); // Shift upward to center on NPC's body (adjust as needed)
-
-        // Parameters for the particle effect
-        double radius = 0.5; // The radius around the NPC
-        int particleCount = 10; // Number of particles to spawn
-        double height = 2.0; // Height of the NPC's hitbox to spread particles vertically
-
-        // Loop to spawn particles in a circular pattern around the NPC
-        for (int i = 0; i < particleCount; i++) {
-            double angle = 2 * Math.PI * i / particleCount; // Evenly distribute particles around a circle
-            double xOffset = radius * Math.cos(angle); // Calculate X offset
-            double zOffset = radius * Math.sin(angle); // Calculate Z offset
-            double yOffset = Math.random() * height - (height / 2); // Random height offset centered on NPC
-
-            // Spawn the particle at the calculated position
-            player.spawnParticle(Particle.DUST,
-                    location.getX() + xOffset,
-                    location.getY() + yOffset,
-                    location.getZ() + zOffset,
-                    1, dustOptions);
-        }
-    }
-
     public void spawnRedstoneParticleCircle(Player player, Location location, String colorHex) {
         int count = 15; // Total number of particles
         double radius = 0.5; // Distance from the center of the block to spawn particles
 
-        // Parse the color from the hex string
-        Color color = Color.fromRGB(
-                Integer.valueOf(colorHex.substring(1, 3), 16),
-                Integer.valueOf(colorHex.substring(3, 5), 16),
-                Integer.valueOf(colorHex.substring(5, 7), 16)
-        );
-
-        // Create the DustOptions for the redstone particle
-        Particle.DustOptions dustOptions = new Particle.DustOptions(color, 1.0F);
+        Particle.DustOptions dustOptions = dust(colorHex);
 
         for (int i = 0; i < count; i++) {
             double angle = Math.random() * Math.PI * 2; // Random angle for circular distribution
