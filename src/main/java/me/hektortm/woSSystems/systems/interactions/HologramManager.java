@@ -25,13 +25,17 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class HologramManager {
+public class HologramManager implements Listener {
 
     private static final double RENDER_DISTANCE_SQUARED = 16.0 * 16.0;
     private static final double BLOCK_Y_OFFSET = 1.5;
@@ -175,13 +179,11 @@ public class HologramManager {
                 destroyEntities(player, current.entityIds());
                 removeState(player, hologramKey);
                 spawnHolograms(player, visible, location, npc, entityHeight, hologramKey, structFP, contentFP, key);
-            } else {
-                // Always refresh the text metadata so the entity stays visible on the client
-                // (acts as a heartbeat — no destroy/spawn means no flicker)
+            } else if (!current.contentFingerprint().equals(contentFP)) {
+                // The text or the settings changed (a cooldown counting down, an edit in the portal):
+                // update the entity in place, no destroy/spawn means no flicker. Unchanged: nothing is sent.
                 sendMetadataUpdate(player, current.entityIds().get(0), visible, key);
-                if (!current.contentFingerprint().equals(contentFP)) {
-                    setState(player, hologramKey, new HologramState(structFP, contentFP, current.entityIds()));
-                }
+                setState(player, hologramKey, new HologramState(structFP, contentFP, current.entityIds()));
             }
         } else {
             HologramState current = getState(player, hologramKey);
@@ -232,13 +234,17 @@ public class HologramManager {
         return sb.toString();
     }
 
-    /** Resolved text content of all visible lines per player. A change here only needs a metadata update. */
+    /**
+     * Resolved text of all visible lines per player, and their settings. A change here only needs a
+     * metadata update, and it is the only thing that sends one.
+     */
     private String buildContentFingerprint(Player player, List<InteractionHologram> holograms, InteractionKey key) {
         StringBuilder sb = new StringBuilder();
         for (InteractionHologram h : holograms) {
             for (String line : h.getHologram()) {
                 sb.append(replacePlaceholders(line, player, key)).append('\n');
             }
+            sb.append(h.getSettings()).append('\u0000');
         }
         return sb.toString();
     }
@@ -485,6 +491,18 @@ public class HologramManager {
 
     private void setState(Player player, String hologramKey, HologramState state) {
         activeHolograms.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(hologramKey, state);
+    }
+
+    // The client forgets every entity when it respawns or changes world; forget
+    // them here too, so the next pass draws them again.
+    @EventHandler
+    public void onRespawn(PlayerRespawnEvent event) {
+        removeAllHolograms(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        removeAllHolograms(event.getPlayer());
     }
 
     /** Remove ALL holograms for a player (e.g. on disconnect or plugin disable). */
