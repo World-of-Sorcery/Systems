@@ -13,11 +13,15 @@ import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import static me.hektortm.woSSystems.systems.interactions.InterListener.buildKey;
 
@@ -44,6 +48,12 @@ public class InteractionManager {
     private final ActionHandler actionHandler = plugin.getActionHandler();
     private final HologramManager hologramManager;
     private final DisplayManager displayManager;
+
+    /** How far the visuals reach: the displays' range, the furthest of them (holograms and labels end sooner). */
+    private static final double VISUAL_RANGE_SQUARED = DisplayManager.RENDER_DISTANCE_SQUARED;
+    private static final long CLICK_COOLDOWN_MS = 250;
+    /** player → (interaction id → when they last ran it by clicking). */
+    private final Map<UUID, Map<String, Long>> lastClicks = new HashMap<>();
 
     /**
      * @param hub the DAO hub used to access interaction and condition data
@@ -72,6 +82,38 @@ public class InteractionManager {
         return hologramManager;
     }
 
+    /** A player and where they stand, read once per pass of the interaction task. */
+    private record Viewer(Player player, World world, double x, double y, double z) {
+        static Viewer of(Player player) {
+            Location at = player.getLocation();
+            return new Viewer(player, at.getWorld(), at.getX(), at.getY(), at.getZ());
+        }
+
+        /** Whether the player is in the same world and close enough to see anything drawn there. */
+        boolean near(Location location) {
+            if (!world.equals(location.getWorld())) return false;
+            double dx = x - location.getX(), dy = y - location.getY(), dz = z - location.getZ();
+            return dx * dx + dy * dy + dz * dz <= VISUAL_RANGE_SQUARED;
+        }
+    }
+
+    /**
+     * As {@link #triggerInteraction}, for a click: a player's clicks on one
+     * interaction closer together than {@link #CLICK_COOLDOWN_MS} count as one
+     * (a click arrives once per hand, and again while the button is held).
+     */
+    public void triggerByClick(String interactionId, Player player, InteractionKey key) {
+        long now = System.currentTimeMillis();
+        Long last = lastClicks.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(interactionId, now);
+        if (last != null && now - last < CLICK_COOLDOWN_MS) return;
+        triggerInteraction(interactionId, player, key);
+    }
+
+    /** Forgets a player's click cooldowns (on quit). */
+    public void removeClickCooldowns(Player player) {
+        lastClicks.remove(player.getUniqueId());
+    }
+
     private Interaction getInteraction(String id) {
         Interaction inter = hub.getInteractionDAO().getInteractionByID(id);
         return inter;
@@ -83,7 +125,7 @@ public class InteractionManager {
      * <p>Every 20 ticks (once per second) the task loads the full interaction
      * cache asynchronously and then, back on the main thread, spawns particles
      * and manages holograms and displays for each interaction's block locations
-     * and bound NPCs for every online player. A second, faster task animates the
+     * and bound NPCs for every online player near them. A second, faster task animates the
      * displays and checks which players walked into one.</p>
      */
     public void interactionTask() {
@@ -102,11 +144,16 @@ public class InteractionManager {
                         labels.beginPass();
                         hologramManager.beginPass();
                         displayManager.beginPass();
+                        List<Viewer> viewers = new ArrayList<>();
+                        for (Player player : Bukkit.getOnlinePlayers()) viewers.add(Viewer.of(player));
                         for (Interaction inter : interactions) {
                             for (Location location : inter.getBlockLocations()) {
                                 if (location != null) {
-                                    for (Player player : Bukkit.getOnlinePlayers()) {
-                                        InteractionKey key = buildKey(location);
+                                    InteractionKey key = buildKey(location);
+                                    for (Viewer viewer : viewers) {
+                                        // Out of sight: nothing is drawn, and the end of the pass removes what was.
+                                        if (!viewer.near(location)) continue;
+                                        Player player = viewer.player();
                                         particleHandler.spawnParticlesForPlayer(player, inter, location, false, key);
                                         hologramManager.handleHolograms(player, inter, location, false, key);
                                         displayManager.handleDisplays(player, inter, location, false, key);
@@ -115,13 +162,17 @@ public class InteractionManager {
                                 }
                             }
                             for (int id : inter.getNpcIDs()) {
-                                for (Player player : Bukkit.getOnlinePlayers()) {
-                                    NPC npc1 = CitizensAPI.getNPCRegistry().getById(id);
-                                    if (npc1 == null || !npc1.isSpawned() || npc1.getEntity() == null) {
-                                        continue;
-                                    }
-                                    Location location = npc1.getEntity().getLocation();
-                                    InteractionKey key = new InteractionKey("npc:" + id);
+                                NPC npc1 = CitizensAPI.getNPCRegistry().getById(id);
+                                if (npc1 == null || !npc1.isSpawned() || npc1.getEntity() == null) {
+                                    continue;
+                                }
+                                Location at = npc1.getEntity().getLocation();
+                                InteractionKey key = new InteractionKey("npc:" + id);
+                                for (Viewer viewer : viewers) {
+                                    if (!viewer.near(at)) continue;
+                                    Player player = viewer.player();
+                                    // Its own copy for each player: the particle handler moves the location it is given.
+                                    Location location = at.clone();
                                     particleHandler.spawnParticlesForPlayer(player, inter, location, true, key);
                                     hologramManager.handleHolograms(player, inter, location, true, key, npc1.getEntity().getHeight());
                                     displayManager.handleDisplays(player, inter, location, true, key);
@@ -137,6 +188,7 @@ public class InteractionManager {
             }
         }.runTaskTimer(plugin, 0L, 20L);
 
+        Bukkit.getPluginManager().registerEvents(hologramManager, plugin);
         Bukkit.getPluginManager().registerEvents(displayManager, plugin);
         displayManager.listenForClicks();
         Bukkit.getScheduler().runTaskTimer(plugin, displayManager::tick, DisplayManager.TICK_STEP, DisplayManager.TICK_STEP);

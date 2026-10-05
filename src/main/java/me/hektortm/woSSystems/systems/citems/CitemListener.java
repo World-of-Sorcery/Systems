@@ -260,7 +260,7 @@ public class CitemListener implements Listener {
         PersistentDataContainer data = meta.getPersistentDataContainer();
         String actionId = data.get(Keys.LEFT_ACTION.get(), PersistentDataType.STRING);
         if (actionId != null) {
-            interactionManager.triggerInteraction(actionId, p, null);
+            interactionManager.triggerByClick(actionId, p, null);
         }
     }
 
@@ -273,7 +273,7 @@ public class CitemListener implements Listener {
         PersistentDataContainer data = meta.getPersistentDataContainer();
         String actionId = data.get(Keys.RIGHT_ACTION.get(), PersistentDataType.STRING);
         if (actionId != null) {
-            interactionManager.triggerInteraction(actionId, p, null);
+            interactionManager.triggerByClick(actionId, p, null);
         }
     }
 

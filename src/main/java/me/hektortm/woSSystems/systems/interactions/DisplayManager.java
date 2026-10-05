@@ -77,7 +77,7 @@ import java.util.stream.IntStream;
  */
 public class DisplayManager implements Listener {
 
-    private static final double RENDER_DISTANCE_SQUARED = 32.0 * 32.0;
+    static final double RENDER_DISTANCE_SQUARED = 16.0 * 16.0;
     /** How often {@link #tick} runs, in ticks. */
     public static final int TICK_STEP = 2;
     /** Ticks the client takes to slide a display after its NPC moved (the position is sent once a second). */

@@ -24,9 +24,6 @@ public class InterListener implements Listener {
     private final InteractionManager interactionManager = plugin.getInteractionManager();
     private final CitemManager citemManager = plugin.getCitemManager();
     private final DAOHub hub;
-    private final Map<Location, Long> blockCooldowns = new HashMap<>();
-    private final Map<String, Long> npcCooldowns = new HashMap<>();
-    private final Map<UUID, Long> displayCooldowns = new HashMap<>();
 
     public InterListener(DAOHub hub) {
         this.hub = hub;
@@ -45,33 +42,13 @@ public class InterListener implements Listener {
             if (block == null) return;
 
             Location blockLocation = block.getLocation();
-            long currentTime = System.currentTimeMillis();
-            long cooldownTime = 250; // 250 ms cooldown
-
-            if (blockCooldowns.containsKey(blockLocation)) {
-                long lastInteractionTime = blockCooldowns.get(blockLocation);
-                long elapsedTime = currentTime - lastInteractionTime;
-
-                if (elapsedTime < cooldownTime) {
-                    return; // Skip processing if block is on cooldown
-                }
-            }
-
-            // Update cooldown
-            blockCooldowns.put(blockLocation, currentTime);
 
             // Process interactions
-            if (hub.getInteractionDAO().getBound(blockLocation) != null) {
+            String bound = hub.getInteractionDAO().getBound(blockLocation);
+            if (bound != null) {
                 e.setCancelled(true);
-                if (touchOnly(hub.getInteractionDAO().getBound(blockLocation))) return;
-                InteractionKey key = buildKey(blockLocation);
-
-                switch (e.getAction()) {
-                    case RIGHT_CLICK_BLOCK:
-                    case LEFT_CLICK_BLOCK:
-                        interactionManager.triggerInteraction(hub.getInteractionDAO().getBound(blockLocation), p, key);
-                        break;
-                }
+                if (touchOnly(bound)) return;
+                interactionManager.triggerByClick(bound, p, buildKey(blockLocation));
             }
 
         }
@@ -83,7 +60,7 @@ public class InterListener implements Listener {
         String id = hub.getInteractionDAO().getNpcBound(npcid);
         if (touchOnly(id)) return;
         InteractionKey key = new InteractionKey("npc:"+npcid);
-        interactionManager.triggerInteraction(id, e.getClicker(), key);
+        interactionManager.triggerByClick(id, e.getClicker(), key);
     }
 
     /** An interaction with a touch display is run through that display, not by clicking the block or NPC. */

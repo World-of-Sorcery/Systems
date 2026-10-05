@@ -44,6 +44,7 @@ public class QuitListener implements Listener {
         hub.getUnlockableDAO().removeAllTemps(uuid); // queued write, non-blocking
         plugin.getInteractionManager().getHologramManager().removeAllHolograms(p);
         plugin.getInteractionManager().getDisplayManager().removeAllDisplays(p);
+        plugin.getInteractionManager().removeClickCooldowns(p);
         plugin.getPlayerRegions().remove(uuid);
 
 

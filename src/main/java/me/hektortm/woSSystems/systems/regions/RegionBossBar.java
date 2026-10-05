@@ -36,12 +36,12 @@ public class RegionBossBar {
     public void updateBossBar(Player p, String regionName) {
         BossBar bossBar = bossbars.get(p.getUniqueId());
 
-        if (regionName.isEmpty()) {
-            bossBar.name(Component.text(""));
+        if (bossBar == null) {
             return;
         }
 
-        if (bossBar == null) {
+        if (regionName.isEmpty()) {
+            bossBar.name(Component.text(""));
             return;
         }
 
