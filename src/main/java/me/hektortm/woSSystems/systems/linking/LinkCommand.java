@@ -2,15 +2,18 @@ package me.hektortm.woSSystems.systems.linking;
 
 import me.hektortm.woSSystems.systems.linking.sub.Website;
 import me.hektortm.woSSystems.utils.SubCommand;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
-public class LinkCommand implements CommandExecutor {
+public class LinkCommand implements CommandExecutor, TabCompleter {
 
     private final Map<String, SubCommand> subcommands = new HashMap<>();
 
@@ -39,5 +42,10 @@ public class LinkCommand implements CommandExecutor {
 
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(subcommands, sender, args);
     }
 }

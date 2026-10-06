@@ -30,7 +30,7 @@ help:
   trigger: "%cyan_300%/inter trigger <player> <id> §7- Trigger an interaction for a player."
   bind: "%cyan_300%/inter bind <id> §7- Bind an interaction to the block you're looking at."
   unbind: "%cyan_300%/inter unbind §7- Unbind the interaction of the block you're looking at."
-  npcbind: "%cyan_300%/inter npcbind §7- Bind an interaction to your selected NPC."
+  npcbind: "%cyan_300%/inter npcbind <id> §7- Bind an interaction to your selected NPC."
   npcunbind: "%cyan_300%/inter npcunbind §7- Unbind the interaction of your selected NPC."
   info: "%cyan_300%/inter info <npc|block> §7- Get information on the bound interaction."
   help: "%cyan_300%/inter help §7- Display this help message."

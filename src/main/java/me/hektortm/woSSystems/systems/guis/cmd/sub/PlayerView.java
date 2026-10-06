@@ -7,9 +7,11 @@ import me.hektortm.woSSystems.utils.PermissionUtil;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 /**
  * {@code /gui playerview <player> <id>[:page]}: opens a GUI for the sender as
@@ -32,6 +34,11 @@ public class PlayerView extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.GUI_PLAYERVIEW;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("guis"));
     }
 
     @Override

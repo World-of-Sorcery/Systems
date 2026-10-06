@@ -4,10 +4,12 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import static me.hektortm.woSSystems.utils.Operations.RESET;
+import java.util.List;
 
 
 public class GlobalResetCommand extends SubCommand {
@@ -25,6 +27,11 @@ public class GlobalResetCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.STATS_GLOBAL_RESET;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.content("globalstats"));
     }
 
     @Override

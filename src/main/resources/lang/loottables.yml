@@ -1,7 +1,8 @@
 error:
   item: "The Citem '%id%' does not exist."
+  not-found: "There is no loot table '%id%'."
   usage:
-    loottable: "Usage: /loottable <trigger|chest>"
+    loottable: "Usage: /loottable <trigger|chest|help>"
     trigger: "Usage: /loottable trigger <player> <id>"
 info:
   invalid-rows: "Invalid Number of rows. Use 1-6 Rows"
@@ -11,3 +12,9 @@ info:
 
 triggered: "§aYou have triggered the loot table §e'%id%' §afor §e%player%§a."
 chest: "§aYou have opened the chest LT §e'%id%' §afor §e%player%§a."
+
+help:
+  header: "Loot Table Commands:"
+  trigger: "%cyan_300%/loottable trigger <player> <id> §7- Roll a loot table for a player."
+  chest: "%cyan_300%/loottable chest <rows> <player> <id> §7- Open a chest (1-6 rows) filled from a loot table for a player."
+  help: "%cyan_300%/loottable help §7- Display this help message."

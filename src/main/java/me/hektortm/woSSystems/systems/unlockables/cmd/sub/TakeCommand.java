@@ -7,10 +7,12 @@ import me.hektortm.woSSystems.utils.Operations;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 public class TakeCommand extends SubCommand {
 
@@ -30,6 +32,11 @@ public class TakeCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.UNLOCKABLE_TAKE;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("unlockables"));
     }
 
     @Override

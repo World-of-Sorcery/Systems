@@ -39,6 +39,7 @@ final class WebActions {
             case "dialog" -> showDialog(player, id);
             case "loottable" -> rollLoottable(player, id);
             case "quest" -> startQuest(player, id);
+            case "cscreen" -> openCscreen(player, id);
             default -> new Result(400, "unknown_action", "Unknown action '" + action + "'");
         };
     }
@@ -74,6 +75,11 @@ final class WebActions {
         if (hub.getLoottablesDAO().getLoottable(id) == null) return Result.notFound("loot table", id);
         plugin.getLootTableManager().triggerLoottable(player, Bukkit.getConsoleSender(), id);
         return Result.ok("Rolled loot table " + id);
+    }
+
+    private Result openCscreen(Player player, String id) {
+        if (!plugin.getCscreenManager().open(player, id)) return Result.notFound("custom screen", id);
+        return Result.ok("Opened screen " + id);
     }
 
     private Result startQuest(Player player, String id) {

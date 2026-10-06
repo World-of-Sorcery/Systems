@@ -2,6 +2,8 @@ package me.hektortm.woSSystems.utils;
 
 import org.bukkit.command.CommandSender;
 
+import java.util.List;
+
 /**
  * Abstract base for all sub-command implementations.
  *
@@ -39,6 +41,16 @@ public abstract class SubCommand {
      */
     public boolean requiresPermission() {
         return getPermission() != null;
+    }
+
+    /**
+     * The sub-command's arguments in order, for tab completion. Without an override nothing
+     * is suggested after the sub-command's name.
+     *
+     * @return what can be suggested for each argument
+     */
+    public List<TabArg> arguments() {
+        return List.of();
     }
 
 }

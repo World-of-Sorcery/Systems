@@ -1,0 +1,22 @@
+# /cscreen: custom screens built in the portal.
+error:
+  offline: "%player% is not online."
+  unknown: "There is no custom screen '%id%'."
+  usage:
+    general: "Usage: /cscreen <open|close|help>"
+    open: "Usage: /cscreen open <player> <id>"
+    close: "Usage: /cscreen close <player>"
+opened: "Showing the screen %id% to %player%."
+closed: "Closed %player%'s screen."
+
+# Buttons a screen gets when it has none of its own.
+button:
+  ok: "OK"
+  yes: "§aYes"
+  no: "§cNo"
+
+help:
+  header: "Custom Screen Commands:"
+  open: "%cyan_300%/cscreen open <player> <id> §7- Show a custom screen to a player."
+  close: "%cyan_300%/cscreen close <player> §7- Close the screen a player has open."
+  help: "%cyan_300%/cscreen help §7- Display this help message."

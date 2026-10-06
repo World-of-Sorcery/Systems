@@ -8,13 +8,17 @@ import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.model.Currency;
 import me.hektortm.wosCore.LangManager;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.OptionalLong;
+import java.util.List;
 
 import static me.hektortm.wosCore.Utils.error;
 
@@ -22,7 +26,9 @@ import static me.hektortm.wosCore.Utils.error;
  * /pay &lt;player&gt; &lt;currency&gt; &lt;amount&gt;: moves money from the sender to another
  * online player as one atomic transfer (never created or lost in between).
  */
-public class PayCommand implements CommandExecutor {
+public class PayCommand implements CommandExecutor, TabCompleter {
+
+    private static final List<TabArg> ARGUMENTS = List.of(TabArg.PLAYER, TabArg.content("currencies"), TabArg.NONE);
 
     private final EcoManager ecoManager;
     private final LangManager lang;
@@ -88,5 +94,10 @@ public class PayCommand implements CommandExecutor {
         Eco.actionBar(target, lang, "actionbar.given", currency, amount);
         Eco.actionBar(p, lang, "actionbar.taken", currency, amount);
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(ARGUMENTS, sender, args);
     }
 }

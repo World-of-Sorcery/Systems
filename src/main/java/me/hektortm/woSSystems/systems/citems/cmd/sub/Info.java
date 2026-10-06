@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.citems.cmd.sub;
 
 import me.hektortm.woSSystems.utils.Keys;
+import me.hektortm.woSSystems.utils.PermissionUtil;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
@@ -29,14 +30,23 @@ public class Info extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
+        if (!PermissionUtil.isPlayer(sender)) return;
         Player p = (Player) sender;
         ItemStack item = p.getInventory().getItemInMainHand();
 
+        // An empty hand has no meta.
         ItemMeta meta = item.getItemMeta();
-
+        if (meta == null) {
+            Utils.error(sender, "citems", "error.holding-item");
+            return;
+        }
 
         PersistentDataContainer data = meta.getPersistentDataContainer();
         String itemId = data.get(Keys.ID.get(), PersistentDataType.STRING);
+        if (itemId == null) {
+            Utils.error(sender, "citems", "error.not-citem");
+            return;
+        }
 
         MiniMessage mm = MiniMessage.miniMessage();
 

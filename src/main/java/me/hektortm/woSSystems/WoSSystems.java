@@ -135,6 +135,7 @@ public final class WoSSystems extends JavaPlugin {
     private Coinflip coinflipCommand;
     private LoottableManager lootTableManager;
     private GUIManager guiManager;
+    private me.hektortm.woSSystems.systems.cscreens.CscreenManager cscreenManager;
     private BossBarManager bossBarManager;
     private TimeEvents timeEvents;
     private TimeManager timeManager;
@@ -182,6 +183,11 @@ public final class WoSSystems extends JavaPlugin {
             // Content and player/game state come from wos-api (only recipes still use MySQL).
             ContentRegistry content = new ContentRegistry(this);
             daoHub = new DAOHub(databaseManager, core.getApi(), content);
+            // Tab completion suggests the ids of whatever content is loaded.
+            me.hektortm.woSSystems.utils.TabCompletion.contentSource(type -> {
+                var store = content.store(type);
+                return store == null ? java.util.List.of() : store.asMap().keySet();
+            });
             // Registered before anything else so sessions load ahead of other login handlers.
             eventReg(daoHub.getSessions());
 
@@ -224,6 +230,7 @@ public final class WoSSystems extends JavaPlugin {
         guiManager = new GUIManager(daoHub);
 
         actionHandler = new ActionHandler(daoHub);
+        cscreenManager = new me.hektortm.woSSystems.systems.cscreens.CscreenManager(daoHub);
         interactionManager = new InteractionManager(daoHub);
         cooldownManager = new CooldownManager(daoHub);
         nickManager = new NicknameManager(daoHub);
@@ -257,10 +264,12 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "cooldowns", core);
             lang.loadLangFileExternal(this, "interactions", core);
             lang.loadLangFileExternal(this, "guis", core);
+            lang.loadLangFileExternal(this, "cscreens", core);
             lang.loadLangFileExternal(this, "dialogs", core);
             lang.loadLangFileExternal(this, "global_stats", core);
             lang.loadLangFileExternal(this, "bugs", core);
             lang.loadLangFileExternal(this, "debug", core);
+            lang.loadLangFileExternal(this, "help", core);
         } else {
             getLogger().severe("WoSCore not found. Disabling WoSSystems");
         }
@@ -446,8 +455,10 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("titles", new QuickCommands.TitleCommand());
         cmdReg("profile", new ProfileCommand(profileDialogs));
         cmdReg("gui", new GUICommand(daoHub));
+        cmdReg("cscreen", new me.hektortm.woSSystems.systems.cscreens.cmd.CscreenCommand(cscreenManager));
         cmdReg("debugcmd", new debug(daoHub));
         cmdReg("wosdebug", new DebugCommand(debugMode));
+        cmdReg("woshelp", new me.hektortm.woSSystems.systems.help.StaffHelpCommand());
         cmdReg("cooldown", new CooldownCommand(daoHub));
         cmdReg("calendar", new Calender());
         cmdReg("link", new LinkCommand());
@@ -641,6 +652,9 @@ public final class WoSSystems extends JavaPlugin {
     }
     public GUIManager getGuiManager() {
         return guiManager;
+    }
+    public me.hektortm.woSSystems.systems.cscreens.CscreenManager getCscreenManager() {
+        return cscreenManager;
     }
     public DebugMode getDebugMode() {
         return debugMode;

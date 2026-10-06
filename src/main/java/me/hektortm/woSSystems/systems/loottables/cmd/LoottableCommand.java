@@ -5,20 +5,24 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.loottables.LoottableManager;
 import me.hektortm.woSSystems.systems.loottables.cmd.sub.Chest;
 import me.hektortm.woSSystems.systems.loottables.cmd.sub.Trigger;
+import me.hektortm.woSSystems.utils.HelpSubCommand;
 import me.hektortm.woSSystems.utils.PermissionUtil;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
 
-public class LoottableCommand implements CommandExecutor {
+public class LoottableCommand implements CommandExecutor, TabCompleter {
 
-    private final Map<String, SubCommand> subCommands = new HashMap<>();
+    private final Map<String, SubCommand> subCommands = new LinkedHashMap<>();
     private final DAOHub hub;
     private final LoottableManager loottableManager;
 
@@ -28,6 +32,7 @@ public class LoottableCommand implements CommandExecutor {
 
         subCommands.put("trigger", new Trigger(loottableManager));
         subCommands.put("chest", new Chest(hub));
+        subCommands.put("help", new HelpSubCommand(subCommands.values(), "loottables"));
     }
 
     @Override
@@ -48,5 +53,10 @@ public class LoottableCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(subCommands, sender, args);
     }
 }

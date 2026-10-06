@@ -4,10 +4,12 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import static me.hektortm.woSSystems.utils.Operations.GIVE;
+import java.util.List;
 
 
 public class GlobalGiveCommand extends SubCommand {
@@ -25,6 +27,11 @@ public class GlobalGiveCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.STATS_GLOBAL_GIVE;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.content("globalstats"), TabArg.NONE);
     }
 
     @Override

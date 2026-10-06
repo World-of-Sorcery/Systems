@@ -1,33 +1,37 @@
 package me.hektortm.woSSystems.systems.citems.cmd;
 
 import me.hektortm.woSSystems.database.DAOHub;
-import me.hektortm.woSSystems.systems.citems.cmd.sub.*;
-import me.hektortm.woSSystems.systems.cooldowns.cmd.sub.Remove;
+import me.hektortm.woSSystems.systems.citems.cmd.sub.Give;
+import me.hektortm.woSSystems.systems.citems.cmd.sub.Info;
+import me.hektortm.woSSystems.systems.citems.cmd.sub.Remove;
+import me.hektortm.woSSystems.utils.HelpSubCommand;
 import me.hektortm.woSSystems.utils.PermissionUtil;
-import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
 
-public class CitemCommand implements CommandExecutor {
+public class CitemCommand implements CommandExecutor, TabCompleter {
 
-    private final Map<String, SubCommand> subCommands = new HashMap<>();
-    public Map<Permissions, String> permCmds = new HashMap<>();
+    private final Map<String, SubCommand> subCommands = new LinkedHashMap<>();
     private final DAOHub hub;
 
 
     public CitemCommand(DAOHub hub) {
         this.hub = hub;
 
-        subCommands.put("give", new Give());
         subCommands.put("info", new Info());
+        subCommands.put("give", new Give());
         subCommands.put("remove", new Remove(hub));
+        subCommands.put("help", new HelpSubCommand(subCommands.values(), "citems"));
     }
 
     // /citem -> rename <-
@@ -50,5 +54,10 @@ public class CitemCommand implements CommandExecutor {
         }
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(subCommands, sender, args);
     }
 }

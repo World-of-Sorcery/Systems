@@ -6,7 +6,7 @@ error:
   not-citem: "This item is not a valid Citem."
 info:
   usage:
-    citem: "Usage: /citem <info|give|remove>"
+    citem: "Usage: /citem <info|give|remove|help>"
     give: "Usage: /citem give <player> <id> [amount]"
     remove: "Usage: /citem remove <player> <id> [amount]"
     cgive: "Usage: /cgive <player> <id> [amount]"
@@ -17,8 +17,8 @@ stamp: "§aSuccessfully signed the current item."
 help:
   header: "Citem Commands:"
   info: "%cyan_300%/citem info §7- Displays info of the held Citem."
-  give: "%cyan_300%/cgive <player> <id> [amount] §7- Give a player a Citem."
-  remove: "%cyan_300%/cremove <player> <id> [amount] §7- Remove a Citem from a player."
+  give: "%cyan_300%/citem give <player> <id> [amount] §7- Give a player a Citem (short: /cgive)."
+  remove: "%cyan_300%/citem remove <player> <id> [amount] §7- Remove a Citem from a player (short: /cremove)."
   help: "%cyan_300%/citem help §7- Displays this help message."
 
 

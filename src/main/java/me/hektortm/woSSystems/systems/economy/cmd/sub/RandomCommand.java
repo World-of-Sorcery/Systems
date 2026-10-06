@@ -10,11 +10,13 @@ import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.woSSystems.utils.model.Currency;
 import me.hektortm.wosCore.LangManager;
 import me.hektortm.wosCore.logging.LogManager;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.OptionalLong;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.List;
 
 import static me.hektortm.wosCore.Utils.error;
 
@@ -39,6 +41,11 @@ public class RandomCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.ECONOMY_RANDOM;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("currencies"), TabArg.NONE, TabArg.NONE);
     }
 
     @Override

@@ -14,10 +14,13 @@ import me.hektortm.wosCore.LangManager;
 import me.hektortm.wosCore.Utils;
 import me.hektortm.wosCore.api.ApiException;
 import me.hektortm.wosCore.api.WosApi;
+import me.hektortm.woSSystems.utils.TabArg;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -30,7 +33,9 @@ import static me.hektortm.wosCore.Utils.error;
  * counting everyone (online or not). Without a currency it shows the first one.
  * The list comes from wos-api, off the main thread.
  */
-public class BaltopCommand implements CommandExecutor {
+public class BaltopCommand implements CommandExecutor, TabCompleter {
+
+    private static final List<TabArg> ARGUMENTS = List.of(TabArg.content("currencies"), TabArg.NONE);
     static final int PAGE_SIZE = 10;
 
     private final EcoManager ecoManager;
@@ -114,5 +119,10 @@ public class BaltopCommand implements CommandExecutor {
         }
         WoSSystems.ecoMsg2Values(sender, "economy", "baltop.header", "%currency%", Eco.label(currency), "%page%", String.valueOf(page));
         for (String line : lines) sender.sendMessage(Utils.parseColorCodes(line));
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(ARGUMENTS, sender, args);
     }
 }

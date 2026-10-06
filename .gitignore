@@ -9,6 +9,9 @@ dependency-reduced-pom.xml
 *.ipr
 out/
 
+.claude-flow
+.swarm
+
 # macOS
 .DS_Store
 

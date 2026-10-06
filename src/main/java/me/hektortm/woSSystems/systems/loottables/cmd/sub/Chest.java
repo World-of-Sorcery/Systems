@@ -7,6 +7,7 @@ import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.woSSystems.utils.model.Loottable;
 import me.hektortm.woSSystems.utils.model.LoottableItem;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -35,6 +36,11 @@ public class Chest extends SubCommand {
     }
 
     @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.of("1", "2", "3", "4", "5", "6"), TabArg.PLAYER, TabArg.content("loottables"));
+    }
+
+    @Override
     public void execute(CommandSender sender, String[] args) {
 
 
@@ -58,6 +64,10 @@ public class Chest extends SubCommand {
         String id = args[2];
         if (target == null) {
             Utils.error(sender, "general", "error.online");
+            return;
+        }
+        if (hub.getLoottablesDAO().getLoottable(id) == null) {
+            Utils.error(sender, "loottables", "error.not-found", "%id%", id);
             return;
         }
         Inventory inv = getChest(rows, id, target);

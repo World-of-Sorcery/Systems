@@ -4,7 +4,9 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.command.CommandSender;
+import java.util.List;
 
 public class GlobalViewCommand extends SubCommand {
 
@@ -26,6 +28,11 @@ public class GlobalViewCommand extends SubCommand {
 
 
     //TODO: WIP needed
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.content("globalstats"));
+    }
+
     @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 1 || args.length > 2) {

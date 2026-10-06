@@ -4,16 +4,18 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import java.util.List;
 
-public class remove extends SubCommand {
+public class Remove extends SubCommand {
 
     private final DAOHub hub;
 
-    public remove(DAOHub hub) {
+    public Remove(DAOHub hub) {
         this.hub = hub;
     }
 
@@ -28,9 +30,14 @@ public class remove extends SubCommand {
     }
 
     @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("citems"), TabArg.NONE);
+    }
+
+    @Override
     public void execute(CommandSender sender, String[] args) {
         if (args.length < 2 || args.length > 3) {
-            Utils.error(sender, "citems", "error.usage.cremove");
+            Utils.info(sender, "citems", "info.usage.remove");
             return;
         }
 
@@ -48,7 +55,7 @@ public class remove extends SubCommand {
             try {
                 amount = Integer.parseInt(args[2]);
             } catch (NumberFormatException e) {
-                Utils.error(sender, "citems", "error.usage.cremove");
+                Utils.info(sender, "citems", "info.usage.remove");
                 return;
             }
         }

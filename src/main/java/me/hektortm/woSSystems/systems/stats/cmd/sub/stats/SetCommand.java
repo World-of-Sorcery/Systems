@@ -4,12 +4,14 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import static me.hektortm.woSSystems.utils.Operations.SET;
+import java.util.List;
 
 
 public class SetCommand extends SubCommand {
@@ -27,6 +29,11 @@ public class SetCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.STATS_SET;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("stats"), TabArg.NONE);
     }
 
     @Override

@@ -3,6 +3,7 @@ package me.hektortm.woSSystems.utils;
 import me.hektortm.woSSystems.utils.Operations;
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.systems.cscreens.CscreenRules;
 import me.hektortm.woSSystems.systems.debug.DebugFormat;
 import me.hektortm.woSSystems.utils.model.Cooldown;
 import me.hektortm.woSSystems.utils.model.InteractionKey;
@@ -21,6 +22,7 @@ import javax.annotation.Nullable;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -76,6 +78,7 @@ public class ActionHandler {
         INTERACTION("interaction"),
         GUI("gui"),
         DIALOG("dialog"),
+        CSCREEN("cscreen"),
         LOOTTABLE("loottable"),
         QUEST("quest");
 
@@ -129,9 +132,23 @@ public class ActionHandler {
      */
     public void executeActions(Player player, List<String> actions, SourceType sourceType, String sourceID, @Nullable InteractionKey key,
                                @Nullable String detail) {
+        executeActions(player, actions, sourceType, sourceID, key, detail, null);
+    }
+
+    /**
+     * As {@link #executeActions(Player, List, SourceType, String, InteractionKey, String)}, for
+     * the commands of a custom screen's button.
+     *
+     * @param inputs what the player typed and picked on the screen, by input key:
+     *               {@code {input.<key>}} in an action becomes that value. The values are
+     *               put in after the placeholders, so they are never read as one. Null
+     *               when the actions are not a screen's.
+     */
+    public void executeActions(Player player, List<String> actions, SourceType sourceType, String sourceID, @Nullable InteractionKey key,
+                               @Nullable String detail, @Nullable Map<String, String> inputs) {
         boolean debugging = plugin.getDebugMode().isOn(player);
         if (debugging) player.sendMessage(DebugFormat.header(sourceType.getType(), sourceID, detail, key == null ? null : key.getKey()));
-        run(player, actions, 0, sourceType, sourceID, key, debugging);
+        run(player, actions, 0, sourceType, sourceID, key, debugging, inputs);
     }
 
     /**
@@ -139,7 +156,7 @@ public class ActionHandler {
      * schedules the rest for later (never by sleeping: this is the server thread).
      */
     private void run(Player player, List<String> actions, int from, SourceType sourceType, String sourceID, @Nullable InteractionKey key,
-                     boolean debugging) {
+                     boolean debugging, @Nullable Map<String, String> inputs) {
         for (int i = from; i < actions.size(); i++) {
             // Strip surrounding quotes that may be stored in the DB
             String cmd = actions.get(i).trim();
@@ -147,7 +164,7 @@ public class ActionHandler {
                 cmd = cmd.substring(1, cmd.length() - 1);
             }
             String written = cmd;
-            cmd = resolver.resolvePlaceholders(cmd, player, key);
+            cmd = CscreenRules.fillInputs(resolver.resolvePlaceholders(cmd, player, key), inputs);
             String parsedCommand = cmd.replace("@p", player.getName());
             if (debugging) player.sendMessage(DebugFormat.command(written, parsedCommand));
             if (cmd.startsWith("send_message")) {
@@ -164,7 +181,7 @@ public class ActionHandler {
                 }
                 int next = i + 1;
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (player.isOnline()) run(player, actions, next, sourceType, sourceID, key, debugging);
+                    if (player.isOnline()) run(player, actions, next, sourceType, sourceID, key, debugging, inputs);
                 }, wait);
                 return;
             }

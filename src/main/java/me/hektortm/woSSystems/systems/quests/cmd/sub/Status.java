@@ -8,11 +8,13 @@ import me.hektortm.woSSystems.systems.quests.model.Quest;
 import me.hektortm.woSSystems.systems.quests.model.QuestNode;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * /quest status [player]
@@ -35,6 +37,11 @@ public class Status extends SubCommand {
 
     @Override
     public Permissions getPermission() { return null; }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER);
+    }
 
     @Override
     public void execute(CommandSender sender, String[] args) {

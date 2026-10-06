@@ -6,9 +6,11 @@ import me.hektortm.woSSystems.systems.guis.GUIManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 public class Open extends SubCommand {
     private final WoSSystems plugin = WoSSystems.getPlugin(WoSSystems.class);
@@ -31,6 +33,11 @@ public class Open extends SubCommand {
     }
 
     @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("guis"));
+    }
+
+    @Override
     public void execute(CommandSender sender, String[] args) {
 
         if (args.length < 2) {
@@ -39,9 +46,21 @@ public class Open extends SubCommand {
         }
 
         Player p = Bukkit.getPlayer(args[0]);
+        if (p == null) {
+            Utils.error(sender, "general", "error.online");
+            return;
+        }
         String[] t = args[1].split(":");
         String id = t[0];
-        int page = t.length > 1 ? Integer.parseInt(t[1]) : 0;
+        int page = 0;
+        if (t.length > 1) {
+            try {
+                page = Integer.parseInt(t[1]);
+            } catch (NumberFormatException e) {
+                Utils.info(sender, "guis", "error.usage.open");
+                return;
+            }
+        }
 
         if(hub.getGuiDAO().getGUIbyId(id) != null) {
             manager.openGUI(p, id, page);

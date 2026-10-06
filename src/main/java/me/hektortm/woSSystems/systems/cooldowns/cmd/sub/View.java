@@ -6,11 +6,13 @@ import me.hektortm.woSSystems.utils.Parsers;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 
 import java.util.logging.Level;
+import java.util.List;
 
 public class View extends SubCommand {
     private final WoSSystems plugin = WoSSystems.getPlugin(WoSSystems.class);
@@ -29,6 +31,11 @@ public class View extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.COOLDOWNS_VIEW;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("cooldowns"));
     }
 
     @Override

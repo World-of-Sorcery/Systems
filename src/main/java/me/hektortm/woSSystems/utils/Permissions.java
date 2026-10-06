@@ -23,7 +23,11 @@ public enum Permissions {
     GUI_OPEN("gui.open"),
     GUI_PLAYERVIEW("gui.playerview"),
 
+    CSCREEN_OPEN("cscreen.open"),
+    CSCREEN_CLOSE("cscreen.close"),
+
     DEBUG_USE("debug.use"),
+    WOSHELP_USE("woshelp.use"),
 
     STATS_GIVE("stats.modify.give"),
     STATS_TAKE("stats.modify.take"),

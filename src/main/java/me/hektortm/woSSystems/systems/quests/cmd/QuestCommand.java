@@ -7,16 +7,19 @@ import me.hektortm.woSSystems.systems.quests.cmd.sub.Start;
 import me.hektortm.woSSystems.systems.quests.cmd.sub.Status;
 import me.hektortm.woSSystems.utils.PermissionUtil;
 import me.hektortm.woSSystems.utils.SubCommand;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
-public class QuestCommand implements CommandExecutor {
+public class QuestCommand implements CommandExecutor, TabCompleter {
 
     private final Map<String, SubCommand> subCommands = new HashMap<>();
 
@@ -43,5 +46,10 @@ public class QuestCommand implements CommandExecutor {
 
         sub.execute(sender, args.length == 0 ? new String[0] : Arrays.copyOfRange(args, 1, args.length));
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(subCommands, sender, args);
     }
 }

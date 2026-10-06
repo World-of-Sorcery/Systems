@@ -42,6 +42,7 @@ public class DAOHub {
     private final ConditionDAO conditionDAO;
     private final InteractionDAO interactionDAO;
     private final GUIDAO guiDAO;
+    private final CscreenDAO cscreenDAO;
     private final CooldownDAO cooldownDAO;
     private final TimeDAO timeDAO;
     private final ConstantDAO constantDAO;
@@ -75,6 +76,7 @@ public class DAOHub {
         this.fishingDAO     = new FishingDAO(content, api, log);
         this.interactionDAO = new InteractionDAO(s, conditionDAO);
         this.guiDAO         = new GUIDAO(content, api, conditionDAO, log);
+        this.cscreenDAO     = new CscreenDAO(content, api, conditionDAO, log);
         this.cooldownDAO    = new CooldownDAO(s);
         this.timeDAO        = new TimeDAO(content, api, log);
         this.citemDAO       = new CitemDAO(s);
@@ -95,6 +97,7 @@ public class DAOHub {
     public ConditionDAO getConditionDAO()       { return conditionDAO;      }
     public InteractionDAO getInteractionDAO()   { return interactionDAO;    }
     public GUIDAO getGuiDAO()                   { return guiDAO;            }
+    public CscreenDAO getCscreenDAO()           { return cscreenDAO;        }
     public CooldownDAO getCooldownDAO()         { return cooldownDAO;       }
     public TimeDAO getTimeDAO()                 { return timeDAO;           }
     public CitemDAO getCitemDAO()               { return citemDAO;          }

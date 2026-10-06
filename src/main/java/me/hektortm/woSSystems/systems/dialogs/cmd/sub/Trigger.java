@@ -5,9 +5,11 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 public class Trigger extends SubCommand {
 
@@ -26,6 +28,11 @@ public class Trigger extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.DIALOG_TRIGGER;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("dialogs"));
     }
 
     @Override

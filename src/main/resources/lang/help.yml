@@ -1,0 +1,7 @@
+# /woshelp: the list of every command the sender may use.
+header: "Commands you can use (page %page% of %pages%):"
+plugin: "§e%plugin%"
+entry: "%cyan_300%%usage% §7- %description%"
+entry-plain: "%cyan_300%%usage%"
+footer: "§7More: §f/woshelp <page>§7 · Search: §f/woshelp <word>§7 · Sub-commands: §f/<command> help"
+empty: "No command matches '%word%'."

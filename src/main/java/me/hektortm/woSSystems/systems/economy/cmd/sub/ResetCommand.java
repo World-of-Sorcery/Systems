@@ -8,10 +8,12 @@ import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.woSSystems.utils.model.Currency;
 import me.hektortm.wosCore.logging.LogManager;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import static me.hektortm.wosCore.Utils.error;
+import java.util.List;
 
 /** /economy reset &lt;player&gt; &lt;currency&gt;: back to 0. */
 public class ResetCommand extends SubCommand {
@@ -32,6 +34,11 @@ public class ResetCommand extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.ECONOMY_RESET;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("currencies"));
     }
 
     @Override

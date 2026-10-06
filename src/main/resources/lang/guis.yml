@@ -4,7 +4,7 @@ error:
   citem: "You need %amount%x %id% for this."
   currency: "You need %amount% %id% for this."
   usage:
-    general: "Usage: /gui <open|playerview>"
+    general: "Usage: /gui <open|playerview|help>"
     open: "Usage: /gui open <player> <id>[:page]"
 # Added to an item's lore when it shows its cost / its trade's price.
 # The "unmet" texts are shown when the player doesn't have enough.
@@ -24,6 +24,12 @@ view:
   unknown: "There is no GUI '%id%'."
   opened: "Showing %id% as %player% sees it. Clicks only move around."
   left: "%player% left, so the view was closed."
+
+help:
+  header: "GUI Commands:"
+  open: "%cyan_300%/gui open <player> <id>[:page] §7- Open a GUI for a player."
+  playerview: "%cyan_300%/gui playerview <player> <id>[:page] §7- Look at a GUI as that player sees it (short: /gui pv)."
+  help: "%cyan_300%/gui help §7- Display this help message."
 
 confirm:
   title: "Are you sure?"

@@ -4,9 +4,11 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import java.util.List;
 
 public class ViewCommand extends SubCommand {
 
@@ -26,6 +28,11 @@ public class ViewCommand extends SubCommand {
         return Permissions.STATS_VIEW;
     }
 
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("stats"));
+    }
 
     @Override
     public void execute(CommandSender sender, String[] args) {

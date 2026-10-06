@@ -7,10 +7,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
+import me.hektortm.woSSystems.utils.TabArg;
+import me.hektortm.woSSystems.utils.TabCompletion;
+import java.util.List;
 
 /** {@code /profile [player]} — opens your own or an online player's profile dialog. */
-public class ProfileCommand implements CommandExecutor {
+public class ProfileCommand implements CommandExecutor, TabCompleter {
+
+    private static final List<TabArg> ARGUMENTS = List.of(TabArg.PLAYER);
     private final ProfileDialogs dialogs;
 
     public ProfileCommand(ProfileDialogs dialogs) {
@@ -33,5 +39,10 @@ public class ProfileCommand implements CommandExecutor {
         }
         dialogs.open(p, target);
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(ARGUMENTS, sender, args);
     }
 }

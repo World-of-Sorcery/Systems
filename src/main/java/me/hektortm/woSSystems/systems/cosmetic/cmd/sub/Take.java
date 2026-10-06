@@ -5,9 +5,11 @@ import me.hektortm.woSSystems.utils.types.CosmeticType;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
+import java.util.List;
 
 public class Take extends SubCommand {
     private final DAOHub hub;
@@ -24,6 +26,11 @@ public class Take extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.COSMETIC_TAKE;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.of("prefix", "title", "badge"), TabArg.content("cosmetics"));
     }
 
     @Override

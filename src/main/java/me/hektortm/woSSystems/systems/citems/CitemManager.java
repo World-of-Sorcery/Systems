@@ -45,9 +45,17 @@ public class CitemManager {
 
 
     public void giveCitem(CommandSender s, Player t, String id, Integer amount) {
+        if (t == null) {
+            Utils.error(s, "general", "error.online");
+            return;
+        }
+
         ItemStack itemToGive = hub.getCitemDAO().getCitem(id);
 
-        if (itemToGive == null) return;
+        if (itemToGive == null) {
+            Utils.error(s, "citems", "error.not-found");
+            return;
+        }
 
 
         itemToGive.setAmount(amount);

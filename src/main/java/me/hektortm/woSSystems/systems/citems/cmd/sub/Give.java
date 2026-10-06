@@ -6,9 +6,11 @@ import me.hektortm.woSSystems.utils.PermissionUtil;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 
 public class Give extends SubCommand {
@@ -27,10 +29,15 @@ public class Give extends SubCommand {
     }
 
     @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("citems"), TabArg.NONE);
+    }
+
+    @Override
     public void execute(CommandSender sender, String[] args) {
 
         if (args.length < 2 || args.length > 3) {
-            Utils.error(sender, "citems", "error.usage.cgive");
+            Utils.info(sender, "citems", "info.usage.give");
             return;
         }
 
@@ -42,7 +49,7 @@ public class Give extends SubCommand {
             try {
                 amount = Integer.parseInt(args[2]);
             } catch (NumberFormatException e) {
-                Utils.error(sender, "citems", "error.usage.cgive");
+                Utils.info(sender, "citems", "info.usage.give");
                 return;
             }
 

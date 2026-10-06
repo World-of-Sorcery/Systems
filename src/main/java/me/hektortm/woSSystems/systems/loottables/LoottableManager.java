@@ -24,6 +24,11 @@ public class LoottableManager {
     }
 
 
+    /** Whether no loot table has this id. */
+    public boolean unknown(String id) {
+        return hub.getLoottablesDAO().getLoottable(id) == null;
+    }
+
     public void triggerLoottable(OfflinePlayer player, CommandSender source, String id) {
 
         Loottable lt = hub.getLoottablesDAO().getLoottable(id);

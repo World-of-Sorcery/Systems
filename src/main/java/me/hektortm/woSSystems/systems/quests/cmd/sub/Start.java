@@ -4,9 +4,11 @@ import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.systems.quests.QuestManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import java.util.List;
 
 /**
  * /quest start <questId> [player]
@@ -29,6 +31,11 @@ public class Start extends SubCommand {
 
     @Override
     public Permissions getPermission() { return Permissions.QUEST_START; }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.content("quests"), TabArg.PLAYER);
+    }
 
     @Override
     public void execute(CommandSender sender, String[] args) {

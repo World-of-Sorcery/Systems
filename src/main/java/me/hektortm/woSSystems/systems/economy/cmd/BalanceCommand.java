@@ -8,11 +8,14 @@ import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.model.Currency;
 import me.hektortm.wosCore.Utils;
 import me.hektortm.wosCore.WoSCore;
+import me.hektortm.woSSystems.utils.TabArg;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -26,7 +29,9 @@ import static me.hektortm.wosCore.Utils.error;
  * online or not. An offline player is looked up through wos-api, off the main
  * thread.
  */
-public class BalanceCommand implements CommandExecutor {
+public class BalanceCommand implements CommandExecutor, TabCompleter {
+
+    private static final List<TabArg> ARGUMENTS = List.of(TabArg.PLAYER);
 
     private final EcoManager ecoManager;
 
@@ -84,5 +89,10 @@ public class BalanceCommand implements CommandExecutor {
         }
         WoSSystems.ecoMsg1Value(sender, "economy", "balance", "%player%", playerName);
         for (String line : lines) sender.sendMessage(Utils.parseColorCodes(line));
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(ARGUMENTS, sender, args);
     }
 }

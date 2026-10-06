@@ -7,6 +7,7 @@ public enum ConditionType {
     PARTICLE("particle"),
     HOLOGRAM("hologram"),
     DISPLAY("display"),
+    CSCREEN("cscreen"),
     RECIPE("recipe");
 
 

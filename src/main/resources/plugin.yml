@@ -11,24 +11,28 @@ commands:
   wosdebug:
     description: debug mode for staff (interaction labels, raw GUI placeholders, action output)
     usage: /<command>
+  woshelp:
+    description: every command you may use
+    usage: /<command> [page|word]
+    aliases: [ staffhelp ]
   # Interaction Commands
   interaction:
-    description: interaction command
-    usage: /<command> <reload|list|view|trigger>
+    description: trigger interactions and bind them to blocks and NPCs
+    usage: /<command> <trigger|bind|unbind|npcbind|npcunbind|info|help>
     permission: interaction
     aliases: [ inter ]
   # Citem Commands
   citem:
-    description: citem
-    usage: /<command> <save|lore|name|flag> [arguments]
+    description: inspect, give and remove custom items
+    usage: /<command> <info|give|remove|help>
   cgive:
     description: give a citem
     permission: citem.give
-    usage: /<command> <player> <ID> <amount>
+    usage: /<command> <player> <ID> [amount]
   cremove:
     description: remove a citem
     permission: citem.remove
-    usage: /<command> <player> <ID> <amount>
+    usage: /<command> <player> <ID> [amount]
   sign:
     description: sign item
     permission: citem.sign
@@ -90,9 +94,9 @@ commands:
     usage: /bug
   loottable:
     aliases: [lt]
-    description: loottable
+    description: roll loot tables for players
     permission: loottable.give
-    usage: /<command> give
+    usage: /<command> <trigger|chest|help>
   # Time Commands
   time:
     description: View and manipulate the time
@@ -119,7 +123,12 @@ commands:
 
   gui:
     description: open GUIs for players
-    usage: /<command> <open|playerview|pv> <player> <id>
+    usage: /<command> <open|playerview|help> <player> <id>
+
+  cscreen:
+    description: open custom screens (built in the portal) for players
+    usage: /<command> <open|close|help> <player> [id]
+    aliases: [cs]
 
   cooldown:
     description: cooldown management

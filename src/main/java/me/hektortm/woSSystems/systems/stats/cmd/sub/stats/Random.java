@@ -4,12 +4,14 @@ import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.utils.Permissions;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import static me.hektortm.woSSystems.utils.Operations.GIVE;
+import java.util.List;
 
 
 public class Random extends SubCommand {
@@ -27,6 +29,11 @@ public class Random extends SubCommand {
     @Override
     public Permissions getPermission() {
         return Permissions.STATS_TAKE;
+    }
+
+    @Override
+    public List<TabArg> arguments() {
+        return List.of(TabArg.PLAYER, TabArg.content("stats"), TabArg.NONE, TabArg.NONE);
     }
 
     @Override

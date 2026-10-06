@@ -6,17 +6,20 @@ import me.hektortm.woSSystems.systems.time.cmd.sub.DateCommand;
 import me.hektortm.woSSystems.systems.time.cmd.sub.FreezeCommand;
 import me.hektortm.woSSystems.utils.SubCommand;
 import me.hektortm.wosCore.LangManager;
+import me.hektortm.woSSystems.utils.TabCompletion;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
-public class TimeCommand implements CommandExecutor {
+public class TimeCommand implements CommandExecutor, TabCompleter {
 
     private final Map<String, SubCommand> subCommands = new HashMap<>();
     private final TimeManager manager;
@@ -77,5 +80,8 @@ public class TimeCommand implements CommandExecutor {
         player.sendMessage("§eIn-Game Date: §f" + date);
     }
 
-
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        return TabCompletion.complete(subCommands, sender, args);
+    }
 }
