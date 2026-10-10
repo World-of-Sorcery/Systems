@@ -56,6 +56,11 @@ public class CitemDAO {
         }
     }
 
+    /** Runs {@code listener} after every load and reload of the item definitions (on the thread that loaded). */
+    public void onChange(Runnable listener) {
+        store.onChange(s -> listener.run());
+    }
+
     /** A clone of the cached item, or {@code null} if it doesn't exist. */
     public ItemStack getCitem(String id) {
         ItemStack cached = store.get(id);

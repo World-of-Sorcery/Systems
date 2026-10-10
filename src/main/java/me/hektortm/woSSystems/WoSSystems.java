@@ -29,8 +29,6 @@ import me.hektortm.woSSystems.systems.economy.cmd.PayCommand;
 import me.hektortm.woSSystems.systems.guis.InventoryClickListener;
 import me.hektortm.woSSystems.systems.interactions.InterListener;
 import me.hektortm.woSSystems.systems.linking.LinkCommand;
-import me.hektortm.woSSystems.systems.professions.crafting.CraftingListener;
-import me.hektortm.woSSystems.systems.professions.crafting.CraftingManager;
 import me.hektortm.woSSystems.systems.profiles.ProfileCommand;
 import me.hektortm.woSSystems.systems.profiles.ProfileDialogs;
 import me.hektortm.woSSystems.systems.regions.RegionHandler;
@@ -129,7 +127,7 @@ public final class WoSSystems extends JavaPlugin {
     private InteractionManager interactionManager;
     private PlaceholderResolver resolver;
     private ConditionHandler conditionHandler;
-    private CraftingManager craftingManager;
+    private me.hektortm.woSSystems.systems.crecipes.CrecipeManager crecipeManager;
     private ChatManager chatManager;
     private NicknameManager nickManager;
     private Coinflip coinflipCommand;
@@ -180,7 +178,7 @@ public final class WoSSystems extends JavaPlugin {
 
             DatabaseManager databaseManager = core.getDatabaseManager();
 
-            // Content and player/game state come from wos-api (only recipes still use MySQL).
+            // Content and player/game state come from wos-api .
             ContentRegistry content = new ContentRegistry(this);
             daoHub = new DAOHub(databaseManager, core.getApi(), content);
             // Tab completion suggests the ids of whatever content is loaded.
@@ -242,10 +240,8 @@ public final class WoSSystems extends JavaPlugin {
         cosmeticManager = new CosmeticManager(daoHub);
 
 // Initialize the remaining managers
-        craftingManager = new CraftingManager(daoHub); // TODO: interactions
+        crecipeManager = new me.hektortm.woSSystems.systems.crecipes.CrecipeManager(daoHub);
         questManager = new QuestManager(this, daoHub);
-
-        new CraftingListener(daoHub); // TODO: interactions
 
         dailyReset = new DailyReset(daoHub);
 
@@ -257,7 +253,6 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "stats", core);
             lang.loadLangFileExternal(this, "unlockables", core);
             lang.loadLangFileExternal(this, "economy", core);
-            lang.loadLangFileExternal(this, "crecipes", core);
             lang.loadLangFileExternal(this, "nicknames", core);
             lang.loadLangFileExternal(this, "loottables", core);
             lang.loadLangFileExternal(this, "cosmetics", core);
@@ -289,7 +284,6 @@ public final class WoSSystems extends JavaPlugin {
             regionBossBarManager.createBossBar(p);
         }
         registerBasicCommands();
-        //recipeManager.loadRecipes();
         registerCommands();
         registerEvents();
         //interactionManager.loadInteraction();
@@ -297,7 +291,7 @@ public final class WoSSystems extends JavaPlugin {
         guiManager.startRefresh();
         tab.runTablist();
         cooldownManager.start();
-        craftingManager.loadAll();
+        crecipeManager.start();
         dailyReset.startResetTimer();
 
         // Optional: without it, portal edits just don't hot-reload — never disable the plugin over it.
@@ -325,6 +319,7 @@ public final class WoSSystems extends JavaPlugin {
         if (timeManager != null) timeManager.saveGameState();
 //        PacketEvents.getAPI().terminate();
         if (webhookServer != null) webhookServer.stop();
+        if (crecipeManager != null) crecipeManager.stop();
         PermissionRegistry.unregisterAll();
         AsyncWriteQueue.shutdown(); // flush all pending DB writes before the JVM exits
     }
@@ -465,7 +460,6 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("dialog", new me.hektortm.woSSystems.systems.dialogs.cmd.DialogCommand(daoHub));
         cmdReg("quest", new QuestCommand(questManager, daoHub));
         cmdReg("bug", new BugCommand(this));
-       // cmdReg("unlockrecipe", new RecipeCommand());
     }
 
     private void registerEvents() {
@@ -484,6 +478,7 @@ public final class WoSSystems extends JavaPlugin {
         //eventReg(new HologramHandler(daoHub));
         eventReg(guiManager); // the same instance that opens GUIs, so clicks see what it opened
         eventReg(new QuestListener(this, questManager));
+        eventReg(new me.hektortm.woSSystems.systems.crecipes.CrecipeListener(crecipeManager));
         eventReg(debugMode);
         eventReg(debugLabels);
         getServer().getPluginManager().registerEvents(new InventoryClickListener(ecoManager, coinflipCommand, lang, nickManager.getNickRequests() ,nickManager, daoHub), this);
@@ -671,8 +666,8 @@ public final class WoSSystems extends JavaPlugin {
     public PacketEventsAPI getPacketEventsAPI() {
         return packetEventsApi;
     }
-    public CraftingManager getCraftingManager() {
-        return craftingManager;
+    public me.hektortm.woSSystems.systems.crecipes.CrecipeManager getCrecipeManager() {
+        return crecipeManager;
     }
     public QuestManager getQuestManager() {
         return questManager;

@@ -186,7 +186,7 @@ public class CitemManager {
     }
 
     /** The citem id stored on an item, or {@code null} if it isn't a citem. */
-    private static String citemIdOf(ItemStack item) {
+    public static String citemIdOf(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return null;
         ItemMeta meta = item.getItemMeta();
         return meta == null ? null : meta.getPersistentDataContainer().get(Keys.ID.get(), PersistentDataType.STRING);

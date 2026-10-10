@@ -37,10 +37,6 @@ commands:
     description: sign item
     permission: citem.sign
     usage: /<command>
-  # CRecipe Commands
-  crecipe:
-    description: crecipe
-    usage: /<command> <create> <id>
   # Stat Commands
   stats:
     description: Stats Command

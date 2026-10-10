@@ -79,6 +79,7 @@ public class ActionHandler {
         GUI("gui"),
         DIALOG("dialog"),
         CSCREEN("cscreen"),
+        CRECIPE("crecipe"),
         LOOTTABLE("loottable"),
         QUEST("quest");
 

@@ -1,9 +1,0 @@
-info:
-  usage:
-    unlock: "/unlockrecipe <player> <id>"
-  has_recipe: "%player% already knows the recipe '%id'."
-
-error:
-  not_found: "The recipe with the id '%id%' does not exist or the server needs to restart."
-
-unlocked: "§aYou have unlocked the recipe '§e%id%§a' for §e%player%§a."

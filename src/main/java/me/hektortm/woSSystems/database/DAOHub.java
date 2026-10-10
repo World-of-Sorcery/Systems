@@ -49,7 +49,7 @@ public class DAOHub {
     private final DialogDAO dialogDAO;
     private final LoottablesDAO loottablesDAO;
     private final CommandsDAO commandsDAO;
-    private final CraftingDAO craftingDAO;
+    private final CrecipeDAO crecipeDAO;
     private final QuestDAO questDAO;
 
 
@@ -57,8 +57,7 @@ public class DAOHub {
      * Constructs every DAO. Content definitions and player/game state both come
      * from wos-api: content through the {@link ContentRegistry} (registration
      * order = load order: conditions first, because the interaction/GUI stores
-     * feed them), player state through {@link PlayerSessions}. Only crafting
-     * recipes still use MySQL.
+     * feed them), player state through {@link PlayerSessions}.
      */
     public DAOHub(DatabaseManager databaseManager, WosApi api, ContentRegistry content) {
         this.content = content;
@@ -84,7 +83,7 @@ public class DAOHub {
         this.dialogDAO      = new DialogDAO(content, api, log);
         this.loottablesDAO  = new LoottablesDAO(content, api, log);
         this.commandsDAO    = new CommandsDAO(content, api, log);
-        this.craftingDAO    = new CraftingDAO(databaseManager);
+        this.crecipeDAO     = new CrecipeDAO(content, api, conditionDAO, log);
         this.questDAO       = new QuestDAO(s);
     }
     public EconomyDAO getEconomyDAO()           { return economyDAO;        }
@@ -105,7 +104,7 @@ public class DAOHub {
     public DialogDAO getDialogDAO()             { return dialogDAO;         }
     public LoottablesDAO getLoottablesDAO()     { return loottablesDAO;     }
     public CommandsDAO getCommandsDAO()         { return commandsDAO;       }
-    public CraftingDAO getCraftingDAO()         { return craftingDAO;       }
+    public CrecipeDAO getCrecipeDAO()           { return crecipeDAO;        }
     public QuestDAO getQuestDAO()               { return questDAO;          }
     public PlayerSessions getSessions()         { return sessions;          }
 
