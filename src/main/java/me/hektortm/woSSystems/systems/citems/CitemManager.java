@@ -227,6 +227,18 @@ public class CitemManager {
     }
 
     /**
+     * Removes up to {@code amount} of the custom item {@code id} (matched by its
+     * id tag, so whatever lore page or placeholder values a stack shows) and
+     * returns how many were removed: fewer if the player has fewer.
+     */
+    public int removeCitem(Player p, String id, int amount) {
+        int taken = Math.min(amount, countCitem(p, id));
+        if (taken <= 0) return 0;
+        takeCitem(p, id, taken);
+        return taken;
+    }
+
+    /**
      * Gives {@code amount} of the custom item {@code id} without messages; what
      * doesn't fit drops at the player's feet. False if the item doesn't exist.
      */

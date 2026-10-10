@@ -12,7 +12,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
+import me.hektortm.woSSystems.WoSSystems;
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import java.util.List;
@@ -55,17 +55,15 @@ public class CremoveCommand implements CommandExecutor, TabCompleter {
         }
 
 
-        ItemStack savedItem = hub.getCitemDAO().getCitem(id);
-        if (savedItem == null) {
+        if (hub.getCitemDAO().getCitem(id) == null) {
             Utils.error(sender, "citems", "error.not-found");
             return true;
         }
 
-        savedItem.setAmount(amount);
-
-        t.getInventory().removeItem(savedItem);
+        // By id, not by comparing stacks: an item on another lore page (or with its placeholders filled in) differs from the stored one.
+        int removed = WoSSystems.getInstance().getCitemManager().removeCitem(t, id, amount);
         Utils.success(sender, "citems", "removed",
-                "%amount%", String.valueOf(amount),
+                "%amount%", String.valueOf(removed),
                 "%id%", id, "%player%", t.getName());
 
 

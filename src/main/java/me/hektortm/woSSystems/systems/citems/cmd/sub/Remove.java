@@ -8,7 +8,7 @@ import me.hektortm.woSSystems.utils.TabArg;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
+import me.hektortm.woSSystems.WoSSystems;
 import java.util.List;
 
 public class Remove extends SubCommand {
@@ -61,17 +61,15 @@ public class Remove extends SubCommand {
         }
 
 
-        ItemStack i = hub.getCitemDAO().getCitem(id);
-        if (i == null) {
+        if (hub.getCitemDAO().getCitem(id) == null) {
             Utils.error(sender, "citems", "error.not-found");
             return;
         }
 
-        i.setAmount(amount);
-
-        t.getInventory().removeItem(i);
+        // By id, not by comparing stacks: an item on another lore page (or with its placeholders filled in) differs from the stored one.
+        int removed = WoSSystems.getInstance().getCitemManager().removeCitem(t, id, amount);
         Utils.success(sender, "citems", "removed",
-                "%amount%", String.valueOf(amount),
+                "%amount%", String.valueOf(removed),
                 "%id%", id, "%player%", t.getName());
     }
 }

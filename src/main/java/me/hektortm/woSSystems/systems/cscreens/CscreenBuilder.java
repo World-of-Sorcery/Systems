@@ -145,8 +145,8 @@ final class CscreenBuilder {
         CscreenSettings.Screen s = screen.settings();
         switch (screen.type()) {
             case "confirmation": {
-                ActionButton yes = main.size() > 0 ? main.get(0) : plain(lang("button.yes"));
-                ActionButton no = main.size() > 1 ? main.get(1) : plain(lang("button.no"));
+                ActionButton yes = main.size() > 0 ? main.get(0) : plain(lang("button.yes"), screen, player);
+                ActionButton no = main.size() > 1 ? main.get(1) : plain(lang("button.no"), screen, player);
                 return DialogType.confirmation(yes, no);
             }
             case "links":
@@ -257,7 +257,8 @@ final class CscreenBuilder {
                 button.action(DialogAction.staticAction(ClickEvent.copyToClipboard(target)));
                 break;
             case "close":
-                break; // no action: the click only closes the screen
+                closing(button, screen, player);
+                break;
             default:
                 button.action(DialogAction.customClick(
                         (response, audience) -> manager.clicked(player, screen, element, inputs, response), options(staysOpen)));
@@ -266,8 +267,21 @@ final class CscreenBuilder {
     }
 
     /** A button that only closes the screen. */
-    private ActionButton plain(String label) {
-        return ActionButton.builder(LegacyComponentSerializer.legacySection().deserialize(Utils.parseColorCodeString(label))).build();
+    private ActionButton plain(String label, Cscreen screen, Player player) {
+        return closing(ActionButton.builder(LegacyComponentSerializer.legacySection().deserialize(Utils.parseColorCodeString(label))),
+                screen, player).build();
+    }
+
+    /**
+     * Makes the button close the screen. A button without an action closes it
+     * only when the screen's after-action is "close"; on a screen that stays
+     * open (or waits) the server has to close it.
+     */
+    private ActionButton.Builder closing(ActionButton.Builder button, Cscreen screen, Player player) {
+        if (!screen.settings().afterAction().equals("close")) {
+            button.action(DialogAction.customClick((response, audience) -> manager.close(player), options(true)));
+        }
+        return button;
     }
 
     /** A click works once; on a screen that stays open after a click, every time. */
