@@ -83,7 +83,11 @@ public final class ContentRegistry {
         String title;
         try {
             ContentStore.Reload r = store.reload(id);
-            title = r == ContentStore.Reload.UPDATED ? "§aUpdated " + store.label() : "§cDeleted " + store.label();
+            title = switch (r) {
+                case CREATED -> "§aCreated " + store.label();
+                case UPDATED -> "§aUpdated " + store.label();
+                case DELETED -> "§cDeleted " + store.label();
+            };
             log.info("[Content] " + type + ":" + id + " " + r.name().toLowerCase());
         } catch (ApiException e) {
             log.warning("[Content] reload " + type + ":" + id + " failed: " + e.getMessage());

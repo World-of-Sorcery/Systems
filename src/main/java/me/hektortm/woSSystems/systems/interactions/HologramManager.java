@@ -39,8 +39,8 @@ public class HologramManager implements Listener {
 
     private static final double RENDER_DISTANCE_SQUARED = 16.0 * 16.0;
     private static final double BLOCK_Y_OFFSET = 1.5;
-    /** Gap above the top of the NPC's bounding box. */
-    private static final double NPC_HEAD_OFFSET = 0.05;
+    /** Gap above the top of the NPC's bounding box (its head). */
+    private static final double NPC_HEAD_OFFSET = 0.3;
 
     // ── Metadata index constants for Display / TextDisplay entities (MC 1.21.x) ──
     private enum Meta {
@@ -253,10 +253,10 @@ public class HologramManager implements Listener {
                                  double entityHeight, String hologramKey, String structFP, String contentFP, InteractionKey key) {
         if (holograms.isEmpty()) return;
 
-        // NPCs: Citizens reports a larger bounding box than the visible model, so we use a
-        // fraction of entityHeight to land just above the crown. Tune NPC_HEAD_OFFSET for fine adjustment.
+        // NPCs: the location is at the feet, so the whole height plus a gap puts the text above the head
+        // (half the height, as it was, put it inside the body). Tune NPC_HEAD_OFFSET for fine adjustment.
         // Blocks: fixed offset from the block's Y, centered on the tile.
-        double yBase = npc ? location.getY() + entityHeight * 0.50 + NPC_HEAD_OFFSET : location.getY() + BLOCK_Y_OFFSET;
+        double yBase = npc ? location.getY() + entityHeight + NPC_HEAD_OFFSET : location.getY() + BLOCK_Y_OFFSET;
         double x = npc ? location.getX() : location.getX() + 0.5;
         double z = npc ? location.getZ() : location.getZ() + 0.5;
 

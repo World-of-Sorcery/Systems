@@ -43,18 +43,17 @@ public class Info extends SubCommand {
 
         PersistentDataContainer data = meta.getPersistentDataContainer();
         String itemId = data.get(Keys.ID.get(), PersistentDataType.STRING);
-        if (itemId == null) {
-            Utils.error(sender, "citems", "error.not-citem");
-            return;
-        }
-
         MiniMessage mm = MiniMessage.miniMessage();
 
         String url = "https://admin.worldofsorcery.com/dashboard/gamedesign/citems/" + itemId;
 
         p.sendMessage(mm.deserialize("<green>Item Information:"));
+        p.sendMessage(mm.deserialize("<gray>Material: <white><material>", Placeholder.unparsed("material", item.getType().name())));
 
-        if (itemId != null) {
+        // Any item can be looked at; only a custom item has an id (and a page in the portal).
+        if (itemId == null) {
+            p.sendMessage(mm.deserialize("<gray>Identifier: <white>None <gray>(not a custom item)"));
+        } else {
             p.sendMessage(mm.deserialize(
                     "<gray>Identifier: <click:open_url:'<url>'>" +
                             "<hover:show_text:'<green>Click to open CItem'><yellow><underlined><id></underlined></yellow></hover>" +

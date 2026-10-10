@@ -162,7 +162,7 @@ final class GUIClickHandler {
                 // By its name, as in the price lines of the lore (its id if it has none).
                 case "citem" -> Utils.error(player, "guis", "error.citem", "%amount%", String.valueOf(unmet.needed()),
                         "%id%", guis.citemName(unmet.id(), player));
-                default -> Utils.error(player, "guis", "error.currency", "%amount%", String.valueOf(unmet.needed()), "%id%", unmet.id());
+                default -> Utils.error(player, "guis", "error.currency", "%amount%", String.valueOf(unmet.needed()), "%id%", guis.currencyName(unmet.id()));
             }
             return true;
         }

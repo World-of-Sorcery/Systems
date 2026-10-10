@@ -234,9 +234,9 @@ public final class GuiRules {
     public record PriceFormats(String cost, String costUnmet, String priceHeader, String entryMet, String entryUnmet,
                                String rewardHeader, String rewardEntry) {}
 
-    /** "3× Fresh Bass" for a custom item (by its name), "20 gold" for a currency. */
-    private static String entryText(GUIItemBehaviour.Entry e, UnaryOperator<String> citemName) {
-        return e.isCitem() ? e.amount() + "× " + citemName.apply(e.id()) : e.amount() + " " + e.id();
+    /** "3× Fresh Bass" for a custom item, "20 Gold" for a currency, each by its name. */
+    private static String entryText(GUIItemBehaviour.Entry e, UnaryOperator<String> citemName, UnaryOperator<String> currencyName) {
+        return e.isCitem() ? e.amount() + "× " + citemName.apply(e.id()) : e.amount() + " " + currencyName.apply(e.id());
     }
 
     /**
@@ -245,29 +245,30 @@ public final class GuiRules {
      * what the trade gives, likewise. Each price line says whether the player
      * has it. A currency or item charged more than once (the cost and the
      * trade) counts as had only if they have the total. {@code citemName}
-     * gives the name a custom item is listed by, from its id.
+     * and {@code currencyName} give the name a custom item and a currency are
+     * listed by, from their id.
      */
     public static List<String> loreWithPrice(List<String> lore, GUIItemBehaviour b, PriceFormats formats, PlayerState player,
-                                             UnaryOperator<String> citemName) {
+                                             UnaryOperator<String> citemName, UnaryOperator<String> currencyName) {
         Map<String, Long> charges = charges(b);
         List<String> lines = new ArrayList<>();
         if (b.showCost() && b.hasCost()) {
             boolean met = player.balance(b.costCurrency()) >= charges.get("currency:" + b.costCurrency());
             lines.add((met ? formats.cost() : formats.costUnmet())
-                    .replace("%amount%", String.valueOf(b.costAmount())).replace("%currency%", b.costCurrency()));
+                    .replace("%amount%", String.valueOf(b.costAmount())).replace("%currency%", currencyName.apply(b.costCurrency())));
         }
         if (b.trade().show() && !b.trade().take().isEmpty()) {
             lines.add(formats.priceHeader());
             for (GUIItemBehaviour.Entry e : b.trade().take()) {
                 long needed = charges.get((e.isCitem() ? "citem:" : "currency:") + e.id());
                 long have = e.isCitem() ? player.citemCount(e.id()) : player.balance(e.id());
-                lines.add((have >= needed ? formats.entryMet() : formats.entryUnmet()).replace("%entry%", entryText(e, citemName)));
+                lines.add((have >= needed ? formats.entryMet() : formats.entryUnmet()).replace("%entry%", entryText(e, citemName, currencyName)));
             }
         }
         if (b.trade().showGive() && !b.trade().give().isEmpty()) {
             lines.add(formats.rewardHeader());
             for (GUIItemBehaviour.Entry e : b.trade().give()) {
-                lines.add(formats.rewardEntry().replace("%entry%", entryText(e, citemName)));
+                lines.add(formats.rewardEntry().replace("%entry%", entryText(e, citemName, currencyName)));
             }
         }
         if (lines.isEmpty()) return lore;

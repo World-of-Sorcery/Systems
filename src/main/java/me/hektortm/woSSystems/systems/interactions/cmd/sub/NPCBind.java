@@ -57,7 +57,7 @@ public class NPCBind extends SubCommand {
         }
 
         if (hub.getInteractionDAO().bindNPC(interactionId, npcId))
-            Utils.success(p, "interactions", "interaction.npcbind", "%id%", interactionId, "%npc%", String.valueOf(npcId));
+            Utils.success(p, "interactions", "npcbind", "%id%", interactionId, "%npc%", String.valueOf(npcId));
         else
             Utils.error(p, "interactions", "error.failed", "%param%", "bind interaction to npc");
     }

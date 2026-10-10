@@ -33,8 +33,8 @@ public final class ContentStore<T> {
         Optional<T> loadOne(String id) throws ApiException;
     }
 
-    /** Outcome of a single-entity reload. */
-    public enum Reload { UPDATED, DELETED }
+    /** Outcome of a single-entity reload: new to the cache, replaced in it, or gone from it. */
+    public enum Reload { CREATED, UPDATED, DELETED }
 
     private final String key;
     private final String label;
@@ -65,13 +65,12 @@ public final class ContentStore<T> {
         changed();
     }
 
-    /** Refreshes one entity; evicts it if it was deleted. */
+    /** Refreshes one entity (one the cache did not hold yet counts as created); evicts it if it was deleted. */
     public Reload reload(String id) throws ApiException {
         Optional<T> fresh = source.loadOne(id);
         Reload result;
         if (fresh.isPresent()) {
-            cache.put(id, fresh.get());
-            result = Reload.UPDATED;
+            result = cache.put(id, fresh.get()) == null ? Reload.CREATED : Reload.UPDATED;
         } else {
             cache.remove(id);
             result = Reload.DELETED;

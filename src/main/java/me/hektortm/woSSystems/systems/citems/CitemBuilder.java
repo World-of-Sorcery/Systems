@@ -122,7 +122,8 @@ public final class CitemBuilder {
 
         meta.getPersistentDataContainer().set(Keys.ID.get(), PersistentDataType.STRING, id);
 
-        meta.getPersistentDataContainer().set(Keys.UUUID.get(), PersistentDataType.STRING, data.get("update_uuid").getAsString().trim());
+        // An item that was only created (never saved from its editor) has no update id yet.
+        meta.getPersistentDataContainer().set(Keys.UUUID.get(), PersistentDataType.STRING, getString(data, "update_uuid", "").trim());
 
         if (data.has("flags") && data.get("flags").isJsonObject()) {
             JsonObject flags = data.getAsJsonObject("flags");
@@ -485,7 +486,10 @@ public final class CitemBuilder {
 
     private static void applySkullTexture(SkullMeta meta, String textureUrl) {
         try {
-            PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID(), null);
+            // A random id made every build of the item (a restart, a reload) a different item: heads
+            // given before no longer stacked with heads given after.
+            PlayerProfile profile = Bukkit.createProfile(
+                    UUID.nameUUIDFromBytes(textureUrl.getBytes(java.nio.charset.StandardCharsets.UTF_8)), null);
             PlayerTextures textures = profile.getTextures();
             textures.setSkin(URI.create(textureUrl).toURL());
             profile.setTextures(textures);

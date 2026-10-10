@@ -487,7 +487,7 @@ public class GUIManager implements Listener {
         GuiRules.PriceFormats formats = new GuiRules.PriceFormats(message("cost"), message("cost-unmet"),
                 message("price-header"), message("price-entry"), message("price-entry-unmet"),
                 message("reward-header"), message("reward-entry"));
-        List<String> withPrice = GuiRules.loreWithPrice(lore, b, formats, clicks.playerState(player), id -> citemName(id, player));
+        List<String> withPrice = GuiRules.loreWithPrice(lore, b, formats, clicks.playerState(player), id -> citemName(id, player), this::currencyName);
         meta.setLore(withPrice.isEmpty() ? null : withPrice);
     }
 
@@ -502,6 +502,17 @@ public class GUIManager implements Listener {
         if (meta == null || !meta.hasDisplayName()) return citemId;
         String name = ChatColor.stripColor(meta.getDisplayName());
         return name == null || name.isBlank() ? citemId : name.trim();
+    }
+
+    /**
+     * The name a currency is listed by in a price line and in the "not enough"
+     * message: its name without colours, its id if it doesn't exist or has none.
+     */
+    String currencyName(String currencyId) {
+        me.hektortm.woSSystems.utils.model.Currency currency = hub.getEconomyDAO().getCurrencies().get(currencyId);
+        String name = currency == null || currency.getName() == null ? null
+                : ChatColor.stripColor(Utils.parseColorCodeString(currency.getName()));
+        return name == null || name.isBlank() ? currencyId : name.trim();
     }
 
     private String message(String key) {
