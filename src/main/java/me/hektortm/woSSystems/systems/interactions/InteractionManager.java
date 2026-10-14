@@ -2,6 +2,7 @@ package me.hektortm.woSSystems.systems.interactions;
 
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.database.dao.CitemDAO;
 import me.hektortm.woSSystems.systems.debug.DebugFormat;
 import me.hektortm.woSSystems.systems.debug.DebugLabels;
 import me.hektortm.woSSystems.systems.debug.DebugMode;
@@ -146,20 +147,11 @@ public class InteractionManager {
                         displayManager.beginPass();
                         List<Viewer> viewers = new ArrayList<>();
                         for (Player player : Bukkit.getOnlinePlayers()) viewers.add(Viewer.of(player));
+                        Map<String, Interaction> byId = new HashMap<>();
                         for (Interaction inter : interactions) {
+                            byId.put(inter.getInteractionId(), inter);
                             for (Location location : inter.getBlockLocations()) {
-                                if (location != null) {
-                                    InteractionKey key = buildKey(location);
-                                    for (Viewer viewer : viewers) {
-                                        // Out of sight: nothing is drawn, and the end of the pass removes what was.
-                                        if (!viewer.near(location)) continue;
-                                        Player player = viewer.player();
-                                        particleHandler.spawnParticlesForPlayer(player, inter, location, false, key);
-                                        hologramManager.handleHolograms(player, inter, location, false, key);
-                                        displayManager.handleDisplays(player, inter, location, false, key);
-                                        labels.show(player, inter.getInteractionId(), key, location, false, 0);
-                                    }
-                                }
+                                if (location != null) drawAtBlock(inter, location, viewers, particleHandler, labels);
                             }
                             for (int id : inter.getNpcIDs()) {
                                 NPC npc1 = CitizensAPI.getNPCRegistry().getById(id);
@@ -180,6 +172,13 @@ public class InteractionManager {
                                 }
                             }
                         }
+                        // Placed custom items show their placed interaction's visuals like a bound block.
+                        for (CitemDAO.PlacedAction placed : hub.getCitemDAO().placedActions()) {
+                            Interaction inter = byId.get(placed.interactionId());
+                            if (inter != null && hasVisuals(inter)) {
+                                drawAtBlock(inter, placed.block(), viewers, particleHandler, labels);
+                            }
+                        }
                         hologramManager.endPass();
                         displayManager.endPass();
                         labels.endPass();
@@ -192,6 +191,30 @@ public class InteractionManager {
         Bukkit.getPluginManager().registerEvents(displayManager, plugin);
         displayManager.listenForClicks();
         Bukkit.getScheduler().runTaskTimer(plugin, displayManager::tick, DisplayManager.TICK_STEP, DisplayManager.TICK_STEP);
+    }
+
+    /** Particles, holograms, displays and debug labels of one interaction at one block, for every player near it. */
+    private void drawAtBlock(Interaction inter, Location location, List<Viewer> viewers,
+                             ParticleHandler particleHandler, DebugLabels labels) {
+        InteractionKey key = buildKey(location);
+        for (Viewer viewer : viewers) {
+            // Out of sight: nothing is drawn, and the end of the pass removes what was.
+            if (!viewer.near(location)) continue;
+            Player player = viewer.player();
+            particleHandler.spawnParticlesForPlayer(player, inter, location, false, key);
+            hologramManager.handleHolograms(player, inter, location, false, key);
+            displayManager.handleDisplays(player, inter, location, false, key);
+            labels.show(player, inter.getInteractionId(), key, location, false, 0);
+        }
+    }
+
+    /** Whether the interaction draws anything at all (placed items without visuals are skipped). */
+    private static boolean hasVisuals(Interaction inter) {
+        return notEmpty(inter.getParticles()) || notEmpty(inter.getHolograms()) || notEmpty(inter.getDisplays());
+    }
+
+    private static boolean notEmpty(List<?> list) {
+        return list != null && !list.isEmpty();
     }
 
     /** Debug mode's lines about a row that didn't run: which rule it has and each condition, met or not. */

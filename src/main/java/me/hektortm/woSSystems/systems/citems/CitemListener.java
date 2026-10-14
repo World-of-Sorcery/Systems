@@ -6,6 +6,7 @@ import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.interactions.InteractionManager;
 import me.hektortm.woSSystems.utils.Keys;
+import me.hektortm.woSSystems.utils.model.Interaction;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -146,6 +147,9 @@ public class CitemListener implements Listener {
         if (interId == null) {
             return;
         }
+        // Like a bound block: an interaction with a touch display runs through that display, not by clicking.
+        Interaction inter = hub.getInteractionDAO().getInteractionByID(interId);
+        if (inter != null && inter.isTouchOnly()) return;
 
         plugin.getInteractionManager().triggerInteraction(interId, p, buildKey(loc));
     }

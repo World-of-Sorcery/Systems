@@ -7,13 +7,20 @@ import me.hektortm.woSSystems.content.Json;
 import me.hektortm.woSSystems.player.ApiServices;
 import me.hektortm.woSSystems.player.ApiWriter;
 import me.hektortm.woSSystems.systems.citems.CitemBuilder;
+import me.hektortm.woSSystems.utils.Keys;
 import me.hektortm.woSSystems.utils.Parsers;
 import me.hektortm.wosCore.api.ApiException;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -35,6 +42,13 @@ public class CitemDAO {
     private final ContentStore<Placed> placed;
     private final ApiWriter writer;
 
+    /** A placed item whose custom item has a placed interaction: where it stands and which interaction. */
+    public record PlacedAction(Location block, String interactionId) {}
+
+    /** The placed items with a placed interaction; rebuilt after either store changed. */
+    private volatile List<PlacedAction> placedActions = List.of();
+    private volatile boolean placedActionsDirty = true;
+
     public CitemDAO(ApiServices s) {
         this.writer = s.writer();
         this.store = s.content().register(new ContentStore<>("citems", "Citem",
@@ -44,6 +58,43 @@ public class CitemDAO {
                 ApiSource.flat(s.api(), "/v1/server/placed-citems", "block_location", j -> new Placed(
                         Json.str(j, "block_location"), Json.str(j, "citem_id"), UUID.fromString(Json.str(j, "owner_uuid")),
                         Json.str(j, "display_location"), Json.bool(j, "creative_placed", false)), s.log())));
+        store.onChange(x -> placedActionsDirty = true);
+        placed.onChange(x -> placedActionsDirty = true);
+    }
+
+    /**
+     * The placed items whose custom item has a placed interaction, for the
+     * interaction task to draw that interaction's particles, holograms and
+     * displays at. Built from the stores only after one of them changed, so a
+     * pass costs no item lookups. An item in a world that isn't loaded is left
+     * out and looked for again in the next pass. Main thread.
+     */
+    public List<PlacedAction> placedActions() {
+        if (!placedActionsDirty) return placedActions;
+        placedActionsDirty = false; // before reading: a change while building marks it again
+        Map<String, String> actionOf = new HashMap<>();
+        List<PlacedAction> result = new ArrayList<>();
+        for (Placed p : placed.all()) {
+            String interactionId = actionOf.computeIfAbsent(p.citemId(), this::placedActionOf);
+            if (interactionId.isEmpty()) continue;
+            String world = p.blockLocation().split(",", 2)[0];
+            if (Bukkit.getWorld(world) == null) {
+                placedActionsDirty = true;
+                continue;
+            }
+            Location block = Parsers.stringToLocation(p.blockLocation());
+            if (block != null) result.add(new PlacedAction(block, interactionId));
+        }
+        placedActions = List.copyOf(result);
+        return placedActions;
+    }
+
+    /** The item's placed interaction, or "" when it has none (or the item is unknown). */
+    private String placedActionOf(String citemId) {
+        ItemStack item = store.get(citemId);
+        if (item == null || !item.hasItemMeta()) return "";
+        String id = item.getItemMeta().getPersistentDataContainer().get(Keys.PLACED_ACTION.get(), PersistentDataType.STRING);
+        return id == null ? "" : id;
     }
 
     /** Reloads every item definition from the API (the {@code /citems reload} command). Blocking. */
