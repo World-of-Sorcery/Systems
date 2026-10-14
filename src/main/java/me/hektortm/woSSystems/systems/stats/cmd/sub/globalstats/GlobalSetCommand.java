@@ -36,8 +36,8 @@ public class GlobalSetCommand extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (args.length < 2 || args.length > 3) {
-            Utils.info(sender, "global_stats", "error.usage.take");
+        if (args.length != 2) {
+            Utils.info(sender, "global_stats", "error.usage.set");
             return;
         }
 
@@ -52,7 +52,7 @@ public class GlobalSetCommand extends SubCommand {
         }
 
         try {
-            amount = Long.parseLong(args[2]);
+            amount = Long.parseLong(args[1]);
         } catch (NumberFormatException e) {
             Utils.error(sender, "global_stats", "error.invalid-amount");
             return;

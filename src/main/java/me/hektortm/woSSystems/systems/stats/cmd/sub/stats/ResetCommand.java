@@ -39,7 +39,7 @@ public class ResetCommand extends SubCommand {
     @Override
     public void execute(CommandSender sender, String[] args) {
 
-        if (args.length < 1 || args.length > 2) {
+        if (args.length != 2) {
             Utils.info(sender, "stats", "error.usage.reset", "%type%", "stats");
             return;
         }

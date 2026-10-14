@@ -36,7 +36,7 @@ public class GlobalTakeCommand extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (args.length < 2 || args.length > 3) {
+        if (args.length != 2) {
             Utils.info(sender, "global_stats", "error.usage.take");
             return;
         }

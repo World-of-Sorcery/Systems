@@ -38,8 +38,8 @@ public class SetCommand extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (args.length < 2 || args.length > 3) {
-            Utils.info(sender, "stats", "error.usage.take", "%type%", "stats");
+        if (args.length != 3) {
+            Utils.info(sender, "stats", "error.usage.set", "%type%", "stats");
             return;
         }
 
