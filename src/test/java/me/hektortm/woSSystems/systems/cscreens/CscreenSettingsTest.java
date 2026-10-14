@@ -111,6 +111,14 @@ class CscreenSettingsTest {
         assertThat(plain.action()).isEqualTo("commands");
         assertThat(plain.commands()).isEmpty();
         assertThat(plain.width()).isEqualTo(150);
+        assertThat(plain.then()).isEqualTo("default");
+        assertThat(plain.thenScreen()).isEmpty();
+        assertThat(plain.clickMatchtype()).isEqualTo("all");
+        assertThat(plain.refused()).isEmpty();
+        CscreenSettings.Button guarded = CscreenSettings.button("{\"click_matchtype\":\"one\",\"refused\":\"&cNo\"}");
+        assertThat(guarded.clickMatchtype()).isEqualTo("one");
+        assertThat(guarded.refused()).isEqualTo("&cNo");
+        assertThat(CscreenSettings.button("{\"click_matchtype\":\"most\"}").clickMatchtype()).isEqualTo("all");
 
         CscreenSettings.Button exit = CscreenSettings.button(
                 "{\"role\":\"exit\",\"label\":\"Back\",\"action\":\"screen\",\"target\":\" menu \",\"commands\":[\"a\",\"b\"]}");
@@ -120,5 +128,11 @@ class CscreenSettingsTest {
         assertThat(exit.target()).isEqualTo("menu");
         assertThat(exit.commands()).containsExactly("a", "b");
         assertThat(CscreenSettings.button("{\"action\":\"launch\"}").action()).isEqualTo("commands");
+
+        CscreenSettings.Button next = CscreenSettings.button("{\"then\":\"open\",\"then_screen\":\" shop \",\"tooltip\":\"a\\nb\"}");
+        assertThat(next.then()).isEqualTo("open");
+        assertThat(next.thenScreen()).isEqualTo("shop");
+        assertThat(next.tooltip()).isEqualTo("a\nb"); // a line break in the tooltip stays
+        assertThat(CscreenSettings.button("{\"then\":\"explode\"}").then()).isEqualTo("default");
     }
 }

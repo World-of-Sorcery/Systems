@@ -32,6 +32,9 @@ import java.util.Locale;
  *   <li>{@code {<constant id>}}: a constant's value (which may hold placeholders itself)</li>
  * </ul>
  *
+ * <p>Then calculations in braces are worked out ({@link Maths}):
+ * {@code {{stats.amount:a} + {stats.amount:b}}} becomes the sum.</p>
+ *
  * <p>Unknown tokens, and player tokens without a player, are left as written.
  * All lookups read loaded data (no API calls), so this is cheap on the main thread.</p>
  */
@@ -56,7 +59,7 @@ public class PlaceholderResolver {
      * @param player whose values player tokens show; null leaves them as written
      */
     public String resolvePlaceholders(String input, @Nullable Player player) {
-        return resolve(input, player, null, 0);
+        return Maths.fill(resolve(input, player, null, 0));
     }
 
     /**
@@ -65,12 +68,14 @@ public class PlaceholderResolver {
      * player's cooldown there. Without a binding they stay as written.
      */
     public String resolvePlaceholders(String input, @Nullable Player player, @Nullable InteractionKey binding) {
-        return resolve(input, player, binding, 0);
+        return Maths.fill(resolve(input, player, binding, 0));
     }
 
     /** Lines with their placeholders filled in; a multi-line value (like lore) adds lines. */
     public List<String> resolveLines(List<String> lines, @Nullable Player player) {
-        return Placeholders.replaceLines(lines, token -> value(token, player, null, 0));
+        List<String> out = Placeholders.replaceLines(lines, token -> value(token, player, null, 0));
+        out.replaceAll(Maths::fill);
+        return out;
     }
 
     private String resolve(String input, @Nullable Player player, @Nullable InteractionKey binding, int depth) {

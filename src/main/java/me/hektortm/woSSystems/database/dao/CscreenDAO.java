@@ -23,7 +23,7 @@ import java.util.logging.Logger;
  * reloaded one by one when the portal changes them.
  */
 public class CscreenDAO {
-    private static final Set<String> CONDITION_TYPES = Set.of("cscreen");
+    private static final Set<String> CONDITION_TYPES = Set.of("cscreen", "cscreen_click");
 
     private final ConditionDAO conditions;
     private final ContentStore<Cscreen> store;
@@ -63,6 +63,7 @@ public class CscreenDAO {
             out.add(new Cscreen.Element<>(Json.integer(e, "element_id", 0), Json.str(e, "matchtype", "all"),
                     settings.apply(Json.str(e, "settings"))));
             conditions.addAll(Json.array(e, "conditions"));
+            conditions.addAll(Json.array(e, "click_conditions")); // buttons only
         }
         return out;
     }

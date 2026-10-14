@@ -8,6 +8,8 @@ error:
     close: "Usage: /cscreen close <player>"
 opened: "Showing the screen %id% to %player%."
 closed: "Closed %player%'s screen."
+# A button's conditions to click failed and the button has no message of its own.
+refused: "You can't do that right now."
 
 # Buttons a screen gets when it has none of its own.
 button:

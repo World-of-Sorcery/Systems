@@ -8,6 +8,8 @@ public enum ConditionType {
     HOLOGRAM("hologram"),
     DISPLAY("display"),
     CSCREEN("cscreen"),
+    /** A custom screen button's conditions to click, checked with the typed values. */
+    CSCREEN_CLICK("cscreen_click"),
     RECIPE("recipe");
 
 

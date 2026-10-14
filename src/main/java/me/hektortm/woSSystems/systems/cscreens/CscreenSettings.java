@@ -39,8 +39,14 @@ public final class CscreenSettings {
                         List<Option> options,
                         float start, float end, float step, float initialNumber, String labelFormat) {}
 
-    /** A button. {@code action}: commands, screen, url, copy or close. */
-    public record Button(boolean exit, String label, String tooltip, int width, String action, List<String> commands, String target) {}
+    /**
+     * A button. {@code action}: commands, screen, url, copy or close. {@code then} (only for commands): what follows
+     * them; default (the screen's after-action), reopen (this screen, built anew) or open ({@code thenScreen}).
+     * {@code clickMatchtype} (all / one): how many of the conditions to click must pass; {@code refused}: the
+     * message when they don't (empty: the language file's).
+     */
+    public record Button(boolean exit, String label, String tooltip, int width, String action, List<String> commands, String target,
+                         String then, String thenScreen, String clickMatchtype, String refused) {}
 
     public static Screen screen(@Nullable String json) {
         JsonObject o = object(json);
@@ -105,8 +111,12 @@ public final class CscreenSettings {
         JsonObject o = object(json);
         String action = Json.str(o, "action", "commands");
         if (!List.of("commands", "screen", "url", "copy", "close").contains(action)) action = "commands";
+        String then = Json.str(o, "then", "default");
+        if (!List.of("default", "reopen", "open").contains(then)) then = "default";
         return new Button("exit".equals(Json.str(o, "role", "normal")), Json.str(o, "label", ""), Json.str(o, "tooltip", ""),
-                within(integer(o, "width", 150), 1, MAX_WIDTH), action, Json.strings(o, "commands"), Json.str(o, "target", "").trim());
+                within(integer(o, "width", 150), 1, MAX_WIDTH), action, Json.strings(o, "commands"), Json.str(o, "target", "").trim(),
+                then, Json.str(o, "then_screen", "").trim(),
+                "one".equals(Json.str(o, "click_matchtype", "all")) ? "one" : "all", Json.str(o, "refused", ""));
     }
 
     // ── reading ─────────────────────────────────────────────────────────────────

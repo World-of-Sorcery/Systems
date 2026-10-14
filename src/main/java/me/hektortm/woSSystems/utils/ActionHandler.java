@@ -165,7 +165,8 @@ public class ActionHandler {
                 cmd = cmd.substring(1, cmd.length() - 1);
             }
             String written = cmd;
-            cmd = CscreenRules.fillInputs(resolver.resolvePlaceholders(cmd, player, key), inputs);
+            // Calculations again once the inputs are in: {{input.amount} * 2}.
+            cmd = Maths.fill(CscreenRules.fillInputs(resolver.resolvePlaceholders(cmd, player, key), inputs));
             String parsedCommand = cmd.replace("@p", player.getName());
             if (debugging) player.sendMessage(DebugFormat.command(written, parsedCommand));
             if (cmd.startsWith("send_message")) {
