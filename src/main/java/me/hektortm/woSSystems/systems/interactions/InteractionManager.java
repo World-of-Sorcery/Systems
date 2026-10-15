@@ -107,6 +107,8 @@ public class InteractionManager {
         long now = System.currentTimeMillis();
         Long last = lastClicks.computeIfAbsent(player.getUniqueId(), k -> new HashMap<>()).put(interactionId, now);
         if (last != null && now - last < CLICK_COOLDOWN_MS) return;
+        // A quest or sequence waiting on this click takes it (or the recipe menu opens): the actions don't run.
+        if (plugin.getQuestEngine() != null && plugin.getQuestEngine().clicks().click(player, interactionId, key)) return;
         triggerInteraction(interactionId, player, key);
     }
 
@@ -254,6 +256,7 @@ public class InteractionManager {
             player.sendMessage("§cThis is not configured correctly. Please message a Staff member.");
             return;
         }
+        me.hektortm.woSSystems.systems.quests.QuestHooks.report(player, "interaction", "triggered", java.util.Map.of("interaction", interactionId));
 
         List<InteractionAction> actions = inter.getActions();
         DebugMode debug = plugin.getDebugMode();

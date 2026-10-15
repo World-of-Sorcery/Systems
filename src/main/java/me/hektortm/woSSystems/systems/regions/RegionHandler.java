@@ -96,6 +96,9 @@ public class RegionHandler implements Listener {
         if (newRegionId == null) {
             bossbar.updateBossBar(player, ""); // Clear the bossbar if no region with display-name
         }
+        // Quests waiting for a region to be entered or left.
+        for (String id : now) if (!before.contains(id)) me.hektortm.woSSystems.systems.quests.QuestHooks.report(player, "region", "entered", java.util.Map.of("region", id));
+        for (String id : before) if (!now.contains(id)) me.hektortm.woSSystems.systems.quests.QuestHooks.report(player, "region", "left", java.util.Map.of("region", id));
         inside.put(player.getUniqueId(), now);
         plugin.getPlayerRegions().put(player.getUniqueId(), newRegionId);
     }

@@ -1,5 +1,8 @@
 package me.hektortm.woSSystems.utils;
 
+import me.hektortm.woSSystems.systems.quests.QuestRun;
+import me.hektortm.woSSystems.systems.quests.QuestEngine;
+import me.hektortm.woSSystems.player.PlayerSession;
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.cscreens.CscreenRules;
@@ -153,6 +156,11 @@ public class ConditionHandler {
 
                 case "in_world":                        return player.getWorld().getName().equalsIgnoreCase(condition.getValue());
 
+                case "is_on_quest":                     return isOnQuest(player, condition.getValue());
+                case "is_not_on_quest":                 return !isOnQuest(player, condition.getValue());
+                case "has_completed_quest":             return hasCompletedQuest(player, condition.getValue());
+                case "has_not_completed_quest":         return !hasCompletedQuest(player, condition.getValue());
+
                 case "is_sneaking":                     return player.isSneaking();
                 case "is_not_sneaking":                 return !player.isSneaking();
 
@@ -212,11 +220,27 @@ public class ConditionHandler {
                 }
                 case "has_currency", "has_not_currency" -> "has " + hub.getEconomyDAO().getPlayerCurrency(player.getUniqueId(), id);
                 case "in_world" -> "in " + player.getWorld().getName();
+                case "is_on_quest", "is_not_on_quest" -> isOnQuest(player, id) ? "on it" : "not on it";
+                case "has_completed_quest", "has_not_completed_quest" -> hasCompletedQuest(player, id) ? "completed" : "not completed";
                 default -> null;
             };
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** A run of that quest or sequence is going (false before the quest engine has started). */
+    private boolean isOnQuest(Player player, String id) {
+        QuestEngine engine = plugin.getQuestEngine();
+        if (engine == null) return false;
+        QuestRun run = engine.runsOf(player).get(id);
+        return run != null && run.running();
+    }
+
+    /** The player finished that quest with success at least once (sequences record no completion). */
+    private boolean hasCompletedQuest(Player player, String id) {
+        PlayerSession s = hub.getSessions().get(player.getUniqueId());
+        return s != null && s.completedQuests.contains(id);
     }
 
     /**

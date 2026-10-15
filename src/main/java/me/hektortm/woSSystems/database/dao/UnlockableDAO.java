@@ -56,6 +56,7 @@ public class UnlockableDAO {
                 boolean temp = isTemp(id);
                 if (s != null) (temp ? s.tempUnlocks : s.permanentUnlocks).add(id);
                 writer.put(path, body("temp", temp));
+                me.hektortm.woSSystems.systems.quests.QuestHooks.report(uuid, "unlockable", "unlocked", java.util.Map.of("unlockable", id));
             }
             case TAKE -> {
                 if (s != null) {

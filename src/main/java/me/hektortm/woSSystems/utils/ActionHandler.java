@@ -265,19 +265,6 @@ public class ActionHandler {
                 player.closeInventory();
                 continue;
             }
-            // quest_progress <quest_id> <node_id> [amount]
-            if (cmd.startsWith("quest_progress")) {
-                String[] parts = cmd.split("\\s+");
-                if (parts.length < 3) {
-                    plugin.writeLog("ActionHandler", java.util.logging.Level.WARNING, "quest_progress missing arguments: " + cmd);
-                    continue;
-                }
-                String questId = parts[1];
-                String nodeId  = parts[2];
-                int amount = parts.length >= 4 ? Integer.parseInt(parts[3]) : 1;
-                plugin.getQuestManager().progressObjective(player, questId, nodeId, amount);
-                continue;
-            }
 
             if (!mayRun(player, parsedCommand, false, sourceType.getType() + " " + sourceID)) return;
             if (sourceType == SourceType.DIALOG) Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand));

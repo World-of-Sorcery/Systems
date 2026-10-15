@@ -83,9 +83,10 @@ final class WebActions {
     }
 
     private Result startQuest(Player player, String id) {
-        if (hub.getQuestDAO().getQuest(id) == null) return Result.notFound("quest", id);
-        if (!plugin.getQuestManager().startQuest(player, id)) {
-            return new Result(409, "not_started", "Quest " + id + " was not started (already active?)");
+        var result = plugin.getQuestEngine().start(player, id, null);
+        if (result == me.hektortm.woSSystems.systems.quests.QuestEngine.Start.UNKNOWN) return Result.notFound("published quest", id);
+        if (result != me.hektortm.woSSystems.systems.quests.QuestEngine.Start.STARTED) {
+            return new Result(409, "not_started", "Quest " + id + " was not started: " + result.name().toLowerCase());
         }
         return Result.ok("Started quest " + id);
     }

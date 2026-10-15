@@ -71,6 +71,7 @@ public class StatsDAO {
         }
         long value = s.stats.compute(statId, (k, current) -> apply(current == null ? 0 : current, amount, operation, max));
         writer.put("/v1/players/" + uuid + "/stats/" + seg(statId), body("value", value));
+        me.hektortm.woSSystems.systems.quests.QuestHooks.report(uuid, "stat", "reached", java.util.Map.of("stat", statId, "value", String.valueOf(value)));
     }
 
     /** Clears every {@code daily_*} stat and unlockable for all players. */

@@ -1,0 +1,61 @@
+# /quest and what quests and sequences tell the player.
+started: "Quest started: %quest%"
+started-for: "Started %quest% for %player%."
+completed: "§aQuest completed: %quest%"
+failed: "§cQuest failed: %quest%"
+abandoned: "You gave up %quest%."
+reset: "Reset %quest% for %player%."
+
+sequence:
+  done: "§aDone: %quest% %outcome%"
+  failed: "§c%quest% went wrong."
+  cancelled: "You stopped %quest%; what it took from you is back."
+
+# A failure after a Checkpoint node (a checkpoint can set its own text).
+checkpoint:
+  back: "§eBack to the checkpoint: try again."
+
+# Shown above the hotbar while a sequence runs.
+hint:
+  wrong: "§cNot now. Next: the %target%."
+  holding: "§cYou need to hold %amount%× %item%."
+
+status:
+  none: "You have no quests running."
+  header: "Your quests:"
+  quest: " §6%quest%"
+  sequence: " §e%quest% §7(in progress)"
+
+error:
+  offline: "%player% is not online."
+  player-only: "Only players can do that."
+  unknown: "There is no quest or sequence '%quest%'."
+  busy: "Finish what you are doing first (/quest cancel stops it)."
+  no-sequence: "You are not doing anything that can be stopped."
+  not-active: "%quest% is not running."
+  cannot-abandon: "%quest% can't be given up."
+  time: "§cToo slow!"
+  wrong-clicks: "§cToo many wrong moves!"
+  overshoot: "§cOne too many!"
+  start:
+    unknown: "There is no published quest or sequence '%quest%'."
+    active: "%quest% is already running."
+    done: "You have already done %quest%."
+    cooldown: "%quest% can't be started again yet."
+    conditions: "You can't start %quest% yet."
+    busy: "Finish what you are doing first (/quest cancel stops it)."
+    started: "%quest% started."
+  usage:
+    general: "Usage: /quest <status|cancel|abandon|start|reset|help>"
+    start: "Usage: /quest start <player> <id>"
+    abandon: "Usage: /quest abandon <id>"
+    reset: "Usage: /quest reset <player> <id>"
+
+help:
+  header: "Quest Commands:"
+  status: "%cyan_300%/quest status §7- Your running quests and sequences."
+  cancel: "%cyan_300%/quest cancel §7- Stop the sequence you are doing."
+  abandon: "%cyan_300%/quest abandon <id> §7- Give up a repeatable quest."
+  start: "%cyan_300%/quest start <player> <id> §7- Start a quest or sequence for a player."
+  reset: "%cyan_300%/quest reset <player> <id> §7- Stop a player's quest and let them do it again."
+  help: "%cyan_300%/quest help §7- Display this help message."

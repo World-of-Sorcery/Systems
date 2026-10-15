@@ -61,6 +61,8 @@ public class EconomyDAO {
         long delta = newAmount - previous;
         if (delta == 0) return;
         s.balances.put(currency, newAmount);
+        me.hektortm.woSSystems.systems.quests.QuestHooks.report(uuid, "currency", "balance_reached", java.util.Map.of("currency", currency, "amount", String.valueOf(newAmount)));
+        if (delta > 0) me.hektortm.woSSystems.systems.quests.QuestHooks.report(uuid, "currency", "earned", java.util.Map.of("currency", currency, "amount", String.valueOf(delta)));
         writer.postOnce("/v1/economy/transactions", body(
                 "uuid", uuid.toString(), "currency", currency, "delta", delta,
                 "source_type", sourceType, "source", source == null ? "" : source));

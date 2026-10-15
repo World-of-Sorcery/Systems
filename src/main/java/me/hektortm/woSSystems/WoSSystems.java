@@ -60,9 +60,8 @@ import me.hektortm.woSSystems.systems.interactions.cmd.InteractionCommand;
 import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.systems.stats.cmd.GlobalStatCommand;
 import me.hektortm.woSSystems.systems.stats.cmd.StatsCommand;
-import me.hektortm.woSSystems.systems.quests.QuestDAO;
+import me.hektortm.woSSystems.systems.quests.QuestEngine;
 import me.hektortm.woSSystems.systems.quests.QuestListener;
-import me.hektortm.woSSystems.systems.quests.QuestManager;
 import me.hektortm.woSSystems.systems.quests.cmd.QuestCommand;
 import me.hektortm.woSSystems.systems.unlockables.UnlockableManager;
 import me.hektortm.woSSystems.systems.unlockables.cmd.UnlockableCommand;
@@ -144,7 +143,7 @@ public final class WoSSystems extends JavaPlugin {
     private LuxDialoguesAPI luxApi;
     private CitemDisplays citemDisplays;
     private DailyReset dailyReset;
-    private QuestManager questManager;
+    private QuestEngine questEngine;
     private final DebugMode debugMode = new DebugMode();
     private final DebugLabels debugLabels = new DebugLabels(debugMode);
 
@@ -241,7 +240,7 @@ public final class WoSSystems extends JavaPlugin {
 
 // Initialize the remaining managers
         crecipeManager = new me.hektortm.woSSystems.systems.crecipes.CrecipeManager(daoHub);
-        questManager = new QuestManager(this, daoHub);
+        questEngine = new QuestEngine(this, daoHub);
 
         dailyReset = new DailyReset(daoHub);
 
@@ -260,6 +259,7 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "interactions", core);
             lang.loadLangFileExternal(this, "guis", core);
             lang.loadLangFileExternal(this, "cscreens", core);
+            lang.loadLangFileExternal(this, "quests", core);
             lang.loadLangFileExternal(this, "dialogs", core);
             lang.loadLangFileExternal(this, "global_stats", core);
             lang.loadLangFileExternal(this, "bugs", core);
@@ -289,6 +289,8 @@ public final class WoSSystems extends JavaPlugin {
         //interactionManager.loadInteraction();
         interactionManager.interactionTask();
         guiManager.startRefresh();
+        questEngine.startTasks();
+        for (Player p : Bukkit.getOnlinePlayers()) questEngine.load(p); // after a reload
         tab.runTablist();
         cooldownManager.start();
         crecipeManager.start();
@@ -315,6 +317,10 @@ public final class WoSSystems extends JavaPlugin {
             if (regionBossBarManager != null) regionBossBarManager.removeBossBar(p);
             if (interactionManager != null) interactionManager.getHologramManager().removeAllHolograms(p);
             if (interactionManager != null) interactionManager.getDisplayManager().removeAllDisplays(p);
+        }
+        if (questEngine != null) {
+            for (Player p : Bukkit.getOnlinePlayers()) questEngine.unload(p);
+            questEngine.shutdown();
         }
         if (timeManager != null) timeManager.saveGameState();
 //        PacketEvents.getAPI().terminate();
@@ -458,7 +464,7 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("calendar", new Calender());
         cmdReg("link", new LinkCommand());
         cmdReg("dialog", new me.hektortm.woSSystems.systems.dialogs.cmd.DialogCommand(daoHub));
-        cmdReg("quest", new QuestCommand(questManager, daoHub));
+        cmdReg("quest", new QuestCommand(questEngine));
         cmdReg("bug", new BugCommand(this));
     }
 
@@ -477,7 +483,8 @@ public final class WoSSystems extends JavaPlugin {
         eventReg(new BackpackListener());
         //eventReg(new HologramHandler(daoHub));
         eventReg(guiManager); // the same instance that opens GUIs, so clicks see what it opened
-        eventReg(new QuestListener(this, questManager));
+        eventReg(new QuestListener(questEngine));
+        eventReg(questEngine.clicks().menu());
         eventReg(new me.hektortm.woSSystems.systems.crecipes.CrecipeListener(crecipeManager));
         eventReg(debugMode);
         eventReg(debugLabels);
@@ -669,11 +676,8 @@ public final class WoSSystems extends JavaPlugin {
     public me.hektortm.woSSystems.systems.crecipes.CrecipeManager getCrecipeManager() {
         return crecipeManager;
     }
-    public QuestManager getQuestManager() {
-        return questManager;
-    }
-    public QuestDAO getQuestDAO() {
-        return daoHub.getQuestDAO();
+    public QuestEngine getQuestEngine() {
+        return questEngine;
     }
     public LoottableManager getLootTableManager() {
         return lootTableManager;

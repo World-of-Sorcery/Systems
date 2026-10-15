@@ -147,6 +147,8 @@ public class CitemListener implements Listener {
         if (interId == null) {
             return;
         }
+        // A quest or sequence waiting on this click takes it (a stove on a plot), or the recipe menu opens.
+        if (plugin.getQuestEngine() != null && plugin.getQuestEngine().clicks().click(p, interId, buildKey(loc))) return;
         // Like a bound block: an interaction with a touch display runs through that display, not by clicking.
         Interaction inter = hub.getInteractionDAO().getInteractionByID(interId);
         if (inter != null && inter.isTouchOnly()) return;

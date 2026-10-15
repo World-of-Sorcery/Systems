@@ -78,6 +78,8 @@ final class GUIClickHandler {
         GUISlotConfig config = gui == null ? null : configAt(player, gui, view.page(), slotId);
         if (config == null || !config.getBehaviour().clickable()) return;
         if (blocked(player, gui, config)) return;
+        me.hektortm.woSSystems.systems.quests.QuestHooks.report(player, "gui", "slot_clicked", java.util.Map.of(
+                "gui", view.guiId(), "page", String.valueOf(view.page()), "slot", String.valueOf(slotId)));
 
         if (config.isConfirm()) openConfirm(player, gui, view.page(), slotId, click, config);
         else succeed(player, gui, view.page(), config, click, clicked);

@@ -146,6 +146,5 @@ commands:
     usage: /<command> <start|stop|reload> [player|id]
 
   quest:
-    description: Quest management
-    usage: /<command> <start|status|help> [args]
-    permission: quest.start
+    description: Your quests and sequences (status, cancel, abandon); staff start and reset them
+    usage: /<command> <status|cancel|abandon|start|reset|help> [args]

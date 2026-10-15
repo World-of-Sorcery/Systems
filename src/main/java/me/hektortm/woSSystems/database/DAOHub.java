@@ -2,7 +2,7 @@ package me.hektortm.woSSystems.database;
 
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.dao.*;
-import me.hektortm.woSSystems.systems.quests.QuestDAO;
+import me.hektortm.woSSystems.systems.quests.QuestStore;
 import me.hektortm.woSSystems.content.ContentRegistry;
 import me.hektortm.wosCore.api.WosApi;
 import me.hektortm.wosCore.database.DatabaseManager;
@@ -50,7 +50,7 @@ public class DAOHub {
     private final LoottablesDAO loottablesDAO;
     private final CommandsDAO commandsDAO;
     private final CrecipeDAO crecipeDAO;
-    private final QuestDAO questDAO;
+    private final QuestStore questStore;
 
 
     /**
@@ -84,7 +84,7 @@ public class DAOHub {
         this.loottablesDAO  = new LoottablesDAO(content, api, log);
         this.commandsDAO    = new CommandsDAO(content, api, log);
         this.crecipeDAO     = new CrecipeDAO(content, api, conditionDAO, log);
-        this.questDAO       = new QuestDAO(s);
+        this.questStore     = new QuestStore(s);
     }
     public EconomyDAO getEconomyDAO()           { return economyDAO;        }
     public UnlockableDAO getUnlockableDAO()     { return unlockableDAO;     }
@@ -105,7 +105,7 @@ public class DAOHub {
     public LoottablesDAO getLoottablesDAO()     { return loottablesDAO;     }
     public CommandsDAO getCommandsDAO()         { return commandsDAO;       }
     public CrecipeDAO getCrecipeDAO()           { return crecipeDAO;        }
-    public QuestDAO getQuestDAO()               { return questDAO;          }
+    public QuestStore getQuestStore()           { return questStore;        }
     public PlayerSessions getSessions()         { return sessions;          }
 
     /**

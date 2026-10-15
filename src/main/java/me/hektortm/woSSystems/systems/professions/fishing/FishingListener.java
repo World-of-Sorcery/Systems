@@ -44,6 +44,7 @@ public class FishingListener implements Listener {
 
                         if (citem != null) {
                             caughtItemEntity.setItemStack(citem);
+                            me.hektortm.woSSystems.systems.quests.QuestHooks.report(player, "fishing", "caught", java.util.Map.of("fish", fishingItem.getId()));
                             interactionManager.triggerInteraction(fishingItem.getInteraction(), player, null);
                         } else fallback(player, event);
                     } else fallback(player, event);

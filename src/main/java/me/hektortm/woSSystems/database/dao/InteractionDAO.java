@@ -142,6 +142,17 @@ public class InteractionDAO {
         return npcIndex.get(npcId);
     }
 
+    /** The blocks the interaction is bound to (the quest engine looks for a step's target). */
+    public List<Location> blocksOf(String interactionId) {
+        return blockIndex.entrySet().stream().filter(e -> interactionId.equals(e.getValue()))
+                .map(e -> Parsers.stringToLocation(e.getKey())).filter(java.util.Objects::nonNull).collect(Collectors.toList());
+    }
+
+    /** The Citizens NPCs the interaction is bound to. */
+    public List<Integer> npcsOf(String interactionId) {
+        return npcIndex.entrySet().stream().filter(e -> interactionId.equals(e.getValue())).map(Map.Entry::getKey).collect(Collectors.toList());
+    }
+
     public List<Location> getAllBlockLocations() {
         return blockIndex.keySet().stream().map(Parsers::stringToLocation).collect(Collectors.toList());
     }
