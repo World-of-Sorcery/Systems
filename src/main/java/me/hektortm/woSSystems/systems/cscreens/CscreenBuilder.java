@@ -245,7 +245,10 @@ final class CscreenBuilder {
         String target = plugin.getPlaceholderResolver().resolvePlaceholders(s.target(), player);
         switch (s.action()) {
             case "screen":
-                button.action(DialogAction.customClick((response, audience) -> manager.open(player, target), options(staysOpen)));
+                button.action(DialogAction.customClick((response, audience) -> {
+                    manager.buttonClicked(player, screen, element.id());
+                    manager.open(player, target);
+                }, options(staysOpen)));
                 break;
             case "url":
                 if (!target.startsWith("https://") && !target.startsWith("http://")) {
@@ -257,7 +260,7 @@ final class CscreenBuilder {
                 button.action(DialogAction.staticAction(ClickEvent.copyToClipboard(target)));
                 break;
             case "close":
-                closing(button, screen, player);
+                closing(button, screen, player, element.id());
                 break;
             default:
                 button.action(DialogAction.customClick(
@@ -269,18 +272,22 @@ final class CscreenBuilder {
     /** A button that only closes the screen. */
     private ActionButton plain(String label, Cscreen screen, Player player) {
         return closing(ActionButton.builder(LegacyComponentSerializer.legacySection().deserialize(Utils.parseColorCodeString(label))),
-                screen, player).build();
+                screen, player, null).build();
     }
 
     /**
      * Makes the button close the screen. A button without an action closes it
      * only when the screen's after-action is "close"; on a screen that stays
-     * open (or waits) the server has to close it.
+     * open (or waits) the server has to close it. A button of the screen's own
+     * ({@code buttonId} given) always tells the server, so quests hear of it.
      */
-    private ActionButton.Builder closing(ActionButton.Builder button, Cscreen screen, Player player) {
-        if (!screen.settings().afterAction().equals("close")) {
-            button.action(DialogAction.customClick((response, audience) -> manager.close(player), options(true)));
-        }
+    private ActionButton.Builder closing(ActionButton.Builder button, Cscreen screen, Player player, @Nullable Integer buttonId) {
+        boolean closesItself = screen.settings().afterAction().equals("close");
+        if (closesItself && buttonId == null) return button;
+        button.action(DialogAction.customClick((response, audience) -> {
+            if (buttonId != null) manager.buttonClicked(player, screen, buttonId);
+            if (!closesItself) manager.close(player);
+        }, options(true)));
         return button;
     }
 

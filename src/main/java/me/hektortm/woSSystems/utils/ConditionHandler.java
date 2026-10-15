@@ -160,6 +160,8 @@ public class ConditionHandler {
                 case "is_not_on_quest":                 return !isOnQuest(player, condition.getValue());
                 case "has_completed_quest":             return hasCompletedQuest(player, condition.getValue());
                 case "has_not_completed_quest":         return !hasCompletedQuest(player, condition.getValue());
+                case "is_on_quest_step":                return isOnQuestStep(player, condition.getValue(), condition.getParameter());
+                case "is_not_on_quest_step":            return !isOnQuestStep(player, condition.getValue(), condition.getParameter());
 
                 case "is_sneaking":                     return player.isSneaking();
                 case "is_not_sneaking":                 return !player.isSneaking();
@@ -222,6 +224,7 @@ public class ConditionHandler {
                 case "in_world" -> "in " + player.getWorld().getName();
                 case "is_on_quest", "is_not_on_quest" -> isOnQuest(player, id) ? "on it" : "not on it";
                 case "has_completed_quest", "has_not_completed_quest" -> hasCompletedQuest(player, id) ? "completed" : "not completed";
+                case "is_on_quest_step", "is_not_on_quest_step" -> questSteps(player, id);
                 default -> null;
             };
         } catch (Exception e) {
@@ -235,6 +238,26 @@ public class ConditionHandler {
         if (engine == null) return false;
         QuestRun run = engine.runsOf(player).get(id);
         return run != null && run.running();
+    }
+
+    /**
+     * A run of that quest or sequence is waiting at that step (a Wait, Wait for,
+     * Click or Run sequence node; the other kinds are passed at once). A quest
+     * whose sequence is running is at its Run sequence node.
+     */
+    private boolean isOnQuestStep(Player player, String id, @Nullable String step) {
+        QuestEngine engine = plugin.getQuestEngine();
+        if (engine == null || step == null || step.isBlank()) return false;
+        QuestRun run = engine.runsOf(player).get(id);
+        return run != null && run.running() && run.active().contains(step.trim());
+    }
+
+    /** For debug mode: the steps the player's run of that quest waits at. */
+    private String questSteps(Player player, String id) {
+        QuestEngine engine = plugin.getQuestEngine();
+        QuestRun run = engine == null ? null : engine.runsOf(player).get(id);
+        if (run == null || !run.running()) return "not on it";
+        return run.active().isEmpty() ? "on it, at no step" : "at " + String.join(", ", run.active());
     }
 
     /** The player finished that quest with success at least once (sequences record no completion). */

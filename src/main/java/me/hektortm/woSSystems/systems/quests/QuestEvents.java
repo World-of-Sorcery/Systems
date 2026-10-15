@@ -26,6 +26,11 @@ public final class QuestEvents {
             "currency.balance_reached", "currency.earned",
             "unlockable.unlocked",
             "fishing.caught",
+            "crecipe.crafted",
+            "cscreen.opened", "cscreen.button_clicked",
+            "loottable.opened",
+            "cooldown.started", "cooldown.expired",
+            "cosmetic.obtained", "cosmetic.equipped",
             "quest.completed", "quest.failed");
 
     /** Parameters that only label the node in the portal. */
@@ -34,7 +39,8 @@ public final class QuestEvents {
     /**
      * How far an event moves a node waiting for {@code source.entry} with these
      * parameters: 0 when it doesn't match, the amount earned for
-     * {@code currency.earned}, else 1.
+     * {@code currency.earned}, the items made for {@code crecipe.crafted}
+     * (so a node's count is a number of items), else 1.
      */
     public static long progress(String source, String entry, Map<String, String> params,
                                 String eventSource, String eventEntry, Map<String, String> facts) {
@@ -45,6 +51,7 @@ public final class QuestEvents {
             if (!matches(source + "." + entry, p.getKey(), want, facts.get(p.getKey()))) return 0;
         }
         if ("currency.earned".equals(source + "." + entry)) return Math.max(0, number(facts.get("amount")));
+        if ("crecipe.crafted".equals(source + "." + entry)) return Math.max(1, number(facts.get("amount")));
         return 1;
     }
 

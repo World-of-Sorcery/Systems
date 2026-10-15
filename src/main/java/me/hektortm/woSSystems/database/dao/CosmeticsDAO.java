@@ -8,6 +8,7 @@ import me.hektortm.woSSystems.player.ApiWriter;
 import me.hektortm.woSSystems.player.PlayerSession;
 import me.hektortm.woSSystems.player.PlayerSession.OwnedCosmetic;
 import me.hektortm.woSSystems.player.PlayerSessions;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.model.Cosmetic;
 import me.hektortm.woSSystems.utils.types.CosmeticType;
 import org.bukkit.entity.Player;
@@ -50,7 +51,9 @@ public class CosmeticsDAO {
     public void giveCosmetic(CosmeticType type, String id, UUID uuid) {
         String obtainedAt = OBTAINED.format(LocalDate.now());
         PlayerSession s = sessions.getOrFetch(uuid);
-        if (s != null) s.cosmetics.putIfAbsent(PlayerSession.cosmeticKey(type, id), new OwnedCosmetic(id, type, obtainedAt));
+        if (s != null && s.cosmetics.putIfAbsent(PlayerSession.cosmeticKey(type, id), new OwnedCosmetic(id, type, obtainedAt)) == null) {
+            QuestHooks.report(uuid, "cosmetic", "obtained", Map.of("cosmetic", id));
+        }
         writer.put(path(uuid, type, id), body("obtained_at", obtainedAt));
     }
 
@@ -68,10 +71,13 @@ public class CosmeticsDAO {
         String obtainedAt = OBTAINED.format(LocalDate.now());
         PlayerSession s = sessions.getOrFetch(uuid);
         if (s != null) {
-            s.cosmetics.putIfAbsent(PlayerSession.cosmeticKey(type, id), new OwnedCosmetic(id, type, obtainedAt));
+            if (s.cosmetics.putIfAbsent(PlayerSession.cosmeticKey(type, id), new OwnedCosmetic(id, type, obtainedAt)) == null) {
+                QuestHooks.report(uuid, "cosmetic", "obtained", Map.of("cosmetic", id));
+            }
             s.equippedCosmetics.put(type, id);
         }
         writer.put(path(uuid, type, id) + "/equip", body("obtained_at", obtainedAt));
+        QuestHooks.report(uuid, "cosmetic", "equipped", Map.of("cosmetic", id));
     }
 
     /** Equips an owned cosmetic, unequipping the previous one of that type. */

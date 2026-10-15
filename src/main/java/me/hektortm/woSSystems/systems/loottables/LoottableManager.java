@@ -2,6 +2,7 @@ package me.hektortm.woSSystems.systems.loottables;
 
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.ActionHandler;
 import me.hektortm.woSSystems.utils.model.Loottable;
 import me.hektortm.woSSystems.utils.model.LoottableItem;
@@ -34,6 +35,7 @@ public class LoottableManager {
         Loottable lt = hub.getLoottablesDAO().getLoottable(id);
 
         LoottableItem item = lt.getRandom();
+        QuestHooks.report(player.getUniqueId(), "loottable", "opened", Map.of("loottable", id));
 
         List<String> helperArray = new ArrayList<>();
         helperArray.add(item.getValue());

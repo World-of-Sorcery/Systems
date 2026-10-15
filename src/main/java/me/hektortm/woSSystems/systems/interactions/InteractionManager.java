@@ -165,7 +165,7 @@ public class InteractionManager {
                                 for (Viewer viewer : viewers) {
                                     if (!viewer.near(at)) continue;
                                     Player player = viewer.player();
-                                    // Its own copy for each player: the particle handler moves the location it is given.
+                                    // Its own copy for each player, so nothing drawn below can move another's.
                                     Location location = at.clone();
                                     particleHandler.spawnParticlesForPlayer(player, inter, location, true, key);
                                     hologramManager.handleHolograms(player, inter, location, true, key, npc1.getEntity().getHeight());

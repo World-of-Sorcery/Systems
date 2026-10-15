@@ -158,10 +158,13 @@ public class ParticleHandler {
                 18, 0.4, 0.3, 0.4, data);
     }
 
-    /** Particles around an NPC, over its whole height; {@code data} is null for particles that take none. */
+    /**
+     * Particles around an NPC, over its whole height; {@code data} is null for particles that take none.
+     * The location is not changed: the hologram, displays and debug labels drawn after it use the same
+     * one, and moving it up here lifted them by a block whenever a particle row was shown.
+     */
     private <T> void spawnAroundNPC(Player player, Location location, Particle particle, T data) {
-        location.add(0, 1.0, 0); // Shift upward to center on NPC's body (adjust as needed)
-        player.spawnParticle(particle, location.getX(), location.getY(), location.getZ(),
+        player.spawnParticle(particle, location.getX(), location.getY() + 1.0, location.getZ(),
                 10, 0.35, 0.6, 0.35, data);
     }
 

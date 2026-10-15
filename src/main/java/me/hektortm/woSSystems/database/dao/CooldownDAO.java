@@ -7,6 +7,7 @@ import me.hektortm.woSSystems.player.ApiServices;
 import me.hektortm.woSSystems.player.ApiWriter;
 import me.hektortm.woSSystems.player.PlayerSession;
 import me.hektortm.woSSystems.player.PlayerSessions;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.model.Cooldown;
 import me.hektortm.woSSystems.utils.model.InteractionKey;
 import org.bukkit.OfflinePlayer;
@@ -73,6 +74,7 @@ public class CooldownDAO {
         PlayerSession s = sessions.get(p.getUniqueId());
         if (s != null) s.cooldowns.put(id, now);
         writer.put(path(p.getUniqueId(), id), body("started_at", now.toString()));
+        QuestHooks.report(p.getUniqueId(), "cooldown", "started", Map.of("cooldown", id));
     }
 
     /** Starts (or restarts) a cooldown scoped to one location/NPC now. */
@@ -81,6 +83,7 @@ public class CooldownDAO {
         PlayerSession s = sessions.get(p.getUniqueId());
         if (s != null) s.localCooldowns.put(PlayerSession.localCooldownKey(id, key.getKey()), now);
         writer.put(localPath(p.getUniqueId(), id, key.getKey()), body("started_at", now.toString()));
+        QuestHooks.report(p.getUniqueId(), "cooldown", "started", Map.of("cooldown", id));
     }
 
     public void removeCooldown(OfflinePlayer p, String id) {

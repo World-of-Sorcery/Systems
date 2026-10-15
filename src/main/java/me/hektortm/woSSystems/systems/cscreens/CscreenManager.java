@@ -4,6 +4,7 @@ import io.papermc.paper.dialog.DialogResponseView;
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.debug.DebugFormat;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.ActionHandler;
 import me.hektortm.woSSystems.utils.Maths;
 import me.hektortm.woSSystems.utils.model.Condition;
@@ -43,6 +44,7 @@ public final class CscreenManager {
             if (!player.isOnline()) return;
             try {
                 player.showDialog(builder.build(screen, player));
+                QuestHooks.report(player, "cscreen", "opened", Map.of("cscreen", id));
             } catch (Exception e) {
                 // The server checks a dialog as a whole when it is created (e.g. a text wider than allowed).
                 plugin.getLogger().warning("[Cscreens] " + id + " could not be shown to " + player.getName() + ": " + e);
@@ -69,12 +71,21 @@ public final class CscreenManager {
         onMainThread(() -> {
             if (!player.isOnline()) return;
             if (!mayClick(player, screen, button, values)) return;
+            buttonClicked(player, screen, button.id());
             ActionHandler actions = plugin.getActionHandler();
             actions.executeActions(player, button.settings().commands(), ActionHandler.SourceType.CSCREEN, screen.id(), null,
                     "button " + button.id(), values);
             if (!values.isEmpty()) plugin.getDebugMode().tell(player, DebugFormat.note("inputs: " + values));
             then(player, screen, button);
         });
+    }
+
+    /**
+     * Tells quests waiting for this button. Only buttons the server hears of
+     * count: a link or copy button is handled by the client alone.
+     */
+    void buttonClicked(Player player, Cscreen screen, int buttonId) {
+        QuestHooks.report(player, "cscreen", "button_clicked", Map.of("cscreen", screen.id(), "button", String.valueOf(buttonId)));
     }
 
     /** Whether the button's conditions to click pass with the values entered; if not, the player is told. */

@@ -109,11 +109,10 @@ public final class CrecipeListener implements Listener {
     }
 
     /**
-     * A craft the server carries out itself: the commands run once the click
-     * is through, with the number of items it made.
+     * A craft the server carries out itself: once the click is through, the
+     * number of items it made goes to quests and the commands.
      */
     private void countAfterClick(InventoryClickEvent event, Player player, Crecipe match, ItemStack result) {
-        if (match.commands().isEmpty()) return;
         int before = recipes.carried(player, result);
         boolean dropped = event.getAction() == InventoryAction.DROP_ONE_SLOT || event.getAction() == InventoryAction.DROP_ALL_SLOT;
         later(() -> recipes.crafted(player, match,

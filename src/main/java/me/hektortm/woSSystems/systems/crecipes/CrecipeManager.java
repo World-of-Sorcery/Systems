@@ -4,6 +4,7 @@ import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.citems.CitemManager;
 import me.hektortm.woSSystems.systems.debug.DebugFormat;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.ActionHandler;
 import me.hektortm.woSSystems.utils.model.Condition;
 import me.hektortm.woSSystems.utils.model.Crecipe;
@@ -230,9 +231,14 @@ public final class CrecipeManager {
         return key.equals(keyOf(cursor)) ? found + cursor.getAmount() : found;
     }
 
-    /** Runs the recipe's commands for the player after a craft that made {@code crafted} items. */
+    /**
+     * After a craft that made {@code crafted} items: tells quests waiting for
+     * the recipe, then runs the recipe's commands for the player.
+     */
     public void crafted(Player player, Crecipe recipe, int crafted) {
-        if (crafted <= 0 || recipe.commands().isEmpty() || !player.isOnline()) return;
+        if (crafted <= 0 || !player.isOnline()) return;
+        QuestHooks.report(player, "crecipe", "crafted", Map.of("crecipe", recipe.id(), "amount", String.valueOf(crafted)));
+        if (recipe.commands().isEmpty()) return;
         plugin.getActionHandler().executeActions(player, CrecipeRules.fill(recipe.commands(), crafted),
                 ActionHandler.SourceType.CRECIPE, recipe.id(), null, "crafted " + crafted);
     }

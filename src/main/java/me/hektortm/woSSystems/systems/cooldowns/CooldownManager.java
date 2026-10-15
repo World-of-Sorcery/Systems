@@ -3,12 +3,14 @@ package me.hektortm.woSSystems.systems.cooldowns;
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.database.dao.CooldownDAO;
+import me.hektortm.woSSystems.systems.quests.QuestHooks;
 import me.hektortm.woSSystems.utils.model.Cooldown;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import java.util.Map;
 import java.util.logging.Level;
 
 /**
@@ -46,6 +48,7 @@ public class CooldownManager extends BukkitRunnable {
      */
     private void onCooldownExpire(OfflinePlayer player, String cooldownId) {
         plugin.writeLog("CooldownManager", Level.INFO, "Cooldown expired for player: " + player.getName() + " with ID: " + cooldownId);
+        QuestHooks.report(player.getUniqueId(), "cooldown", "expired", Map.of("cooldown", cooldownId));
         Cooldown cd = hub.getCooldownDAO().getCooldown(cooldownId);
         String endInt = cd == null ? null : cd.getEnd_interaction();
 
