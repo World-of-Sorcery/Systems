@@ -148,3 +148,116 @@ commands:
   quest:
     description: Your quests and sequences (status, cancel, abandon); staff start and reset them
     usage: /<command> <status|cancel|abandon|start|reset|help> [args]
+
+# Every node the plugin checks, with what it allows. WoSCore sends this list to
+# wos-api at server start; the portal shows it (Permissions > Nodes). Keep it
+# equal to the Permissions enum (PluginYmlTest checks).
+permissions:
+  citem.give:
+    description: 'Give custom items to players (/cgive, /citem give).'
+  citem.remove:
+    description: 'Take custom items from players (/cremove, /citem remove).'
+  citem.info:
+    description: 'See the custom item data of the item in your hand (/citem info).'
+  interaction.bind:
+    description: 'Bind interactions to blocks and NPCs (/interaction bind, npcbind).'
+  interaction.unbind:
+    description: 'Remove interaction bindings from blocks and NPCs (/interaction unbind, npcunbind).'
+  interaction.trigger:
+    description: 'Run an interaction for a player (/interaction trigger).'
+  interaction.info:
+    description: 'See which interaction is bound to a block or NPC (/interaction info).'
+  gui.open:
+    description: 'Open a GUI for a player by command (/gui open). Content runs it as the console, which needs no node.'
+  gui.playerview:
+    description: 'Look at a GUI the way another player sees it (/gui playerview).'
+  cscreen.open:
+    description: 'Open a custom screen for a player (/cscreen open).'
+  cscreen.close:
+    description: 'Close a player''s custom screen (/cscreen close).'
+  debug.use:
+    description: 'Turn on debug mode: interaction labels, raw GUI placeholders, action output (/wosdebug).'
+  woshelp.use:
+    description: 'List every staff command you may use (/woshelp).'
+  stats.modify.give:
+    description: 'Add to a player''s stat (/stats give).'
+  stats.modify.take:
+    description: 'Subtract from a player''s stat (/stats take).'
+  stats.modify.set:
+    description: 'Set a player''s stat (/stats set).'
+  stats.modify.reset:
+    description: 'Reset a player''s stat (/stats reset).'
+  stats.view:
+    description: 'See a player''s stats (/stats view, /globalstats view).'
+  stats_global.modify.give:
+    description: 'Add to a global stat (/globalstats give).'
+  stats_global.modify.take:
+    description: 'Subtract from a global stat (/globalstats take).'
+  stats_global.modify.set:
+    description: 'Set a global stat (/globalstats set).'
+  stats_global.modify.reset:
+    description: 'Reset a global stat (/globalstats reset).'
+  stats_global.view:
+    description: 'See the global stats (/globalstats).'
+  unlockable.modify.give:
+    description: 'Give a player an unlockable (/unlockable give).'
+  unlockable.modify.take:
+    description: 'Take an unlockable from a player (/unlockable take).'
+  economy.balance.self:
+    description: 'See your own balance (/balance).'
+  economy.balance.others:
+    description: 'See another player''s balance (/balance <player>, /eco).'
+  economy.modify.give:
+    description: 'Give a player money (/eco give).'
+  economy.modify.take:
+    description: 'Take money from a player (/eco take).'
+  economy.modify.set:
+    description: 'Set a player''s balance (/eco set).'
+  economy.modify.reset:
+    description: 'Reset a player''s balance (/eco reset).'
+  economy.modify.random:
+    description: 'Give a player a random amount (/eco random).'
+  economy.modify.currencies:
+    description: 'List the currencies (/eco currencies).'
+  economy.coinflip:
+    description: 'Bet money on a coin flip (/coinflip).'
+  economy.pay:
+    description: 'Pay another player (/pay).'
+  economy.baltop:
+    description: 'See the richest players of a currency (/baltop).'
+  nick.request.send:
+    description: 'Ask for a nickname (/nick).'
+  nick.request.view:
+    description: 'See open nickname requests (/nick requests).'
+  nick.reserve:
+    description: 'Reserve a nickname (/nick reserve).'
+  nick.unreserve:
+    description: 'Release a reserved nickname (/nick unreserve).'
+  nick.reset:
+    description: 'Reset a player''s nickname (/nick reset).'
+  cosmetic.give:
+    description: 'Give a player a cosmetic (/cosmetic give).'
+  cosmetic.take:
+    description: 'Take a cosmetic from a player (/cosmetic take).'
+  cosmetic.set:
+    description: 'Set the cosmetic a player shows (/cosmetic set).'
+  dialog.trigger:
+    description: 'Start or stop a dialog for a player (/dialog).'
+  loottable.give:
+    description: 'Roll a loot table for a player (/loottable trigger). Also needed for /loottable at all.'
+  loottable.chest:
+    description: 'Turn a chest into a loot table chest (/loottable chest).'
+  cooldowns.give:
+    description: 'Start a cooldown for a player (/cooldown give).'
+  cooldowns.remove:
+    description: 'Remove a player''s cooldown (/cooldown remove).'
+  cooldowns.view:
+    description: 'See a player''s cooldowns (/cooldown view).'
+  time.date:
+    description: 'See the in-game date (/time date).'
+  time.freeze:
+    description: 'Freeze and unfreeze the in-game time (/time freeze).'
+  wossystems.debug.use:
+    description: 'Run the developer test command (/debugcmd).'
+  quest.admin.start:
+    description: 'Start and reset quests for players (/quest start, /quest reset).'

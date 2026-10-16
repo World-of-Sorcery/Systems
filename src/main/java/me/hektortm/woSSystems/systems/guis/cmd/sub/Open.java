@@ -29,7 +29,7 @@ public class Open extends SubCommand {
 
     @Override
     public Permissions getPermission() {
-        return null;
+        return Permissions.GUI_OPEN;
     }
 
     @Override

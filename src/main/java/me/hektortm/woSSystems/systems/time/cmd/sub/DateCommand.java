@@ -26,7 +26,7 @@ public class DateCommand extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if(!sender.hasPermission("time.date")) {
+        if(!sender.hasPermission(Permissions.TIME_DATE.getPermission())) {
             sender.sendMessage("You do not have permission to use this command!");
             return;
         }

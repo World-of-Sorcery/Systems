@@ -26,7 +26,7 @@ public class Set extends SubCommand {
 
     @Override
     public Permissions getPermission() {
-        return Permissions.COSMETIC_GIVE;
+        return Permissions.COSMETIC_SET;
     }
 
     @Override

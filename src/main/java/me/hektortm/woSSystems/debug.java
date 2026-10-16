@@ -23,7 +23,7 @@ public class debug implements CommandExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
-        if (!commandSender.hasPermission("wossystems.debug.use")) {
+        if (!commandSender.hasPermission(me.hektortm.woSSystems.utils.Permissions.DEBUG_TEST.getPermission())) {
             commandSender.sendMessage("No permission");
             return true;
         }

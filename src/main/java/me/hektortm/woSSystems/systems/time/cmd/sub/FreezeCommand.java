@@ -25,7 +25,7 @@ public class FreezeCommand extends SubCommand {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("time.freeze")) {
+        if (!sender.hasPermission(Permissions.TIME_FREEZE.getPermission())) {
             sender.sendMessage("You do not have permission to use this command!");
             return;
         }
