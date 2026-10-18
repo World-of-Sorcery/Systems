@@ -21,6 +21,8 @@ import me.hektortm.woSSystems.systems.cosmetic.cmd.CosmeticCommand;
 import me.hektortm.woSSystems.systems.cosmetic.cmd.QuickCommands;
 import me.hektortm.woSSystems.database.AsyncWriteQueue;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.player.Handoff;
+import me.hektortm.woSSystems.player.PlayerSessions;
 import me.hektortm.woSSystems.systems.economy.EcoManager;
 import me.hektortm.woSSystems.systems.economy.cmd.BalanceCommand;
 import me.hektortm.woSSystems.systems.economy.cmd.Coinflip;
@@ -112,6 +114,7 @@ public final class WoSSystems extends JavaPlugin {
     private static WoSSystems instance;
     private PacketEventsAPI packetEventsApi;
     private DAOHub daoHub;
+    private Handoff handoff;
     private WebhookServer webhookServer;
     private WoSCore core;
     private static LangManager lang;
@@ -128,6 +131,7 @@ public final class WoSSystems extends JavaPlugin {
     private ConditionHandler conditionHandler;
     private me.hektortm.woSSystems.systems.crecipes.CrecipeManager crecipeManager;
     private ChatManager chatManager;
+    private me.hektortm.woSSystems.systems.chat.MsgService msgService;
     private NicknameManager nickManager;
     private Coinflip coinflipCommand;
     private LoottableManager lootTableManager;
@@ -138,6 +142,7 @@ public final class WoSSystems extends JavaPlugin {
     private TimeManager timeManager;
     private RegionBossBar regionBossBarManager;
     private TablistManager tab;
+    private me.hektortm.woSSystems.tablist.NetworkTablist networkTablist;
     private CosmeticManager cosmeticManager;
     private ProfileDialogs profileDialogs;
     private LuxDialoguesAPI luxApi;
@@ -185,8 +190,16 @@ public final class WoSSystems extends JavaPlugin {
                 var store = content.store(type);
                 return store == null ? java.util.List.of() : store.asMap().keySet();
             });
+            // Session hand-off between servers sharing player data: a login takes the player's
+            // lease first; other servers ask this one to release over the Redis bus.
+            PlayerSessions sessions = daoHub.getSessions();
+            handoff = Handoff.create(core.getApi(), core.network(), sessions.frozen(),
+                    AsyncWriteQueue::barrier, uuid -> sessions.get(uuid) != null,
+                    sessions::leavingSaveOnMainThread, getLogger());
+            handoff.register();
+            sessions.useHandoff(handoff);
             // Registered before anything else so sessions load ahead of other login handlers.
-            eventReg(daoHub.getSessions());
+            eventReg(sessions);
 
             databaseManager.initializeAllDAOs();
 
@@ -233,6 +246,8 @@ public final class WoSSystems extends JavaPlugin {
         nickManager = new NicknameManager(daoHub);
         profileDialogs = new ProfileDialogs(daoHub, nickManager);
         chatManager = new ChatManager(daoHub, nickManager, profileDialogs);
+        msgService = new me.hektortm.woSSystems.systems.chat.MsgService(this, core.network(), core.networkOnline(),
+                WoSCore.identity().id(), lang);
 
         lootTableManager = new LoottableManager(daoHub);
         coinflipCommand = new Coinflip(ecoManager, this, lang);
@@ -241,6 +256,17 @@ public final class WoSSystems extends JavaPlugin {
 // Initialize the remaining managers
         crecipeManager = new me.hektortm.woSSystems.systems.crecipes.CrecipeManager(daoHub);
         questEngine = new QuestEngine(this, daoHub);
+        // The writes a quit makes (QuitListener, QuestListener); they also run when another
+        // server takes a player over before this server sees the quit (session hand-off).
+        daoHub.getSessions().onLeaving(uuid -> {
+            daoHub.getUnlockableDAO().removeAllTemps(uuid);
+            questEngine.saveForLeaving(uuid);
+        });
+        // "Reset my test progress" while online: the quest runs held here are the deleted ones.
+        daoHub.getSessions().onReset(session -> {
+            Player p = Bukkit.getPlayer(session.uuid());
+            if (p != null) questEngine.resetRuns(p);
+        });
 
         dailyReset = new DailyReset(daoHub);
 
@@ -253,6 +279,7 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "unlockables", core);
             lang.loadLangFileExternal(this, "economy", core);
             lang.loadLangFileExternal(this, "nicknames", core);
+            lang.loadLangFileExternal(this, "chat", core);
             lang.loadLangFileExternal(this, "loottables", core);
             lang.loadLangFileExternal(this, "cosmetics", core);
             lang.loadLangFileExternal(this, "cooldowns", core);
@@ -292,6 +319,11 @@ public final class WoSSystems extends JavaPlugin {
         questEngine.startTasks();
         for (Player p : Bukkit.getOnlinePlayers()) questEngine.load(p); // after a reload
         tab.runTablist();
+        // Only with the bus on: a lone server has nobody else to show and must not ask wos-api every 5 s.
+        if (core.network().isEnabled() && core.networkOnline() != null) {
+            networkTablist = new me.hektortm.woSSystems.tablist.NetworkTablist(this, core.networkOnline(), WoSCore.identity().id());
+            networkTablist.start();
+        }
         cooldownManager.start();
         crecipeManager.start();
         dailyReset.startResetTimer();
@@ -322,12 +354,19 @@ public final class WoSSystems extends JavaPlugin {
             for (Player p : Bukkit.getOnlinePlayers()) questEngine.unload(p);
             questEngine.shutdown();
         }
+        if (networkTablist != null) networkTablist.stop();
         if (timeManager != null) timeManager.saveGameState();
 //        PacketEvents.getAPI().terminate();
         if (webhookServer != null) webhookServer.stop();
         if (crecipeManager != null) crecipeManager.stop();
         PermissionRegistry.unregisterAll();
         AsyncWriteQueue.shutdown(); // flush all pending DB writes before the JVM exits
+        if (handoff != null) {
+            // Players are still online here (plugins stop before players are kicked): their
+            // data is written now, so hand their leases back for the server they go to next.
+            if (daoHub != null) handoff.releaseAllNow(daoHub.getSessions().onlineIds(), java.time.Duration.ofSeconds(5));
+            handoff.shutdown();
+        }
     }
 
     @Override
@@ -447,6 +486,8 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("baltop", new me.hektortm.woSSystems.systems.economy.cmd.BaltopCommand(ecoManager, lang, core.getApi()));
         cmdReg("coinflip", coinflipCommand);
         cmdReg("nickname", new NicknameCommand());
+        cmdReg("msg", new me.hektortm.woSSystems.systems.chat.cmd.MsgCommand(msgService));
+        cmdReg("r", new me.hektortm.woSSystems.systems.chat.cmd.ReplyCommand(msgService));
         cmdReg("loottable", new LoottableCommand(daoHub, lootTableManager));
         cmdReg("sign", new SignCommand(citemManager, ecoManager));
         cmdReg("time", new TimeCommand(timeManager, this, lang));
@@ -460,6 +501,7 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("debugcmd", new debug(daoHub));
         cmdReg("wosdebug", new DebugCommand(debugMode));
         cmdReg("woshelp", new me.hektortm.woSSystems.systems.help.StaffHelpCommand());
+        cmdReg("wos", new me.hektortm.woSSystems.core.WosConsoleCommand());
         cmdReg("cooldown", new CooldownCommand(daoHub));
         cmdReg("calendar", new Calender());
         cmdReg("link", new LinkCommand());
@@ -478,7 +520,26 @@ public final class WoSSystems extends JavaPlugin {
         eventReg(new QuitListener(core, unlockableManager, daoHub, coinflipCommand, this));
         eventReg(new FishingListener(daoHub));
         eventReg(new JoinListener(this, daoHub));
-        eventReg(new ChatListener(chatManager, unlockableManager));
+        eventReg(new ChatListener(chatManager, unlockableManager, core.network()));
+        // Chat lines typed on other servers (nothing arrives without Redis). Chat has no channels yet: everyone reads "global".
+        new me.hektortm.woSSystems.systems.chat.NetworkChat(me.hektortm.wosCore.WoSCore.identity().id(),
+                task -> getServer().getScheduler().runTask(this, task),
+                () -> getServer().getOnlinePlayers(),
+                (viewer, channel) -> me.hektortm.woSSystems.systems.chat.NetworkChat.GLOBAL.equals(channel),
+                getLogger()).register(core.network());
+        // /msg from other servers, staff warnings from other servers, and network-wide join / leave lines (all need Redis).
+        String selfId = WoSCore.identity().id();
+        java.util.concurrent.Executor mainThread = task -> getServer().getScheduler().runTask(this, task);
+        eventReg(msgService);
+        new me.hektortm.woSSystems.systems.chat.NetworkMsg(selfId, mainThread, uuid -> getServer().getPlayer(uuid),
+                msgService.book(), msgService::fromLine).register(core.network());
+        new me.hektortm.woSSystems.systems.chat.NetworkStaffAlerts(selfId, mainThread, log::sendWarning).register(core.network());
+        me.hektortm.woSSystems.core.NetworkJoinLeave joinLeave = new me.hektortm.woSSystems.core.NetworkJoinLeave(selfId, mainThread,
+                core.network()::publish, line -> getServer().broadcast(
+                        net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line)),
+                java.time.Instant::now);
+        joinLeave.register(core.network());
+        eventReg(new me.hektortm.woSSystems.core.NetworkJoinLeaveListener(this, core.network(), core.networkOnline(), joinLeave));
         eventReg(new RegionHandler(regionBossBarManager));
         eventReg(new BackpackListener());
         //eventReg(new HologramHandler(daoHub));

@@ -32,14 +32,14 @@
       <option name="url" value="https://maven.pkg.github.com/hektortm/permissionlibmaven" />
     </remote-repository>
     <remote-repository>
-      <option name="id" value="github" />
-      <option name="name" value="github" />
-      <option name="url" value="https://maven.pkg.github.com/worldofsorcery/core" />
-    </remote-repository>
-    <remote-repository>
       <option name="id" value="papermc-repo" />
       <option name="name" value="papermc-repo" />
       <option name="url" value="https://repo.papermc.io/repository/maven-public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="github" />
+      <option name="name" value="github" />
+      <option name="url" value="https://maven.pkg.github.com/worldofsorcery/core" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="central" />
@@ -70,6 +70,11 @@
       <option name="id" value="github" />
       <option name="name" value="github" />
       <option name="url" value="https://maven.pkg.github.com/hektortm/woscore" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="github" />
+      <option name="name" value="github" />
+      <option name="url" value="https://maven.pkg.github.com/world-of-sorcery/core" />
     </remote-repository>
     <remote-repository>
       <option name="id" value="dmulloy2-repo" />

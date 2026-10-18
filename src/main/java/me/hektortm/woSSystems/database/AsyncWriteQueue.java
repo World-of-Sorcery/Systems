@@ -4,8 +4,10 @@ import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.wosCore.discord.DiscordLog;
 import me.hektortm.wosCore.discord.DiscordLogger;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -44,6 +46,22 @@ public final class AsyncWriteQueue {
                 ));
             }
         });
+    }
+
+    /**
+     * Completes when every write queued before this call has finished (the marker runs on the
+     * same single thread, so it runs after them). Used by the session hand-off: a player's
+     * lease is released only after their last write reached the API. After {@link #shutdown}
+     * (which already waited for the queue) it completes at once.
+     */
+    public static CompletableFuture<Void> barrier() {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        try {
+            executor.execute(() -> done.complete(null));
+        } catch (RejectedExecutionException e) {
+            done.complete(null);
+        }
+        return done;
     }
 
     /**

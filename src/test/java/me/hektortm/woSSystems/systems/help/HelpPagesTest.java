@@ -30,6 +30,13 @@ class HelpPagesTest {
     }
 
     @Test
+    void consoleOnlyCommandsAreLeftOutForPlayers() {
+        assertThat(HelpPages.shownToPlayers("wos")).isFalse();
+        assertThat(HelpPages.shownToPlayers("WOS")).isFalse();
+        assertThat(HelpPages.shownToPlayers("woshelp")).isTrue();
+    }
+
+    @Test
     void onlyTheFirstUsageLineIsShown() {
         assertThat(HelpPages.usage("warp", "/<command> <id>\n/<command> set <id>")).isEqualTo("/warp <id>");
     }

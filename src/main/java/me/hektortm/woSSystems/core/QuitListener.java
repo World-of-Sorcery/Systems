@@ -41,7 +41,8 @@ public class QuitListener implements Listener {
         }
 
         plugin.getBossBarManager().removeBossBar(p);
-        hub.getUnlockableDAO().removeAllTemps(uuid); // queued write, non-blocking
+        // Queued write, non-blocking. Skipped when it already ran for a hand-off to another server.
+        if (!hub.getSessions().wasLeavingSaved(uuid)) hub.getUnlockableDAO().removeAllTemps(uuid);
         plugin.getInteractionManager().getHologramManager().removeAllHolograms(p);
         plugin.getInteractionManager().getDisplayManager().removeAllDisplays(p);
         plugin.getInteractionManager().removeClickCooldowns(p);

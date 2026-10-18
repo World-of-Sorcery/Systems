@@ -27,6 +27,9 @@ public enum Permissions {
 
     DEBUG_USE("debug.use"),
     WOSHELP_USE("woshelp.use"),
+    // Hides /wos from players' tab completion (default false); the command refuses every
+    // non-console sender whatever their permissions (WosConsoleCommand).
+    WOS_CONSOLE("wos.console"),
 
     STATS_GIVE("stats.modify.give"),
     STATS_TAKE("stats.modify.take"),
@@ -62,6 +65,8 @@ public enum Permissions {
     NICK_RESERVE("nick.reserve"),
     NICK_UNRESERVE("nick.unreserve"),
     NICK_RESET("nick.reset"),
+
+    CHAT_MSG("chat.msg"),
     
 
     COSMETIC_TAKE("cosmetic.take"),

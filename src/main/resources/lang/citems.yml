@@ -12,6 +12,8 @@ info:
     cgive: "Usage: /cgive <player> <id> [amount]"
     cremove: "Usage: /cremove <player> <id> [amount]"
 
+no-place-live: "Custom items can't be placed on the live server."
+
 stamp: "§aSuccessfully signed the current item."
 
 help:

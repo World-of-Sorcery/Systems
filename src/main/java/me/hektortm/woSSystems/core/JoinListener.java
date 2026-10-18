@@ -22,12 +22,8 @@ public class JoinListener implements Listener {
         Player player = event.getPlayer();
         boolean isNew = !player.hasPlayedBefore();
 
-        // Join message must be set synchronously on the event.
-        if (isNew) {
-            event.setJoinMessage("§7(New) §x§7§a§9§9§7§2§o" + player.getName() + " joined");
-        } else {
-            event.setJoinMessage("§x§7§a§9§9§7§2§o" + player.getName() + " joined");
-        }
+        // Join message must be set synchronously on the event (with Redis, NetworkJoinLeaveListener replaces it).
+        event.setJoinMessage(NetworkJoinLeave.joinLine(player.getName(), isNew));
         plugin.getBossBarManager().createBossBar(player);
         plugin.getRegionBossBarManager().createBossBar(player);
     }

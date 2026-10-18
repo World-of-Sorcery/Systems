@@ -76,7 +76,11 @@ public class UnlockableDAO {
         writer.delete("/v1/players/" + uuid + "/unlockables?temp=true");
     }
 
-    /** Clears every player's {@code daily_*} unlockables (and stats — one server-wide reset). */
+    /**
+     * Clears the online players' cached {@code daily_*} unlockables. The database side is reset
+     * by the one {@code POST /v1/server/daily-reset} that {@code StatsDAO.resetDailyStats} sends
+     * (it covers stats and unlockables of the realm), so this posts nothing.
+     */
     public void resetDailyUnlockables() {
         for (Player p : Bukkit.getOnlinePlayers()) {
             PlayerSession s = sessions.get(p.getUniqueId());
@@ -84,7 +88,6 @@ public class UnlockableDAO {
             s.permanentUnlocks.removeIf(id -> id.startsWith("daily_"));
             s.tempUnlocks.removeIf(id -> id.startsWith("daily_"));
         }
-        writer.post("/v1/server/daily-reset", null);
     }
 
     /** Whether the player holds the unlockable permanently. */

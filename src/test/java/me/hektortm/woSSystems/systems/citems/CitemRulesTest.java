@@ -8,6 +8,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CitemRulesTest {
 
     @Test
+    void placeRefusedOnLive() {
+        assertThat(CitemRules.placeRefused(new me.hektortm.wosCore.server.ServerIdentity("live", "live"))).isTrue();
+    }
+
+    @Test
+    void placeAllowedOnStagingBackendAndHub() {
+        assertThat(CitemRules.placeRefused(new me.hektortm.wosCore.server.ServerIdentity("staging", "staging"))).isFalse();
+        assertThat(CitemRules.placeRefused(new me.hektortm.wosCore.server.ServerIdentity("backend", "backend"))).isFalse();
+        assertThat(CitemRules.placeRefused(new me.hektortm.wosCore.server.ServerIdentity("hub", "hub"))).isFalse();
+    }
+
+    @Test
+    void placeAllowedOnUnconfiguredLegacyServer() {
+        assertThat(CitemRules.placeRefused(me.hektortm.wosCore.server.ServerIdentity.defaults())).isFalse();
+    }
+
+    @Test
     void placeableReadsWhatThePortalSaves() {
         assertThat(CitemRules.placeable("small")).isEqualTo(CitemRules.PLACE_SMALL);
         assertThat(CitemRules.placeable("normal")).isEqualTo(CitemRules.PLACE_NORMAL);

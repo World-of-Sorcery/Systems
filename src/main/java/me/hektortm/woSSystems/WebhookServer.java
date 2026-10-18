@@ -23,6 +23,7 @@ public class WebhookServer {
     private final WoSSystems plugin;
     private final String secret;
     private final WebActions actions;
+    private final boolean live;
 
     public WebhookServer(WoSSystems plugin, DAOHub daoHub) throws IOException {
         this.plugin = plugin;
@@ -30,6 +31,7 @@ public class WebhookServer {
         this.secret = plugin.getConfig().getString("webhook.secret");
         int port    = plugin.getConfig().getInt("webhook.port", 8090);
 
+        this.live = WebhookRules.refusesContent(me.hektortm.wosCore.WoSCore.identity());
         this.actions = new WebActions(plugin, daoHub);
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/api/invalidate", this::handleInvalidate);
@@ -86,6 +88,12 @@ public class WebhookServer {
 
             UUID editorUUID = parseUUID(json.get("editor_uuid").getAsString());
             plugin.getLogger().info("[Webhook] UUID: " + editorUUID);
+
+            if (!WebhookRules.accept(type, live)) {
+                plugin.getLogger().info("[Webhook] Ignored " + type + " " + id + " on live (loads at restart)");
+                respond(exchange, 200, "{\"ignored\":true}");
+                return;
+            }
 
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
                     daoHub.handleWebhookInvalidation(type, id, editorUUID)

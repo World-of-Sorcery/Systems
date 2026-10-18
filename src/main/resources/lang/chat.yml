@@ -1,0 +1,9 @@
+msg:
+  to: "§7[§dYou §7-> §d%player%§7] §f%message%"
+  from: "§7[§d%player% §7-> §dYou§7] §f%message%"
+error:
+  usage-msg: "Usage: /msg <player> <message>"
+  usage-reply: "Usage: /r <message>"
+  not-online: "%player% is not online."
+  no-partner: "You have nobody to reply to."
+  self: "You cannot message yourself."

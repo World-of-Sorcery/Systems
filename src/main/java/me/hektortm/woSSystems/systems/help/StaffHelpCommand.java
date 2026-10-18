@@ -76,6 +76,7 @@ public class StaffHelpCommand implements CommandExecutor {
                 // Without an executor of its own a command falls back to its plugin and does nothing.
                 if (command == null || command.getExecutor() == plugin) continue;
                 if (!command.testPermissionSilent(sender)) continue;
+                if (sender instanceof org.bukkit.entity.Player && !HelpPages.shownToPlayers(name)) continue;
                 entries.add(new Entry(plugin.getName(), name, HelpPages.usage(name, command.getUsage()),
                         command.getDescription(), command.getAliases()));
             }

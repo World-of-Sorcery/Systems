@@ -22,6 +22,8 @@ public class TimeEvents {
         String date = String.format("%02d-%02d", plugin.getTimeManager().getInGameMonth(), plugin.getTimeManager().getInGameDayOfMonth());
 
         boolean foundMatchingActivity = false;
+        // Start/end interactions and messages are server-wide work: once per realm (live, staging).
+        boolean fireEvents = me.hektortm.woSSystems.JobRules.runsScheduled();
 
         for (Activity activity : activities) {
             boolean isEnabled = activity.getIsEnabled();
@@ -46,7 +48,7 @@ public class TimeEvents {
             }
 
             // Trigger start interaction/messages only once per hour at exact start
-            if (dateMatches && hour == startTime && plugin.getTimeManager().getInGameTimeMinutes() % 60 == 0) {
+            if (fireEvents && dateMatches && hour == startTime && plugin.getTimeManager().getInGameTimeMinutes() % 60 == 0) {
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
                     if (startInteraction != null && !startInteraction.isEmpty()) {
                         plugin.getInteractionManager().triggerInteraction(startInteraction, player, null);
@@ -60,7 +62,7 @@ public class TimeEvents {
             }
 
             // Trigger end interaction at end time
-            if (dateMatches && hour == endTime && plugin.getTimeManager().getInGameTimeMinutes() % 60 == 0) {
+            if (fireEvents && dateMatches && hour == endTime && plugin.getTimeManager().getInGameTimeMinutes() % 60 == 0) {
                 plugin.getLogger().info("[DEBUG] Triggering END for activity: " + activity.getName());
                 for (Player player : plugin.getServer().getOnlinePlayers()) {
                     if (endInteraction != null && !endInteraction.isEmpty()) {

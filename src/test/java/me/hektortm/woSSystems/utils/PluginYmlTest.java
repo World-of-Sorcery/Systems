@@ -30,4 +30,19 @@ class PluginYmlTest {
         assertThat(declared).isEqualTo(checked);
         assertThat(d.getPermissions()).allSatisfy(p -> assertThat(p.getDescription()).isNotBlank());
     }
+
+    @Test
+    void msgReplacesVanillaWhispers() throws Exception {
+        PluginDescriptionFile d;
+        try (InputStream in = getClass().getClassLoader().getResourceAsStream("plugin.yml")) {
+            d = new PluginDescriptionFile(new InputStreamReader(in, StandardCharsets.UTF_8));
+        }
+        assertThat(d.getCommands().get("msg")).containsEntry("permission", "chat.msg");
+        assertThat(d.getCommands().get("msg").get("aliases")).asList().containsExactlyInAnyOrder("tell", "w", "whisper");
+        assertThat(d.getCommands().get("r")).containsEntry("permission", "chat.msg");
+        assertThat(d.getCommands().get("r").get("aliases")).asList().containsExactly("reply");
+        // Everyone could whisper with vanilla /msg: the replacement must not take that away.
+        assertThat(d.getPermissions()).filteredOn(p -> p.getName().equals("chat.msg"))
+                .singleElement().extracting(Permission::getDefault).isEqualTo(org.bukkit.permissions.PermissionDefault.TRUE);
+    }
 }

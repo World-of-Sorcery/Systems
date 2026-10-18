@@ -63,7 +63,7 @@ public class DAOHub {
         this.content = content;
         Logger log = plugin.getLogger();
         this.sessions = new PlayerSessions(plugin, api);
-        ApiServices s = new ApiServices(api, content, sessions, new ApiWriter(api, log), log);
+        ApiServices s = new ApiServices(api, content, sessions, new ApiWriter(api, log, sessions.frozen()), log);
 
         this.conditionDAO   = new ConditionDAO(content, api);
         this.economyDAO     = new EconomyDAO(s);
@@ -123,6 +123,11 @@ public class DAOHub {
         // cached balance (on the main thread, like every other balance change).
         if ("player_balance".equals(type)) {
             org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> economyDAO.applyExternalChange(id));
+            return;
+        }
+        // A staff member reset their test progress in the portal: reload their session here.
+        if ("player_reset".equals(type)) {
+            sessions.reloadAfterReset(id);
             return;
         }
         content.reload(type, id, editorUUID);
