@@ -1,7 +1,8 @@
 # Push to master: build and test. When the pom's version has no release yet
-# (a version bump), also: tag v<version>, create a GitHub Release with the jar,
-# and install the jar on the VPS, which restarts the Minecraft server
-# after an in-game countdown (see the wos-api repo's deploy/README.md).
+# (a version bump), also: tag v<version> and create a GitHub Release with the jar.
+# The jar reaches the servers through the network's agent (backend and staging take
+# the newest release; live only through a release): see the wos-api repo's
+# deploy-network/README-network.md.
 # Same file in every plugin repo: keep them in sync.
 name: Release
 
@@ -58,49 +59,3 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release create "v${{ steps.v.outputs.version }}" "${{ steps.v.outputs.jar }}" --target "$GITHUB_SHA" --title "v${{ steps.v.outputs.version }}" --generate-notes
-
-      - name: Connect to the VPS
-        if: steps.v.outputs.new == 'true'
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_PORT: ${{ secrets.SERVER_PORT }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
-        run: |
-          missing=0
-          for name in SERVER_HOST SERVER_USER SERVER_SSH_KEY; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Secret $name is empty or not visible to this repository (organisation secret: check its Repository access)"
-              missing=1
-            fi
-          done
-          [ "$missing" = 0 ] || exit 1
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
-          if [ -n "$SERVER_KNOWN_HOSTS" ]; then
-            printf '%s\n' "$SERVER_KNOWN_HOSTS" >> ~/.ssh/known_hosts
-          else
-            ssh-keyscan -p "${SERVER_PORT:-22}" "$SERVER_HOST" >> ~/.ssh/known_hosts 2> /dev/null
-          fi
-          cat >> ~/.ssh/config << EOF
-          Host vps
-            HostName $SERVER_HOST
-            Port ${SERVER_PORT:-22}
-            User $SERVER_USER
-            IdentityFile ~/.ssh/deploy
-            IdentitiesOnly yes
-            BatchMode yes
-            ConnectTimeout 20
-          EOF
-          ssh vps true || { echo "::error::SSH login as $SERVER_USER failed: check SERVER_SSH_KEY and the key in the user's authorized_keys"; exit 1; }
-          echo "SSH to the VPS works"
-
-      - name: Install the jar (restart after a countdown)
-        if: steps.v.outputs.new == 'true'
-        env:
-          JAR: ${{ steps.v.outputs.jar }}
-        run: |
-          ssh vps 'mkdir -p /opt/wos/incoming-plugins'
-          scp "$JAR" vps:/opt/wos/incoming-plugins/
-          ssh vps "/opt/wos/deploy-plugin.sh /opt/wos/incoming-plugins/$(basename "$JAR")"
