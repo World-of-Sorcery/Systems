@@ -10,6 +10,7 @@ import me.hektortm.woSSystems.utils.model.InteractionKey;
 import me.hektortm.wosCore.Utils;
 import me.hektortm.wosCore.discord.DiscordLog;
 import me.hektortm.wosCore.discord.DiscordLogger;
+import me.hektortm.wosCore.net.ServerConnect;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -55,8 +56,11 @@ public class ActionHandler {
 
     // Commands the console never runs for content: whoever may edit a GUI or an
     // interaction would otherwise hold the server. Content may still grant
-    // permissions (PERMISSION_COMMANDS), which is logged.
-    private static final List<String> CONSOLE_BLACKLIST = Arrays.asList("op", "deop", "stop", "restart", "reload", "rl", "whitelist");
+    // permissions (PERMISSION_COMMANDS), which is logged. "wos" (wos sendall) is the
+    // release run's: content must not empty a server. "save-off" / "save-on": an
+    // unsaved live loses everything since at a crash, and a "save-on" on staging
+    // during a release snapshot breaks the copy (the agent turns saving off for it).
+    private static final List<String> CONSOLE_BLACKLIST = Arrays.asList("op", "deop", "stop", "restart", "reload", "rl", "whitelist", "wos", "save-off", "save-on");
     private static final List<String> PERMISSION_COMMANDS = Arrays.asList(
             "lp", "luckperms", "lpb", "lpv", "perm", "perms", "permission", "permissions", "pex");
 
@@ -110,6 +114,8 @@ public class ActionHandler {
      *   <li>{@code play_sound &lt;sound&gt; &lt;volume&gt; &lt;pitch&gt;} — plays a sound at the player's location</li>
      *   <li>{@code eco give|take|set|reset @p &lt;currency&gt; &lt;amount&gt;} — changes the player's balance (logged with this source)</li>
      *   <li>{@code close_gui} — closes the player's open inventory</li>
+     *   <li>{@code server connect @p &lt;hub|backend|staging|live&gt;} — sends the player to that server through the proxy
+     *       (an unknown server is logged and skipped)</li>
      *   <li>anything else — dispatched as a console command (async for {@link SourceType#DIALOG})</li>
      * </ul>
      * Placeholders ({@link PlaceholderResolver}) are filled in first, in every action.
@@ -265,6 +271,20 @@ public class ActionHandler {
                 player.closeInventory();
                 continue;
             }
+            // server connect <player|@p> <server>: ask the proxy to move the acting player.
+            // Not a console command, so it does not go through mayRun.
+            if (ServerConnectAction.isServerAction(cmd)) {
+                ServerConnectAction connect = ServerConnectAction.parse(cmd);
+                if (connect == null) {
+                    plugin.writeLog("ActionHandler", Level.WARNING, "server action must be 'server connect <player|@p> <hub|backend|staging|live>': " + cmd);
+                } else if (Bukkit.isPrimaryThread()) {
+                    ServerConnect.send(player, connect.server());
+                } else {
+                    // Dialog actions can run off the main thread; a plugin message must go out on it.
+                    Bukkit.getScheduler().runTask(plugin, () -> ServerConnect.send(player, connect.server()));
+                }
+                continue;
+            }
 
             if (!mayRun(player, parsedCommand, false, sourceType.getType() + " " + sourceID)) return;
             if (sourceType == SourceType.DIALOG) Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand));
@@ -394,7 +414,10 @@ public class ActionHandler {
             String message = "Blocked " + runner + " command '" + command + "' for " + who + ". It is set up in " + source + ": remove it there.";
             plugin.writeLog("ActionHandler", Level.WARNING, message);
             DiscordLogger.log(new DiscordLog(Level.WARNING, plugin, "AH:command-blocked", message, null));
-            plugin.getLogManager().sendWarning(player.getName() + " Tried to execute: " + command + " | Source: " + source);
+            String warning = player.getName() + " Tried to execute: " + command + " | Source: " + source;
+            plugin.getLogManager().sendWarning(warning);
+            // Staff on the other servers see it too (no-op without Redis).
+            me.hektortm.woSSystems.systems.chat.NetworkStaffAlerts.publish(plugin.getCore().network(), warning);
             return false;
         }
         if (!asPlayer && isPermissionCommand(command)) {
@@ -425,17 +448,46 @@ public class ActionHandler {
         return isOneOf(command, PERMISSION_COMMANDS);
     }
 
+    /**
+     * Whether the command word, or the word after any {@code run} anywhere in the line (quoted or
+     * not, so an {@code execute … run} can't hide one behind a quoted {@code " run "}), is one of
+     * names, each without a leading {@code /} or a {@code namespace:}. Words are split at control
+     * characters and Unicode spaces. A rare harmless line ({@code say run op}) is caught too.
+     * The API's console has the same rule (api/internal/servers/blacklist.go): keep them in step.
+     */
     private static boolean isOneOf(String command, List<String> names) {
-        String rest = command.trim();
-        while (true) {
-            String name = rest.split("\\s+", 2)[0].toLowerCase(java.util.Locale.ROOT);
-            if (name.startsWith("/")) name = name.substring(1);
-            name = name.substring(name.lastIndexOf(':') + 1);
-            if (names.contains(name)) return true;
-            int run = rest.indexOf(" run ");
-            if (!name.equals("execute") || run < 0) return false;
-            rest = rest.substring(run + " run ".length()).trim();
+        List<String> words = words(command);
+        words.removeIf("/"::equals); // a bare "/" is no word: in "/ op x" the command word is "op"
+        for (int i = 0; i < words.size(); i++) {
+            if (i > 0 && !commandName(words.get(i - 1)).equals("run")) continue;
+            if (names.contains(commandName(words.get(i)))) return true;
         }
+        return false;
+    }
+
+    /** A word as a command name: lower case, without one leading {@code /} or a {@code namespace:}. */
+    private static String commandName(String word) {
+        String name = word.toLowerCase(java.util.Locale.ROOT);
+        if (name.startsWith("/")) name = name.substring(1);
+        return name.substring(name.lastIndexOf(':') + 1);
+    }
+
+    /** The words of a line, split at control characters and every kind of Unicode space. */
+    private static List<String> words(String line) {
+        List<String> out = new java.util.ArrayList<>();
+        StringBuilder word = new StringBuilder();
+        line.codePoints().forEach(c -> {
+            if (Character.isISOControl(c) || Character.isWhitespace(c) || Character.isSpaceChar(c)) {
+                if (word.length() > 0) {
+                    out.add(word.toString());
+                    word.setLength(0);
+                }
+            } else {
+                word.appendCodePoint(c);
+            }
+        });
+        if (word.length() > 0) out.add(word.toString());
+        return out;
     }
 
     /** What follows the action's keyword ({@code "send_message &aHi"} → {@code "&aHi"}). */

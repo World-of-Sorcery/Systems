@@ -28,6 +28,17 @@ public final class CitemRules {
     private CitemRules() {}
 
     /**
+     * Whether placing a custom item (as a block or as a display) is refused on this server.
+     * Only a server whose tag was set explicitly to {@code live} refuses. A server without a
+     * tag is the pre-network legacy single server: its {@code isLive()} is true by default,
+     * but it places citems today, and a release before the network exists must not stop that.
+     * Hub, backend and staging may place them.
+     */
+    public static boolean placeRefused(me.hektortm.wosCore.server.ServerIdentity identity) {
+        return identity.configured() && identity.isLive();
+    }
+
+    /**
      * The yaw of an item placed by a player looking along {@code playerYaw}: turned
      * to face them, at the nearest {@value #TURN_STEP}° step, as 0 up to (not including) 360.
      */

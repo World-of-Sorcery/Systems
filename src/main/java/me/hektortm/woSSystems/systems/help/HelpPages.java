@@ -14,6 +14,14 @@ public final class HelpPages {
     /** Commands shown on one page. */
     public static final int PAGE_SIZE = 8;
 
+    /** Console-only commands (no permission node): left out of a player's list. */
+    public static final java.util.Set<String> CONSOLE_ONLY = java.util.Set.of("wos");
+
+    /** Whether a player's list shows the command (console-only ones are left out). */
+    public static boolean shownToPlayers(String name) {
+        return !CONSOLE_ONLY.contains(name.toLowerCase(Locale.ROOT));
+    }
+
     private HelpPages() {
     }
 

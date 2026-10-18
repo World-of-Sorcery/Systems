@@ -1,3 +1,5 @@
 webhook:
   port: 8090 # must differ from wos-api (8080)
   secret: "replace-with-a-strong-random-secret"
+
+# The server's tag is Core's: server.tag in plugins/Core/config.yml (or env WOS_SERVER_TAG); unset = single legacy server (takes every reload)

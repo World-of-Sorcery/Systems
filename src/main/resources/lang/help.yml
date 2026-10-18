@@ -5,3 +5,5 @@ entry: "%cyan_300%%usage% §7- %description%"
 entry-plain: "%cyan_300%%usage%"
 footer: "§7More: §f/woshelp <page>§7 · Search: §f/woshelp <word>§7 · Sub-commands: §f/<command> help"
 empty: "No command matches '%word%'."
+# A console-only command (/wos) run by a player.
+console-only: "This command can only be run from the server console."

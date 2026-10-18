@@ -15,6 +15,13 @@ commands:
     description: every command you may use
     usage: /<command> [page|word]
     aliases: [ staffhelp ]
+  # Console only (server console / RCON, used by the API's release run). The node is
+  # granted to nobody (default false) so players don't see /wos in tab completion; the
+  # executor refuses every non-console sender anyway.
+  wos:
+    description: network console commands (console only)
+    usage: /<command> sendall <hub|backend|staging|live>
+    permission: wos.console
   # Interaction Commands
   interaction:
     description: trigger interactions and bind them to blocks and NPCs
@@ -84,6 +91,16 @@ commands:
   realname:
     description: realname
     usage: /<command> <input>
+  msg:
+    aliases: [ tell, w, whisper ]
+    description: a private message to a player on any server
+    usage: /<command> <player> <message>
+    permission: chat.msg
+  r:
+    aliases: [ reply ]
+    description: answer the last player you messaged or got a message from
+    usage: /<command> <message>
+    permission: chat.msg
   # Loottable Commands
   bug:
     description: Report a bug to the team
@@ -179,6 +196,9 @@ permissions:
     description: 'Turn on debug mode: interaction labels, raw GUI placeholders, action output (/wosdebug).'
   woshelp.use:
     description: 'List every staff command you may use (/woshelp).'
+  wos.console:
+    description: 'Not for players: hides the console-only /wos (release run) from tab completion. The command refuses every player, even with this node.'
+    default: false
   stats.modify.give:
     description: 'Add to a player''s stat (/stats give).'
   stats.modify.take:
@@ -235,6 +255,9 @@ permissions:
     description: 'Release a reserved nickname (/nick unreserve).'
   nick.reset:
     description: 'Reset a player''s nickname (/nick reset).'
+  chat.msg:
+    description: 'Send private messages to players on any server (/msg, /r).'
+    default: true
   cosmetic.give:
     description: 'Give a player a cosmetic (/cosmetic give).'
   cosmetic.take:

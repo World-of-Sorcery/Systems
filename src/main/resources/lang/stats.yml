@@ -25,3 +25,5 @@ help:
   reset: "%cyan_300%/%type% reset <Player> <ID> §7- Reset a Stat of a Player."
   view: "%cyan_300%/%type% view <Player> <ID> §7- View a Stat Value of Player."
   help: "%cyan_300%/%type% help §7- Display this Help Message."
+player:
+  reset-test-progress: "§7Your test progress was reset."

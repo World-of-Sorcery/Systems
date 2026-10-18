@@ -23,8 +23,10 @@ import static me.hektortm.woSSystems.player.ApiWriter.seg;
 /**
  * Stats: definitions ({@code /v1/content/stats}, {@code /globalstats}), each
  * player's stat values (in their {@link PlayerSession}) and the server-wide
- * global stat values. Values are computed in memory and the resulting absolute
- * value is persisted, so a replayed write can never double-count.
+ * global stat values. Player stat values are computed in memory and the
+ * resulting absolute value is persisted, so a replayed write can never
+ * double-count. Global stats are shared by every server of a realm: a give or
+ * take is sent as a delta (see {@link #modifyGlobalStatValue}).
  */
 public class StatsDAO {
     private final ContentStore<Stat> statDefinitions;
@@ -44,8 +46,9 @@ public class StatsDAO {
         this.globalStatDefinitions = s.content().register(new ContentStore<GlobalStat>("globalstats", "Global Stat",
                 ApiSource.flat(s.api(), "/v1/content/globalstats", "id", j -> new GlobalStat(
                         Json.str(j, "id"), Json.lng(j, "value", 0), Json.lng(j, "max", 0), Json.bool(j, "capped", false)), log))
-                // Seed running values once per stat; afterwards the server's own counter is authoritative.
-                .onChange(store -> store.all().forEach(g -> globalValues.putIfAbsent(g.getId(), g.getValue()))));
+                // The API's value (this server's realm) is the truth: every (re)load takes it over.
+                // Between loads each give / take stores the value its delta answer returns.
+                .onChange(store -> store.all().forEach(g -> globalValues.put(g.getId(), g.getValue()))));
     }
 
     // ─── Player stats ───────────────────────────────────────────────────────────
@@ -77,7 +80,9 @@ public class StatsDAO {
     /** Clears every {@code daily_*} stat and unlockable for all players. */
     public void resetDailyStats() {
         for (PlayerSession s : onlineSessions()) s.stats.keySet().removeIf(k -> k.startsWith("daily_"));
-        writer.post("/v1/server/daily-reset", null);
+        // One API call resets stats AND unlockables of this server's realm, so only this
+        // method posts; UnlockableDAO.resetDailyUnlockables just clears its cache.
+        if (me.hektortm.woSSystems.JobRules.runsScheduled()) writer.post("/v1/server/daily-reset", null);
     }
 
     // ─── Global stats ───────────────────────────────────────────────────────────
@@ -92,11 +97,40 @@ public class StatsDAO {
         return getGlobalStatValue(statId) >= stat.getMax();
     }
 
+    /**
+     * Give and take go to the API as a delta ({@code POST …/delta}, added atomically in this
+     * server's realm), so the servers of one realm never overwrite each other's changes; the
+     * answer is the realm's new value, which replaces the cached one. Set and reset are
+     * explicit staff actions and stay an absolute PUT. The cache is updated at once as well,
+     * so a read right after the change sees it.
+     */
     public void modifyGlobalStatValue(String statId, long amount, Operations operation) {
         GlobalStat stat = globalStatDefinitions.get(statId);
         long max = stat != null && stat.getCapped() ? stat.getMax() : Long.MAX_VALUE;
         long value = globalValues.compute(statId, (k, current) -> apply(current == null ? 0 : current, amount, operation, max));
-        writer.put("/v1/server/globalstats/" + seg(statId), body("value", value));
+        Long delta = deltaOf(operation, amount);
+        if (delta == null) {
+            writer.put("/v1/server/globalstats/" + seg(statId), body("value", value));
+        } else {
+            writer.post("/v1/server/globalstats/" + seg(statId) + "/delta", body("delta", delta),
+                    answer -> storeAnswer(globalValues, statId, answer));
+        }
+    }
+
+    /** The delta a give / take sends; null for set and reset (absolute). */
+    static Long deltaOf(Operations operation, long amount) {
+        return switch (operation) {
+            case GIVE -> amount;
+            case TAKE -> -amount;
+            case SET, RESET -> null;
+        };
+    }
+
+    /** Puts the realm's value from a delta answer ({@code {"value": n}}) into the cache; anything else is ignored. */
+    static void storeAnswer(Map<String, Long> cache, String statId, com.google.gson.JsonElement answer) {
+        if (answer == null || !answer.isJsonObject()) return;
+        com.google.gson.JsonElement v = answer.getAsJsonObject().get("value");
+        if (v != null && v.isJsonPrimitive() && v.getAsJsonPrimitive().isNumber()) cache.put(statId, v.getAsLong());
     }
 
     // ─── Definitions ────────────────────────────────────────────────────────────

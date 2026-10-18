@@ -7,6 +7,8 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.interactions.InteractionManager;
 import me.hektortm.woSSystems.utils.Keys;
 import me.hektortm.woSSystems.utils.model.Interaction;
+import me.hektortm.wosCore.Utils;
+import me.hektortm.wosCore.WoSCore;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -99,6 +101,11 @@ public class CitemListener implements Listener {
     @EventHandler
     public void onPlaceUnusable(BlockPlaceEvent e) {
         if (isUnusable(e.getItemInHand()) || isUnplaceable(e.getItemInHand())) e.setCancelled(true);
+        // Live refuses every placed custom item (network rule); staging, backend, hub and the unconfigured legacy server allow it
+        else if (citemManager.isCitem(e.getItemInHand()) && CitemRules.placeRefused(WoSCore.identity())) {
+            e.setCancelled(true);
+            Utils.error(e.getPlayer(), "citems", "no-place-live");
+        }
     }
 
     @EventHandler
@@ -211,6 +218,14 @@ public class CitemListener implements Listener {
         if (hub.getCitemDAO().isItemDisplay(spawnLoc)) return;
         if (isOnCooldown(p)) return;
         updateCooldown(p);
+
+        // The display placement is a citem placement too: refused on a configured live server,
+        // but only where staging would really place (a click on a door or chest is left alone)
+        if (CitemRules.placeRefused(WoSCore.identity())) {
+            e.setCancelled(true);
+            Utils.error(p, "citems", "no-place-live");
+            return;
+        }
 
         // The item becomes a display: a block item (a head, a banner) must not also be placed as a block
         e.setCancelled(true);

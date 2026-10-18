@@ -83,6 +83,47 @@ class ActionHandlerArgumentTest {
     }
 
     @Test
+    void contentCannotSendEveryoneAway() {
+        for (String command : new String[] {"wos sendall hub", "systems:wos sendall live", "/wos sendall staging",
+                "execute as Xyz run wos sendall hub"}) {
+            assertThat(ActionHandler.isBlockedConsoleCommand(command)).as(command).isTrue();
+        }
+        assertThat(ActionHandler.isBlockedConsoleCommand("woshelp")).isFalse();
+    }
+
+    // The same forms as the API's TestConsoleBlacklist (api/internal/servers/blacklist_test.go).
+    @Test
+    void theConsoleLooksBehindEveryRun() {
+        for (String command : new String[] {
+                "execute unless entity @e[name=\" run \"] run op Steve",
+                "execute if entity @e[tag=\" run say \"] run minecraft:op Steve",
+                "execute as @a RUN OP x",
+                "execute as @a at @s run execute as @p run stop",
+                "EXECUTE as @a run WOS sendall hub",
+                "op\tSteve", "execute\tas @a\trun\top x", "\u0001op x", "op x", "execute as @a run op x",
+                "op\u0085x",
+                "say run op",
+                // a slash, then a separator (round 2)
+                "/ op x", "/\top x", "/ op x", "/ /op x", "/op x", "execute as @a run / op x",
+                // saving (P7-5)
+                "save-off", "/save-off", "minecraft:save-off", "SAVE-ON", "save-on", "execute as @a run save-off"}) {
+            assertThat(ActionHandler.isBlockedConsoleCommand(command)).as(command).isTrue();
+        }
+        for (String command : new String[] {"say op", "opx", "tell op hi", "say running op", "execute as @a run say op",
+                "execute as @a run say hi", "woshelp", "stopwatch", "", "   ", "/list", "/ list",
+                "save-all", "save-all flush", "say save-off"}) {
+            assertThat(ActionHandler.isBlockedConsoleCommand(command)).as(command).isFalse();
+        }
+    }
+
+    @Test
+    void sudoLooksBehindAQuotedRun() {
+        assertThat(ActionHandler.isBlockedCommand("execute unless entity @e[name=\" run \"] run op Xyz")).isTrue();
+        assertThat(ActionHandler.isPermissionCommand("execute unless entity @e[name=\" run \"] run lp user Xyz parent add admin")).isTrue();
+        assertThat(ActionHandler.isPermissionCommand("lp\tuser Xyz parent add admin")).isTrue();
+    }
+
+    @Test
     void aPermissionCommandIsRecognised() {
         assertThat(ActionHandler.isPermissionCommand("lp user Xyz permission set shop.vip")).isTrue();
         assertThat(ActionHandler.isPermissionCommand("execute as Xyz run luckperms:lp user Xyz parent add vip")).isTrue();

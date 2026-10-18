@@ -142,9 +142,34 @@ public final class QuestEngine {
     /** Logout: the runs are saved as they are (waiting paused), visuals go. */
     public void unload(Player p) {
         Map<String, QuestRun> mine = runs.remove(p.getUniqueId());
-        if (mine != null) mine.values().forEach(r -> save(p.getUniqueId(), r));
+        // Already saved when another server took the player over (they are frozen here now).
+        boolean saved = hub.getSessions().wasLeavingSaved(p.getUniqueId());
+        if (mine != null && !saved) mine.values().forEach(r -> save(p.getUniqueId(), r));
         visuals.clearAll(p);
         tracker.clear(p);
+    }
+
+    /**
+     * The player's test progress was reset and their session reloaded (main thread): the runs
+     * held here are the deleted ones, so they are dropped WITHOUT saving (a save would write the
+     * deleted rows back), visuals and tracker go, and the runs are loaded again from the fresh
+     * session (after a reset: none).
+     */
+    public void resetRuns(Player p) {
+        Map<String, QuestRun> dropped = runs.remove(p.getUniqueId());
+        if (dropped != null) rewinding.removeAll(dropped.values());
+        visuals.clearAll(p);
+        tracker.clear(p);
+        load(p);
+    }
+
+    /**
+     * Hand-off to another server while the player is still connected here: saves the runs as
+     * {@link #unload} would, but keeps them and the visuals (the switch may still fail).
+     */
+    public void saveForLeaving(UUID uuid) {
+        Map<String, QuestRun> mine = runs.get(uuid);
+        if (mine != null) mine.values().forEach(r -> save(uuid, r));
     }
 
     // ── starting ──
