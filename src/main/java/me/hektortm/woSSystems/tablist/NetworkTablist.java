@@ -2,13 +2,16 @@ package me.hektortm.woSSystems.tablist;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.player.GameMode;
+import com.github.retrooper.packetevents.protocol.player.TextureProperty;
 import com.github.retrooper.packetevents.protocol.player.UserProfile;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoRemove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoUpdate;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoUpdate.Action;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoUpdate.PlayerInfo;
+import me.hektortm.wosCore.Utils;
 import me.hektortm.wosCore.presence.NetworkOnline;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import me.hektortm.wosCore.presence.NetworkPlayer;
+import org.jetbrains.annotations.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,6 +23,7 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,8 +34,10 @@ import java.util.logging.Level;
 
 /**
  * Shows the players on the other servers in this server's tab list as fake entries (player info
- * packets, never a real player), from {@link NetworkOnline} every 5 seconds: grey " · server" after the
- * name. The rules of who is shown are in {@link TablistRules}.
+ * packets, never a real player), from {@link NetworkOnline} every 5 seconds: their live prefix, their
+ * name and their skin (so the head shows), with " · Hub" after players on a hub only. The rules of who
+ * is shown are in {@link TablistRules}. The same list gives every player's live prefix, which
+ * {@link TablistManager} uses on a test realm server ({@link #livePrefix}).
  *
  * <p>Threads: the request runs on {@link NetworkOnline}'s own thread; everything else, including the
  * packets, runs on the main thread (the answer hops back with the scheduler). A refresh that fails
@@ -48,6 +54,8 @@ public final class NetworkTablist implements Listener {
     private final Map<UUID, TablistRules.Entry> shown = new LinkedHashMap<>();
     /** Players between a login that was allowed and the join. Main thread only. */
     private final Set<UUID> arriving = new HashSet<>();
+    /** Every online player's live prefix display ("" for none), this server's too. Main thread only. */
+    private final Map<UUID, String> livePrefixes = new HashMap<>();
     private int failures;
     /** Whether a refresh's answer has not been handled yet. Main thread only. */
     private boolean refreshing;
@@ -86,6 +94,8 @@ public final class NetworkTablist implements Listener {
                     if (error != null) failed();
                     else {
                         failures = 0;
+                        livePrefixes.clear();
+                        for (NetworkPlayer p : players) livePrefixes.put(p.uuid(), p.prefix());
                         apply(TablistRules.wanted(players, selfId, localUuids()));
                     }
                 });
@@ -97,7 +107,18 @@ public final class NetworkTablist implements Listener {
 
     private void failed() {
         failures++;
-        if (TablistRules.clearAfterFailures(failures)) apply(Map.of());
+        if (TablistRules.clearAfterFailures(failures)) {
+            livePrefixes.clear();
+            apply(Map.of());
+        }
+    }
+
+    /**
+     * Main thread: the player's live prefix display from the last list ("" for none), {@code null} while
+     * the list has not had them yet (a player who just joined is listed after their server's next report).
+     */
+    public @Nullable String livePrefix(UUID player) {
+        return livePrefixes.get(player);
     }
 
     private void apply(Map<UUID, TablistRules.Entry> wanted) {
@@ -155,8 +176,7 @@ public final class NetworkTablist implements Listener {
     private void sendAdd(Map<UUID, TablistRules.Entry> entries, Iterable<? extends Player> to) {
         List<PlayerInfo> infos = new ArrayList<>();
         entries.forEach((id, entry) -> infos.add(new PlayerInfo(
-                new UserProfile(id, trimName(entry.name())), true, 0, GameMode.SURVIVAL,
-                LegacyComponentSerializer.legacySection().deserialize(entry.text()), null)));
+                profile(id, entry), true, 0, GameMode.SURVIVAL, Utils.parseColorCodes(entry.text()), null)));
         send(() -> new WrapperPlayServerPlayerInfoUpdate(
                 EnumSet.of(Action.ADD_PLAYER, Action.UPDATE_LISTED, Action.UPDATE_LATENCY,
                         Action.UPDATE_GAME_MODE, Action.UPDATE_DISPLAY_NAME), infos), to);
@@ -166,7 +186,7 @@ public final class NetworkTablist implements Listener {
         List<PlayerInfo> infos = new ArrayList<>();
         entries.forEach((id, entry) -> {
             PlayerInfo info = new PlayerInfo(id);
-            info.setDisplayName(LegacyComponentSerializer.legacySection().deserialize(entry.text()));
+            info.setDisplayName(Utils.parseColorCodes(entry.text()));
             infos.add(info);
         });
         send(() -> new WrapperPlayServerPlayerInfoUpdate(EnumSet.of(Action.UPDATE_DISPLAY_NAME), infos), to);
@@ -174,6 +194,16 @@ public final class NetworkTablist implements Listener {
 
     private void sendRemove(List<UUID> ids, Iterable<? extends Player> to) {
         send(() -> new WrapperPlayServerPlayerInfoRemove(ids), to);
+    }
+
+    /**
+     * The entry's profile, with the skin its server reported: the client shows the head only for a
+     * textures property Mojang signed, which is what the proxy forwards to every server.
+     */
+    private static UserProfile profile(UUID id, TablistRules.Entry entry) {
+        if (entry.skinValue() == null) return new UserProfile(id, trimName(entry.name()));
+        return new UserProfile(id, trimName(entry.name()),
+                List.of(new TextureProperty("textures", entry.skinValue(), entry.skinSignature())));
     }
 
     /** A profile name is at most 16 characters. */

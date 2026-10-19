@@ -17,8 +17,9 @@ class TablistRulesTest {
     private static final UUID BOB = UUID.fromString("853c80ef-3c37-49fd-aa49-938b674adae6");
     private static final UUID CARA = UUID.fromString("61699b2e-d327-4a01-9f1e-0ea8c3f06bc6");
 
-    private static TablistRules.Entry e(String name, String server) {
-        return new TablistRules.Entry(name, TablistRules.displayName(name, server));
+    /** An entry told apart by its text only (no skin). */
+    private static TablistRules.Entry e(String name, String text) {
+        return new TablistRules.Entry(name, text);
     }
 
     private static NetworkPlayer p(UUID id, String name, String server) {
@@ -26,8 +27,18 @@ class TablistRulesTest {
     }
 
     @Test
-    void entryIsGreyWithTheServerAfterTheName() {
-        assertThat(TablistRules.displayName("Alex", "live")).isEqualTo("§7Alex · live");
+    void entryIsThePrefixAndNameWithHubOnlyForHubPlayers() {
+        assertThat(TablistRules.displayName("&6[King]", "Alex", false)).isEqualTo("&6[King] Alex");
+        assertThat(TablistRules.displayName("&6[King]", "Alex", true)).isEqualTo("&6[King] Alex &7· Hub");
+        assertThat(TablistRules.displayName("", "Alex", true)).isEqualTo("Alex &7· Hub");
+        assertThat(TablistRules.displayName("", "Alex", false)).isEqualTo("Alex");
+    }
+
+    @Test
+    void aNameWithoutPrefixHasNoLeadingSpace() {
+        assertThat(TablistRules.listName("", "Alex")).isEqualTo("Alex");
+        assertThat(TablistRules.listName(null, "Alex")).isEqualTo("Alex");
+        assertThat(TablistRules.listName("&c[Mod]", "Alex")).isEqualTo("&c[Mod] Alex");
     }
 
     @Test
@@ -35,9 +46,27 @@ class TablistRulesTest {
         Map<UUID, TablistRules.Entry> wanted = TablistRules.wanted(
                 List.of(p(ALEX, "Alex", "live"), p(BOB, "Bob", "hub")), "live", Set.of());
         assertThat(wanted).containsOnlyKeys(BOB);
-        assertThat(wanted.get(BOB)).isEqualTo(e("Bob", "hub"));
         assertThat(wanted.get(BOB).name()).isEqualTo("Bob");
-        assertThat(wanted.get(BOB).name()).isEqualTo("Bob");
+    }
+
+    @Test
+    void wantedCarriesPrefixHubLabelAndSkin() {
+        Map<UUID, TablistRules.Entry> wanted = TablistRules.wanted(List.of(
+                new NetworkPlayer(ALEX, "Alex", "hub-1", "hub", "&6[King]", "tex", "sig"),
+                new NetworkPlayer(BOB, "Bob", "staging", "staging", "", "", null)), "live", Set.of());
+        assertThat(wanted.get(ALEX)).isEqualTo(new TablistRules.Entry("Alex", "&6[King] Alex &7· Hub", "tex", "sig"));
+        // An empty skin counts as none.
+        assertThat(wanted.get(BOB)).isEqualTo(new TablistRules.Entry("Bob", "Bob", null, null));
+    }
+
+    @Test
+    void aChangedSkinIsRemovedAndAddedAgain() {
+        TablistRules.Entry before = new TablistRules.Entry("Bob", "Bob", null, null);
+        TablistRules.Entry after = new TablistRules.Entry("Bob", "Bob", "tex", "sig");
+        TablistRules.Diff d = TablistRules.diff(Map.of(BOB, before), Map.of(BOB, after), Set.of());
+        assertThat(d.remove()).containsExactly(BOB);
+        assertThat(d.add()).containsEntry(BOB, after);
+        assertThat(d.rename()).isEmpty();
     }
 
     @Test
