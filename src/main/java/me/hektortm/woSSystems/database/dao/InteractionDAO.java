@@ -124,7 +124,7 @@ public class InteractionDAO {
         if (interId == null) return false;
         writer.delete("/v1/server/interaction-bindings/blocks?location=" + URLEncoder.encode(location, StandardCharsets.UTF_8));
         Interaction inter = store.get(interId);
-        if (inter != null) inter.getBlockLocations().removeIf(l -> Parsers.locationToString(l).equals(location));
+        if (inter != null) inter.getBlockLocations().removeIf(l -> l == null || Parsers.locationToString(l).equals(location));
         return true;
     }
 
@@ -208,6 +208,8 @@ public class InteractionDAO {
         List<Location> blocks = blockIndex.entrySet().stream()
                 .filter(e -> id.equals(e.getValue()))
                 .map(e -> Parsers.stringToLocation(e.getKey()))
+                // A block in a world this server doesn't have: kept out, so unbinding others can't trip on it.
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toCollection(ArrayList::new));
         List<Integer> npcs = npcIndex.entrySet().stream()
                 .filter(e -> id.equals(e.getValue()))

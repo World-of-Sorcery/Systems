@@ -221,7 +221,8 @@ public class HologramManager implements Listener {
             }
 
             result.add(hologram);
-            if (hologram.getBehaviour().equalsIgnoreCase("break")) break;
+            // The behaviour may be unset (NULL in the database): that is "continue".
+            if ("break".equalsIgnoreCase(hologram.getBehaviour())) break;
         }
 
         return result;

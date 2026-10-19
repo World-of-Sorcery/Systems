@@ -34,6 +34,8 @@ public class ParticleHandler {
         }
 
         for(InteractionParticles particles : particlesList) {
+            // A row whose particle was never picked (NULL in the database) has nothing to show.
+            if (particles.getParticle() == null || particles.getParticle().isBlank()) continue;
             String particleType = particles.getParticle().toLowerCase();
             String color = particles.getParticleColor();
             String matchType = particles.getMatchType();
@@ -169,12 +171,16 @@ public class ParticleHandler {
     }
 
     /** The dust of a "#RRGGBB" colour. */
+    /** "#RRGGBB" as dust; a missing or unreadable colour (none picked in the portal) is redstone red. */
     private static Particle.DustOptions dust(String colorHex) {
-        Color color = Color.fromRGB(
-                Integer.valueOf(colorHex.substring(1, 3), 16),
-                Integer.valueOf(colorHex.substring(3, 5), 16),
-                Integer.valueOf(colorHex.substring(5, 7), 16)
-        );
+        Color color = Color.RED;
+        if (colorHex != null && colorHex.matches("#[0-9A-Fa-f]{6}")) {
+            color = Color.fromRGB(
+                    Integer.valueOf(colorHex.substring(1, 3), 16),
+                    Integer.valueOf(colorHex.substring(3, 5), 16),
+                    Integer.valueOf(colorHex.substring(5, 7), 16)
+            );
+        }
         return new Particle.DustOptions(color, 1.0F);
     }
 

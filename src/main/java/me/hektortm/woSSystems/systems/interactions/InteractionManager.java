@@ -55,6 +55,8 @@ public class InteractionManager {
     private static final long CLICK_COOLDOWN_MS = 250;
     /** player → (interaction id → when they last ran it by clicking). */
     private final Map<UUID, Map<String, Long>> lastClicks = new HashMap<>();
+    /** Drawing failures already logged (see {@link #reportOnce}). */
+    private final java.util.Set<String> reported = new java.util.HashSet<>();
 
     /**
      * @param hub the DAO hub used to access interaction and condition data
@@ -147,43 +149,35 @@ public class InteractionManager {
                         labels.beginPass();
                         hologramManager.beginPass();
                         displayManager.beginPass();
-                        List<Viewer> viewers = new ArrayList<>();
-                        for (Player player : Bukkit.getOnlinePlayers()) viewers.add(Viewer.of(player));
-                        Map<String, Interaction> byId = new HashMap<>();
-                        for (Interaction inter : interactions) {
-                            byId.put(inter.getInteractionId(), inter);
-                            for (Location location : inter.getBlockLocations()) {
-                                if (location != null) drawAtBlock(inter, location, viewers, particleHandler, labels);
-                            }
-                            for (int id : inter.getNpcIDs()) {
-                                NPC npc1 = CitizensAPI.getNPCRegistry().getById(id);
-                                if (npc1 == null || !npc1.isSpawned() || npc1.getEntity() == null) {
-                                    continue;
+                        // One failing binding must not stop the pass: everything after it would not be
+                        // drawn, and without endPass nothing removed (unbound, deleted) would go away.
+                        try {
+                            List<Viewer> viewers = new ArrayList<>();
+                            for (Player player : Bukkit.getOnlinePlayers()) viewers.add(Viewer.of(player));
+                            Map<String, Interaction> byId = new HashMap<>();
+                            for (Interaction inter : interactions) {
+                                byId.put(inter.getInteractionId(), inter);
+                                for (Location location : new ArrayList<>(inter.getBlockLocations())) {
+                                    if (location != null) drawAtBlock(inter, location, viewers, particleHandler, labels);
                                 }
-                                Location at = npc1.getEntity().getLocation();
-                                InteractionKey key = new InteractionKey("npc:" + id);
-                                for (Viewer viewer : viewers) {
-                                    if (!viewer.near(at)) continue;
-                                    Player player = viewer.player();
-                                    // Its own copy for each player, so nothing drawn below can move another's.
-                                    Location location = at.clone();
-                                    particleHandler.spawnParticlesForPlayer(player, inter, location, true, key);
-                                    hologramManager.handleHolograms(player, inter, location, true, key, npc1.getEntity().getHeight());
-                                    displayManager.handleDisplays(player, inter, location, true, key);
-                                    labels.show(player, inter.getInteractionId(), key, location, true, npc1.getEntity().getHeight());
+                                for (int id : new ArrayList<>(inter.getNpcIDs())) {
+                                    drawAtNpc(inter, id, viewers, particleHandler, labels);
                                 }
                             }
-                        }
-                        // Placed custom items show their placed interaction's visuals like a bound block.
-                        for (CitemDAO.PlacedAction placed : hub.getCitemDAO().placedActions()) {
-                            Interaction inter = byId.get(placed.interactionId());
-                            if (inter != null && hasVisuals(inter)) {
-                                drawAtBlock(inter, placed.block(), viewers, particleHandler, labels);
+                            // Placed custom items show their placed interaction's visuals like a bound block.
+                            for (CitemDAO.PlacedAction placed : hub.getCitemDAO().placedActions()) {
+                                Interaction inter = byId.get(placed.interactionId());
+                                if (inter != null && hasVisuals(inter)) {
+                                    drawAtBlock(inter, placed.block(), viewers, particleHandler, labels);
+                                }
                             }
+                        } catch (RuntimeException e) {
+                            reportOnce("pass", e);
+                        } finally {
+                            hologramManager.endPass();
+                            displayManager.endPass();
+                            labels.endPass();
                         }
-                        hologramManager.endPass();
-                        displayManager.endPass();
-                        labels.endPass();
                     });
                 });
             }
@@ -198,15 +192,51 @@ public class InteractionManager {
     /** Particles, holograms, displays and debug labels of one interaction at one block, for every player near it. */
     private void drawAtBlock(Interaction inter, Location location, List<Viewer> viewers,
                              ParticleHandler particleHandler, DebugLabels labels) {
+        if (location.getWorld() == null) return;
         InteractionKey key = buildKey(location);
         for (Viewer viewer : viewers) {
             // Out of sight: nothing is drawn, and the end of the pass removes what was.
             if (!viewer.near(location)) continue;
             Player player = viewer.player();
-            particleHandler.spawnParticlesForPlayer(player, inter, location, false, key);
-            hologramManager.handleHolograms(player, inter, location, false, key);
-            displayManager.handleDisplays(player, inter, location, false, key);
-            labels.show(player, inter.getInteractionId(), key, location, false, 0);
+            try {
+                particleHandler.spawnParticlesForPlayer(player, inter, location, false, key);
+                hologramManager.handleHolograms(player, inter, location, false, key);
+                displayManager.handleDisplays(player, inter, location, false, key);
+                labels.show(player, inter.getInteractionId(), key, location, false, 0);
+            } catch (RuntimeException e) {
+                reportOnce(inter.getInteractionId() + " at " + key.getKey(), e);
+            }
+        }
+    }
+
+    /** As {@link #drawAtBlock}, at a Citizens NPC (skipped while it is not spawned). */
+    private void drawAtNpc(Interaction inter, int npcId, List<Viewer> viewers,
+                           ParticleHandler particleHandler, DebugLabels labels) {
+        NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        if (npc == null || !npc.isSpawned() || npc.getEntity() == null) return;
+        Location at = npc.getEntity().getLocation();
+        double height = npc.getEntity().getHeight();
+        InteractionKey key = new InteractionKey("npc:" + npcId);
+        for (Viewer viewer : viewers) {
+            if (!viewer.near(at)) continue;
+            Player player = viewer.player();
+            // Its own copy for each player, so nothing drawn below can move another's.
+            Location location = at.clone();
+            try {
+                particleHandler.spawnParticlesForPlayer(player, inter, location, true, key);
+                hologramManager.handleHolograms(player, inter, location, true, key, height);
+                displayManager.handleDisplays(player, inter, location, true, key);
+                labels.show(player, inter.getInteractionId(), key, location, true, height);
+            } catch (RuntimeException e) {
+                reportOnce(inter.getInteractionId() + " at " + key.getKey(), e);
+            }
+        }
+    }
+
+    /** Logs a drawing failure with its stack trace once per place and error, not once a second. */
+    private void reportOnce(String where, RuntimeException e) {
+        if (reported.add(where + " " + e)) {
+            plugin.getLogger().log(java.util.logging.Level.WARNING, "[InteractionManager] Drawing " + where + " failed", e);
         }
     }
 
@@ -287,7 +317,7 @@ public class InteractionManager {
             String detail = "row " + action.getActionId() + " (" + action.getBehaviour() + ")";
             Bukkit.getScheduler().runTask(WoSSystems.getPlugin(WoSSystems.class), () -> {actionHandler.executeActions(player, action.getActions(), ActionHandler.SourceType.INTERACTION, interactionId, key, detail);});
 
-            if (action.getBehaviour().equalsIgnoreCase("continue")) {
+            if ("continue".equalsIgnoreCase(action.getBehaviour())) {
                 continue;
             } else {
                 break;
