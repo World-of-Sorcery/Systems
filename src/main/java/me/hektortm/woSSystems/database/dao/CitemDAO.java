@@ -41,6 +41,10 @@ public class CitemDAO {
     private final ContentStore<ItemStack> store;
     private final ContentStore<Placed> placed;
     private final ApiWriter writer;
+    private final me.hektortm.wosCore.api.WosApi api;
+
+    /** A placed item a pull-back took away: its display and block are still in this server's world. */
+    public record Removal(String blockLocation, String citemId, String displayLocation) {}
 
     /** A placed item whose custom item has a placed interaction: where it stands and which interaction. */
     public record PlacedAction(Location block, String interactionId) {}
@@ -51,6 +55,7 @@ public class CitemDAO {
 
     public CitemDAO(ApiServices s) {
         this.writer = s.writer();
+        this.api = s.api();
         this.store = s.content().register(new ContentStore<>("citems", "Citem",
                 ApiSource.flat(s.api(), "/v1/content/citems", "id",
                         j -> CitemBuilder.build(Json.str(j, "id"), Json.str(j, "data", "{}")), s.log())));
@@ -168,6 +173,27 @@ public class CitemDAO {
     public boolean isItemDisplayOwner(Location location, UUID uuid) {
         Placed p = at(location);
         return p != null && p.owner().equals(uuid);
+    }
+
+    // ─── Placed items a pull-back took away ─────────────────────────────────────
+
+    /**
+     * The placed items a pull-back took away from this server's world set
+     * ({@code GET /v1/server/placed-citems/removals}); their rows are gone, the
+     * display entities and blocks are not. Blocking.
+     */
+    public List<Removal> placedRemovals() throws ApiException {
+        List<Removal> out = new ArrayList<>();
+        for (var el : api.getJson("/v1/server/placed-citems/removals").getAsJsonArray()) {
+            var j = el.getAsJsonObject();
+            out.add(new Removal(Json.str(j, "block_location"), Json.str(j, "citem_id"), Json.str(j, "display_location")));
+        }
+        return out;
+    }
+
+    /** The removal at {@code blockLocation} is done (or no longer wanted): its entry goes. */
+    public void placedRemovalDone(String blockLocation) {
+        writer.delete("/v1/server/placed-citems/removals?block_location=" + URLEncoder.encode(blockLocation, StandardCharsets.UTF_8));
     }
 
     private Placed at(Location location) {

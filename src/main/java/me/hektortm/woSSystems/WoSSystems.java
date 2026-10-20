@@ -313,6 +313,10 @@ public final class WoSSystems extends JavaPlugin {
         registerBasicCommands();
         registerCommands();
         registerEvents();
+        // Placed items a pull-back took away: their displays and blocks leave this world now.
+        PlacedRemovals placedRemovals = new PlacedRemovals(this, daoHub.getCitemDAO());
+        eventReg(placedRemovals);
+        placedRemovals.start();
         //interactionManager.loadInteraction();
         interactionManager.interactionTask();
         guiManager.startRefresh();
