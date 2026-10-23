@@ -1,0 +1,4 @@
+prompt: "World of Sorcery needs its resource pack: custom items, menus and icons."
+declined: "You need the World of Sorcery resource pack to play. Join again and choose Yes."
+failed: "The resource pack could not be loaded. Please try joining again."
+too-old: "Please update Minecraft to 1.21.8 or newer to play on World of Sorcery."

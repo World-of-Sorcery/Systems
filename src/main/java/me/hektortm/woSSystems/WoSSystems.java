@@ -292,6 +292,7 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "bugs", core);
             lang.loadLangFileExternal(this, "debug", core);
             lang.loadLangFileExternal(this, "help", core);
+            lang.loadLangFileExternal(this, "resourcepack", core);
         } else {
             getLogger().severe("WoSCore not found. Disabling WoSSystems");
         }
@@ -313,6 +314,11 @@ public final class WoSSystems extends JavaPlugin {
         registerBasicCommands();
         registerCommands();
         registerEvents();
+        // The portal's resource pack: sent on join, refreshed (batched) when the portal changes it.
+        var resourcePacks = me.hektortm.woSSystems.systems.resourcepack.ResourcePackService.create(this);
+        daoHub.setResourcePacks(resourcePacks);
+        eventReg(resourcePacks);
+        resourcePacks.start();
         // Placed items a pull-back took away: their displays and blocks leave this world now.
         PlacedRemovals placedRemovals = new PlacedRemovals(this, daoHub.getCitemDAO());
         eventReg(placedRemovals);

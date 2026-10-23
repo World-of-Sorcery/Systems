@@ -36,8 +36,13 @@ public class GUI extends BaseEntity {
     /** The sound when a click leads to another page of this GUI; empty for none. */
     private final String page_sound;
 
+    /** The glyph id of the background this GUI draws by itself (null for none), and the rules that pick another. */
+    private final String background;
+    private final List<BackgroundRule> background_rules;
+
     public GUI(String guiId, int size, String title, String type, List<GUIPage> pages, List<String> openActions, List<String> closeActions,
-               List<String> cooldownActions, String postUse, String postUseTarget, String pageSound) {
+               List<String> cooldownActions, String postUse, String postUseTarget, String pageSound,
+               String background, List<BackgroundRule> backgroundRules) {
         super(guiId);
         this.size = size;
         this.title = title;
@@ -49,6 +54,8 @@ public class GUI extends BaseEntity {
         post_use = postUse;
         post_use_target = postUseTarget;
         page_sound = pageSound;
+        this.background = background;
+        background_rules = backgroundRules == null ? List.of() : backgroundRules;
     }
 
     public String getGuiId()              { return getId();       }
@@ -64,4 +71,6 @@ public class GUI extends BaseEntity {
     public String getPostUse()            { return post_use;      }
     public String getPostUseTarget()      { return post_use_target; }
     public String getPageSound()          { return page_sound;    }
+    public String getBackground()         { return background;    }
+    public List<BackgroundRule> getBackgroundRules() { return background_rules; }
 }

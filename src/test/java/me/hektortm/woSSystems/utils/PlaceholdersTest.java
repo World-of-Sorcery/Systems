@@ -62,4 +62,27 @@ class PlaceholdersTest {
         assertThat(Placeholders.replaceLines(List.of("&6Wand", "{citems.lore:wand}", "{player_name}"), LOOKUP))
                 .containsExactly("&6Wand", "&7A wand", "&7Of oak", "Hektor");
     }
+
+    @Test
+    void glyphAndShiftTokens() {
+        Placeholders.Token glyph = Placeholders.parse("glyph:coin");
+        assertThat(glyph.namespace()).isEqualTo("glyph");
+        assertThat(glyph.id()).isEqualTo("coin");
+        assertThat(glyph.isBare()).isFalse();
+        assertThat(Placeholders.parse("shift:-8").id()).isEqualTo("-8");
+        assertThat(Placeholders.parse("glyph:")).isNull();
+    }
+
+    @Test
+    void oldTokensUnchanged() {
+        assertThat(Placeholders.parse("player_name")).isEqualTo(new Placeholders.Token("player_name", "player_name", null, null));
+        assertThat(Placeholders.parse("stats.amount:x")).isEqualTo(new Placeholders.Token("stats.amount:x", "stats", "amount", "x"));
+        assertThat(Placeholders.parse("citems.name:wos:x")).isEqualTo(new Placeholders.Token("citems.name:wos:x", "citems", "name", "wos:x"));
+        assertThat(Placeholders.parse("coin")).isEqualTo(new Placeholders.Token("coin", "coin", null, null));
+    }
+
+    @Test
+    void jsonLeftAlone() {
+        assertThat(Placeholders.replace("{\"text\":\"a\"}", token -> "X")).isEqualTo("{\"text\":\"a\"}");
+    }
 }

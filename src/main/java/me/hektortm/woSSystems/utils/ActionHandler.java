@@ -114,6 +114,7 @@ public class ActionHandler {
      *   <li>{@code play_sound &lt;sound&gt; &lt;volume&gt; &lt;pitch&gt;} — plays a sound at the player's location</li>
      *   <li>{@code eco give|take|set|reset @p &lt;currency&gt; &lt;amount&gt;} — changes the player's balance (logged with this source)</li>
      *   <li>{@code close_gui} — closes the player's open inventory</li>
+     *   <li>{@code background <glyph|default>} — changes the background of the GUI the player has open</li>
      *   <li>{@code server connect @p &lt;hub|backend|staging|live&gt;} — sends the player to that server through the proxy
      *       (an unknown server is logged and skipped)</li>
      *   <li>anything else — dispatched as a console command (async for {@link SourceType#DIALOG})</li>
@@ -282,6 +283,19 @@ public class ActionHandler {
                 } else {
                     // Dialog actions can run off the main thread; a plugin message must go out on it.
                     Bukkit.getScheduler().runTask(plugin, () -> ServerConnect.send(player, connect.server()));
+                }
+                continue;
+            }
+
+            // background <glyph|default>: change the open GUI's background. Not a console command.
+            if (cmd.equals("background") || cmd.startsWith("background ")) {
+                String glyph = argument(cmd, "background").trim();
+                if (glyph.isEmpty()) {
+                    plugin.writeLog("ActionHandler", Level.WARNING, "background action needs a glyph id or 'default': " + cmd);
+                } else if (Bukkit.isPrimaryThread()) {
+                    plugin.getGuiManager().setBackground(player, glyph);
+                } else {
+                    Bukkit.getScheduler().runTask(plugin, () -> plugin.getGuiManager().setBackground(player, glyph));
                 }
                 continue;
             }

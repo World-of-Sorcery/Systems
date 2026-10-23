@@ -82,6 +82,21 @@ public class PlaceholderResolver {
         return Placeholders.replace(input, token -> value(token, player, binding, depth));
     }
 
+    @Nullable
+    private String glyph(String id) {
+        me.hektortm.woSSystems.systems.resourcepack.Glyph g = hub.getGlyphDAO().get(id);
+        return g == null ? null : g.character();
+    }
+
+    @Nullable
+    private static String shift(String arg) {
+        try {
+            return me.hektortm.woSSystems.systems.resourcepack.Shift.of(Integer.parseInt(arg));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     /** The token's value, or null if unknown. */
     @Nullable
     private String value(Placeholders.Token token, @Nullable Player player, @Nullable InteractionKey binding, int depth) {
@@ -94,6 +109,8 @@ public class PlaceholderResolver {
                     : String.valueOf(plugin.getEcoManager().getCurrencyBalance(player.getUniqueId(), token.id()));
             case "cooldowns" -> player == null || token.id() == null ? null : cooldown(token.key(), token.id(), player, binding);
             case "citems" -> token.id() == null ? null : citem(token.key(), token.id());
+            case "glyph" -> glyph(token.id());
+            case "shift" -> shift(token.id());
             default -> null;
         };
     }

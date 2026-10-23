@@ -9,6 +9,7 @@ import me.hektortm.woSSystems.content.ContentRegistry;
 import me.hektortm.woSSystems.systems.guis.GuiRules;
 import me.hektortm.woSSystems.content.ContentStore;
 import me.hektortm.woSSystems.content.Json;
+import me.hektortm.woSSystems.utils.model.BackgroundRule;
 import me.hektortm.woSSystems.utils.model.Condition;
 import me.hektortm.woSSystems.utils.model.GUI;
 import me.hektortm.woSSystems.utils.model.GUICheck;
@@ -58,7 +59,7 @@ public class GUIDAO {
         JsonObject g = Json.object(tree, "gui");
         String guiId = Json.str(g, "id");
 
-        conditionDAO.replaceChildren(java.util.Set.of("guislot"), guiId, Json.array(tree, "conditions"));
+        conditionDAO.replaceChildren(java.util.Set.of("guislot", "guibg"), guiId, Json.array(tree, "conditions"));
 
         // conditions keyed by "<gui>:<page>:<slot>:<config>"
         Map<String, List<Condition>> conditions = new HashMap<>();
@@ -129,7 +130,24 @@ public class GUIDAO {
                 Json.str(g, "post_use", "stay"),
                 Json.str(g, "post_use_target"),
                 // Absent (an API that doesn't know it yet): the page turn. Empty: none.
-                Json.str(g, "page_sound", GuiRules.PAGE_TURN_SOUND));
+                Json.str(g, "page_sound", GuiRules.PAGE_TURN_SOUND),
+                blankToNull(Json.str(g, "background")),
+                backgroundRules(guiId, Json.array(g, "background_rules"), conditions));
+    }
+
+    /** The background rules of a GUI, each with its {@code guibg} conditions ("<gui>:<rule id>"). */
+    private static List<BackgroundRule> backgroundRules(String guiId, JsonArray arr, Map<String, List<Condition>> conditions) {
+        List<BackgroundRule> rules = new ArrayList<>();
+        for (JsonElement el : arr) {
+            if (!el.isJsonObject()) continue;
+            JsonObject r = el.getAsJsonObject();
+            String glyph = blankToNull(Json.str(r, "background"));
+            if (glyph == null) continue;
+            int id = Json.integer(r, "id", 0);
+            rules.add(new BackgroundRule(id, glyph, Json.str(r, "matchtype", "all"),
+                    conditions.getOrDefault(guiId + ":" + id, List.of())));
+        }
+        return rules;
     }
 
     /** A config's cost, cooldown, trade, extra click types and post-use (defaults when absent). */

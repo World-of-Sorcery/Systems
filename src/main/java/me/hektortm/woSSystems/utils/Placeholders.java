@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  */
 public final class Placeholders {
 
-    private static final Pattern TOKEN = Pattern.compile("[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+(:[A-Za-z0-9_.:/-]+)?)?");
+    private static final Pattern TOKEN = Pattern.compile("(glyph|shift):[A-Za-z0-9_-]+|[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+(:[A-Za-z0-9_.:/-]+)?)?");
 
     /** A token split into its parts; {@code key} and {@code id} are null when absent. */
     public record Token(String raw, String namespace, String key, String id) {
@@ -30,6 +30,10 @@ public final class Placeholders {
     /** The token, or null if {@code raw} (without braces) isn't one. */
     public static Token parse(String raw) {
         if (!TOKEN.matcher(raw).matches()) return null;
+        if (raw.startsWith("glyph:") || raw.startsWith("shift:")) {
+            int c = raw.indexOf(':');
+            return new Token(raw, raw.substring(0, c), "", raw.substring(c + 1));
+        }
         int dot = raw.indexOf('.');
         if (dot < 0) return new Token(raw, raw, null, null);
         String namespace = raw.substring(0, dot);

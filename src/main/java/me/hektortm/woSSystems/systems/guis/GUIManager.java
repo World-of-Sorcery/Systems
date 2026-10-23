@@ -8,6 +8,8 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.debug.DebugFormat;
 import me.hektortm.woSSystems.utils.ActionHandler;
 import me.hektortm.woSSystems.utils.ConditionHandler;
+import me.hektortm.woSSystems.systems.resourcepack.Glyph;
+import me.hektortm.woSSystems.utils.model.BackgroundRule;
 import me.hektortm.woSSystems.utils.model.Condition;
 import me.hektortm.woSSystems.utils.model.GUI;
 import me.hektortm.woSSystems.utils.model.GUIItemBehaviour;
@@ -71,7 +73,8 @@ public class GUIManager implements Listener {
      * {@code subject} is whose values it shows: the player themself, or in a
      * player view ({@code /gui playerview}) the player being looked at.
      */
-    record OpenView(String guiId, int page, Map<Integer, Integer> slots, Inventory inventory, UUID subject) {
+    record OpenView(String guiId, int page, Map<Integer, Integer> slots, Inventory inventory, UUID subject,
+                    @Nullable String background, @Nullable String override) {
         /** True if {@code viewer} is looking at this GUI as another player sees it. */
         boolean isPlayerView(Player viewer) {
             return !subject.equals(viewer.getUniqueId());
@@ -79,6 +82,9 @@ public class GUIManager implements Listener {
     }
 
     private final Map<UUID, OpenView> views = new ConcurrentHashMap<>();
+
+    /** "guiId:glyphId" of backgrounds already warned about, with the GUI instance (a reload makes a new one, so it warns again). */
+    private final Map<String, GUI> warnedBackgrounds = new ConcurrentHashMap<>();
 
     /**
      * Players whose GUI is being replaced by another screen of ours (redraw,
@@ -102,9 +108,14 @@ public class GUIManager implements Listener {
     public void openGUI(Player player, String guiId, int pageIndex) {
         GUI gui = hub.getGuiDAO().getGUIbyId(guiId);
         if (gui == null || gui.getPages().isEmpty()) return;
-        Inventory inventory = draw(player, player, gui, pageIndex);
+        Inventory inventory = draw(player, player, gui, pageIndex, null);
         if (gui.getOpenActions() != null && !gui.getOpenActions().isEmpty()) {
             actionHandler.executeActions(player, gui.getOpenActions(), ActionHandler.SourceType.GUI, guiId, null, "on open");
+            // A background action in the open actions set the override before the inventory was open: draw again with it.
+            OpenView made = views.get(player.getUniqueId());
+            if (made != null && made.inventory() == inventory && made.override() != null) {
+                inventory = draw(player, player, gui, pageIndex, made.override());
+            }
         }
         player.openInventory(inventory);
     }
@@ -126,7 +137,10 @@ public class GUIManager implements Listener {
     }
 
     void showPage(Player viewer, Player subject, GUI gui, int pageIndex) {
-        Inventory inventory = draw(viewer, subject, gui, pageIndex);
+        // The background the action chose stays while the player moves between pages of the same GUI.
+        OpenView before = views.get(viewer.getUniqueId());
+        String override = before != null && before.guiId().equals(gui.getGuiId()) ? before.override() : null;
+        Inventory inventory = draw(viewer, subject, gui, pageIndex, override);
         switchTo(viewer, () -> viewer.openInventory(inventory));
     }
 
@@ -141,17 +155,18 @@ public class GUIManager implements Listener {
     }
 
     /** Builds the page's inventory with {@code player}'s values and records it as the viewer's open view. */
-    private Inventory draw(Player viewer, Player player, GUI gui, int pageIndex) {
+    private Inventory draw(Player viewer, Player player, GUI gui, int pageIndex, @Nullable String override) {
         List<GUIPage> pages = gui.getPages();
         int page = Math.max(0, Math.min(pageIndex, pages.size() - 1));
         boolean raw = plugin.getDebugMode().isOn(viewer); // debug mode: texts as written
-        Inventory inventory = Bukkit.createInventory(new GUIHolder(gui.getGuiId()), gui.getSize() * 9, new Text(player, raw).line(gui.getTitle()));
+        String background = backgroundFor(player, gui, override);
+        Inventory inventory = Bukkit.createInventory(new GUIHolder(gui.getGuiId()), gui.getSize() * 9, titleWith(gui, background, new Text(player, raw)));
 
         Map<Integer, ItemStack> items = pageItems(player, pages.get(page), raw);
         Map<Integer, Integer> layout = GuiRules.layout(new ArrayList<>(items.keySet()), inventory.getSize(), gui.isFluid());
         layout.forEach((at, slot) -> inventory.setItem(at, items.get(slot)));
 
-        views.put(viewer.getUniqueId(), new OpenView(gui.getGuiId(), page, layout, inventory, player.getUniqueId()));
+        views.put(viewer.getUniqueId(), new OpenView(gui.getGuiId(), page, layout, inventory, player.getUniqueId(), background, override));
         return inventory;
     }
 
@@ -186,7 +201,10 @@ public class GUIManager implements Listener {
             GUI gui = hub.getGuiDAO().getGUIbyId(view.guiId());
             if (subject == null || gui == null || view.page() >= gui.getPages().size()) return;
             GUIPage page = gui.getPages().get(view.page());
+            // A GUI with background rules is checked every second too (the title only changes when the choice does);
+            // without a cooldown on the page only the background is worked out, the items stay as they are.
             if (GuiRules.showsCooldown(pageTexts(page))) redrawInPlace(viewer, subject, gui, page, view);
+            else if (!gui.getBackgroundRules().isEmpty()) refreshBackground(viewer, subject, gui, view);
         });
     }
 
@@ -220,7 +238,84 @@ public class GUIManager implements Listener {
             ItemStack item = slot == null ? null : items.get(slot);
             if (!Objects.equals(inventory.getItem(at), item)) inventory.setItem(at, item);
         }
-        views.put(viewer.getUniqueId(), new OpenView(view.guiId(), view.page(), layout, inventory, view.subject()));
+        String background = backgroundFor(subject, gui, view.override());
+        if (!Objects.equals(background, view.background())) {
+            viewer.getOpenInventory().setTitle(titleWith(gui, background, new Text(subject, plugin.getDebugMode().isOn(viewer))));
+        }
+        views.put(viewer.getUniqueId(), new OpenView(view.guiId(), view.page(), layout, inventory, view.subject(), background, view.override()));
+    }
+
+    /** Works out the background again and changes the title only if the choice changed; items are not touched. */
+    private void refreshBackground(Player viewer, Player subject, GUI gui, OpenView view) {
+        String background = backgroundFor(subject, gui, view.override());
+        if (Objects.equals(background, view.background())) return;
+        viewer.getOpenInventory().setTitle(titleWith(gui, background, new Text(subject, plugin.getDebugMode().isOn(viewer))));
+        views.put(viewer.getUniqueId(), new OpenView(view.guiId(), view.page(), view.slots(), view.inventory(), view.subject(), background, view.override()));
+    }
+
+    // ── Backgrounds ─────────────────────────────────────────────────────────────
+
+    /**
+     * Sets the background of the GUI the player has open, from the {@code background} action:
+     * {@code default} goes back to the GUI's own (and its rules), a glyph id forces that one.
+     * A glyph that is not a background for this GUI's row count is ignored and logged.
+     */
+    public void setBackground(Player player, String glyphIdOrDefault) {
+        OpenView view = views.get(player.getUniqueId());
+        GUI gui = view == null ? null : hub.getGuiDAO().getGUIbyId(view.guiId());
+        if (gui == null) return;
+        String wanted = glyphIdOrDefault.trim();
+        String override = null;
+        if (!wanted.equalsIgnoreCase("default")) {
+            Glyph g = hub.getGlyphDAO().get(wanted);
+            if (!GuiBackground.fits(g, gui.getSize())) {
+                plugin.writeLog("GUIManager", Level.WARNING, "GUI " + gui.getGuiId() + ": background action ignored, '" + wanted
+                        + "' is not a background glyph for " + gui.getSize() + " rows");
+                return;
+            }
+            override = wanted;
+        }
+        OpenView next = new OpenView(view.guiId(), view.page(), view.slots(), view.inventory(), view.subject(), view.background(), override);
+        views.put(player.getUniqueId(), next);
+        // Only while this GUI is the screen in front: else the next draw uses the override.
+        if (player.getOpenInventory().getTopInventory() != view.inventory()) return;
+        Player subject = Bukkit.getPlayer(view.subject());
+        if (subject == null) return;
+        String background = backgroundFor(subject, gui, override);
+        if (!Objects.equals(background, view.background())) {
+            player.getOpenInventory().setTitle(titleWith(gui, background, new Text(subject, plugin.getDebugMode().isOn(player))));
+            views.put(player.getUniqueId(), new OpenView(next.guiId(), next.page(), next.slots(), next.inventory(), next.subject(), background, override));
+        }
+    }
+
+    /** The glyph id of the background to draw now (override, first passing rule, the GUI's own), or null for none. */
+    @Nullable
+    private String backgroundFor(Player subject, GUI gui, @Nullable String override) {
+        String id = GuiBackground.choose(override, gui.getBackgroundRules(), rule -> rulePasses(subject, rule), gui.getBackground());
+        if (id == null) return null;
+        Glyph g = hub.getGlyphDAO().get(id);
+        if (GuiBackground.fits(g, gui.getSize())) return id;
+        if (warnedBackgrounds.put(gui.getGuiId() + ":" + id, gui) != gui) {
+            plugin.writeLog("GUIManager", Level.WARNING, "GUI " + gui.getGuiId() + ": background '" + id
+                    + "' is unknown or not a " + gui.getSize() + "-row background, drawing none");
+        }
+        return null;
+    }
+
+    /** A rule's conditions like a slot config's: "one" is any of them, else all. */
+    private boolean rulePasses(Player subject, BackgroundRule rule) {
+        List<Condition> conds = rule.conditions();
+        if (conds.isEmpty()) return true;
+        if ("one".equalsIgnoreCase(rule.matchtype())) return conds.stream().anyMatch(c -> conditions.evaluate(subject, c, null));
+        return conditions.checkConditions(subject, conds, null);
+    }
+
+    /** The title with the background's prefix in front, or just the title. */
+    private String titleWith(GUI gui, @Nullable String backgroundId, Text text) {
+        String title = text.line(gui.getTitle());
+        Glyph g = backgroundId == null ? null : hub.getGlyphDAO().get(backgroundId);
+        String prefix = g == null ? null : GuiBackground.titlePrefix(g);
+        return prefix == null ? title : Utils.parseColorCodeString(prefix) + title;
     }
 
     @Nullable

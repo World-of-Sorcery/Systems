@@ -30,6 +30,7 @@ public class DAOHub {
     private final WoSSystems plugin = WoSSystems.getInstance();
     private final ContentRegistry content;
     private final PlayerSessions sessions;
+    private volatile me.hektortm.woSSystems.systems.resourcepack.ResourcePackService resourcePacks;
 
     private final EconomyDAO economyDAO;
     private final UnlockableDAO unlockableDAO;
@@ -46,6 +47,7 @@ public class DAOHub {
     private final CooldownDAO cooldownDAO;
     private final TimeDAO timeDAO;
     private final ConstantDAO constantDAO;
+    private final GlyphDAO glyphDAO;
     private final DialogDAO dialogDAO;
     private final LoottablesDAO loottablesDAO;
     private final CommandsDAO commandsDAO;
@@ -80,6 +82,7 @@ public class DAOHub {
         this.timeDAO        = new TimeDAO(content, api, log);
         this.citemDAO       = new CitemDAO(s);
         this.constantDAO    = new ConstantDAO(content, api, log);
+        this.glyphDAO       = new GlyphDAO(content, api, log);
         this.dialogDAO      = new DialogDAO(content, api, log);
         this.loottablesDAO  = new LoottablesDAO(content, api, log);
         this.commandsDAO    = new CommandsDAO(content, api, log);
@@ -101,6 +104,7 @@ public class DAOHub {
     public TimeDAO getTimeDAO()                 { return timeDAO;           }
     public CitemDAO getCitemDAO()               { return citemDAO;          }
     public ConstantDAO getConstantDAO()         { return constantDAO;       }
+    public GlyphDAO getGlyphDAO()               { return glyphDAO;          }
     public DialogDAO getDialogDAO()             { return dialogDAO;         }
     public LoottablesDAO getLoottablesDAO()     { return loottablesDAO;     }
     public CommandsDAO getCommandsDAO()         { return commandsDAO;       }
@@ -130,7 +134,26 @@ public class DAOHub {
             sessions.reloadAfterReset(id);
             return;
         }
+        // Resource pack content changed in the portal: one batched refresh of the pack.
+        if (type.startsWith("rp")) {
+            if (resourcePacks != null) resourcePacks.changed();
+            // Glyph changes also reload the glyph store (what {glyph:id} reads). The API
+            // serves glyphs only as one list (no /published/<id>), so reload all of them.
+            if ("rpglyphs".equals(type)) {
+                try {
+                    content.store(type).preload();
+                } catch (me.hektortm.wosCore.api.ApiException e) {
+                    plugin.getLogger().warning("[Content] reload rpglyphs failed: " + e.getMessage());
+                }
+            }
+            return;
+        }
         content.reload(type, id, editorUUID);
+    }
+
+    /** The resource pack service (set once the plugin has built it; null before that). */
+    public void setResourcePacks(me.hektortm.woSSystems.systems.resourcepack.ResourcePackService service) {
+        this.resourcePacks = service;
     }
 
     /** The content registry (startup preload readiness, per-type stores). */

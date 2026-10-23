@@ -112,6 +112,40 @@ class ApiSourceTest {
     }
 
     @Test
+    void missingAsEmptyTurnsA404CollectionIntoNoEntitiesWithOneWarning() throws ApiException {
+        java.util.List<String> warnings = new java.util.ArrayList<>();
+        Logger log = Logger.getLogger("test.missing");
+        log.setUseParentHandlers(false);
+        log.addHandler(new java.util.logging.Handler() {
+            @Override public void publish(java.util.logging.LogRecord r) {
+                if (r.getLevel() == java.util.logging.Level.WARNING) warnings.add(r.getMessage());
+            }
+            @Override public void flush() { }
+            @Override public void close() { }
+        });
+        ContentStore.Source<String> src = MissingAsEmpty.of(
+                ApiSource.flat(api, "/v1/content/rpglyphs/published", "id", j -> Json.str(j, "id"), LOG), "rpglyphs", log);
+
+        assertThat(src.loadAll()).isEmpty();
+        assertThat(src.loadAll()).isEmpty();
+        assertThat(warnings).hasSize(1);
+
+        routes.put("/v1/content/rpglyphs/published", "[{\"id\":\"coin\"}]");
+        assertThat(src.loadAll()).containsOnlyKeys("coin");
+    }
+
+    @Test
+    void missingAsEmptyStillThrowsOtherErrors() {
+        routes.put("/v1/content/rpglyphs/published", "!503");
+        ContentStore.Source<String> src = MissingAsEmpty.of(
+                ApiSource.flat(api, "/v1/content/rpglyphs/published", "id", j -> "", LOG), "rpglyphs", LOG);
+
+        assertThatThrownBy(src::loadAll)
+                .isInstanceOf(ApiException.class)
+                .satisfies(e -> assertThat(((ApiException) e).isUnavailable()).isTrue());
+    }
+
+    @Test
     void unreachableApiIsUnavailable() {
         WosApi dead = new WosApi("http://127.0.0.1:1", "t", Duration.ofMillis(300), LOG);
         ApiSource<String> src = ApiSource.flat(dead, "/v1/content/constants", "id", j -> "", LOG);
