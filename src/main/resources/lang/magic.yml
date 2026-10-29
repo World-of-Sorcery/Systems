@@ -1,0 +1,100 @@
+# Magic: spells, wands, mana (spec 2026-10-19-magic-system-design).
+error:
+  offline: "%player% is not online."
+  unknown_spell: "There is no published spell '%id%'."
+  amount: "'%amount%' is not an amount (a number of 0 or more)."
+  players_only: "Only players can do that."
+  level: "'%level%' is not a level (a whole number of 1 or more)."
+  bad_level: "'%level%' is not a level of %spell% (1 to %max%)."
+  usage:
+    spell: "Usage: /spell <learn|forget|cast|test|list|xp|level|help>"
+    learn: "Usage: /spell learn <player> <spell>"
+    forget: "Usage: /spell forget <player> <spell>"
+    cast: "Usage: /spell cast <player> <spell> [free]"
+    test: "Usage: /spell test <spell> [level]"
+    xp: "Usage: /spell xp <give|take> <player> <spell> <amount>"
+    level: "Usage: /spell level set <player> <spell> <level>"
+    mana: "Usage: /mana <set|give|take> <player> <amount>  or  /mana max <set|give|take> <player> <amount>"
+    wand: "Usage: /wand <give|restore|colour|skin|help> <player> [value]"
+
+learned: "%player% learned %spell%."
+already_known: "%player% already knows %spell%."
+forgot: "%player% forgot %spell%."
+not_known: "%player% doesn't know %spell%."
+cast_failed: "%spell% was not cast: %result%."
+progress: "%player%: %spell% level %level%/%max% (%xp%/%next% XP)."
+
+# A spell reached a new level (when the spell has no level-up actions of its own).
+level:
+  up: "&6%spell% &7reached level &e%level%&7!"
+
+test:
+  loading: "Loading the draft of %id%..."
+  cast: "Cast the draft of %spell% at level %level%/%max% (%skipped% part(s) skipped)."
+
+list:
+  all: "Spells: %spells%"
+  none: "%player% knows no spells (mana %mana%/%max%)."
+  known: "%player% knows: %spells% (mana %mana%/%max%)."
+
+mana:
+  set: "%player% now has %mana%/%max% mana."
+  max_set: "%player%'s max mana is now %max% (%mana% now)."
+
+wand:
+  none: "You don't have a wand yet."
+  none_for: "%player% has no wand."
+  no_citem: "No custom item is marked as the wand in the portal, so no wand can be made."
+  given: "Gave %player% their wand."
+  restored: "Gave %player% their wand back."
+  colour: "%player%'s wand is now %colour%."
+  bad_colour: "'%colour%' is not a colour: use #RRGGBB or random."
+  skin: "%player%'s wand now looks like %skin%."
+  unknown_skin: "There is no wand skin '%skin%'."
+  skin_locked: "%player% doesn't own the skin %skin%."
+
+# Why a cast didn't happen (chat, or the action bar for cooldown and mana).
+cast:
+  none: "&7Pick a spell first: right-click, then a number key."
+  cooldown: "&c%spell% is ready in %seconds% s"
+  mana: "&cNot enough mana for %spell% (%cost%)"
+  conditions: "You can't cast %spell% right now."
+  unknown: "That spell doesn't exist (any more)."
+  disabled: "Magic doesn't work on this server."
+  forbidden_here: "You can't cast spells here."
+  no_data: "Your magic is still loading."
+  no_wand: "Hold your wand to cast."
+  not_known: "You don't know %spell%."
+  fizzle: "&7%spell% fizzled out"
+
+# The action bar while the wand is held.
+bar:
+  none: "&7No spell selected"
+  mana: "&f%spell% &8· &b✦ %mana%/%max%"
+  cooldown: "&7%spell% &8(%seconds% s) &8· &b✦ %mana%/%max%"
+  ring: "&6%spell% &8· &b%cost% mana &8· &7page %page%/2"
+  ring_level: "&6%spell% &7Lv %level% &8· &b%cost% mana &8· &7page %page%/2"
+  charge: "&6%spell% %bar%"
+  ring_none: "&7Pick a spell with its number key &8· &7page %page%/2"
+
+death:
+  spell: "%victim% was struck by %spell% from %caster%"
+  spell_self: "%victim% was struck by their own %spell%"
+
+# The spellbook (/spells, or sneak + right-click with the wand).
+book:
+  title: "Spellbook"
+  known_lore: "&7Click, then click a ring slot below"
+  picked: "&eNow click a ring slot below"
+  more: "&7%count% more spells"
+  empty: "&8Empty slot"
+  slot_lore: "&7Page %page%, slot %slot% &8· &7right-click to empty"
+  page: "&fPage %page% &7(F flips the ring)"
+  level: "&eLevel %level%/%max% &7(%xp%/%next% XP)"
+  level_max: "&6Level %level% &7(highest)"
+
+wandmenu:
+  title: "Your wand"
+  default: "&fDefault look"
+  current: "&aYour wand looks like this now"
+  locked: "&cYou don't own this skin yet"

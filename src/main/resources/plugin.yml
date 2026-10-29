@@ -165,6 +165,18 @@ commands:
   quest:
     description: Your quests and sequences (status, cancel, abandon); staff start and reset them
     usage: /<command> <status|cancel|abandon|start|reset|help> [args]
+  spell:
+    description: 'Spells: teach, take away, cast as a player, test a draft, list, change XP and levels'
+    usage: /<command> <learn|forget|cast|test|list|xp|level|help> [args]
+  mana:
+    description: Set, give or take a player's mana or max mana
+    usage: /<command> <set|give|take|max|help> [args]
+  wand:
+    description: 'Your wand: get it back and pick its look; staff give wands and set colour or skin'
+    usage: /<command> [give|restore|colour|skin|help] [args]
+  spells:
+    description: Your spellbook (which spell sits on which ring key)
+    usage: /<command>
 
 # Every node the plugin checks, with what it allows. WoSCore sends this list to
 # wos-api at server start; the portal shows it (Permissions > Nodes). Keep it
@@ -199,6 +211,22 @@ permissions:
   wos.console:
     description: 'Not for players: hides the console-only /wos (release run) from tab completion. The command refuses every player, even with this node.'
     default: false
+  spell.learn:
+    description: 'Teach a player a spell or take it away (/spell learn|forget).'
+  spell.cast:
+    description: 'Cast a spell as a player, from content or by hand (/spell cast).'
+  spell.test:
+    description: 'Cast a spell draft that is not published yet (/spell test).'
+  spell.list:
+    description: 'List the spells a player knows, or every spell (/spell list).'
+  spell.progress:
+    description: 'Give or take spell XP, or set a spell level of a player (/spell xp|level).'
+  mana.set:
+    description: 'Set, give or take a player''s mana and max mana (/mana).'
+  wand.give:
+    description: 'Give a player their wand or give it back (/wand give|restore).'
+  wand.manage:
+    description: 'Change a player''s wand colour or skin (/wand colour|skin).'
   stats.modify.give:
     description: 'Add to a player''s stat (/stats give).'
   stats.modify.take:

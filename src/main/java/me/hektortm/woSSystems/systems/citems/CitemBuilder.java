@@ -124,6 +124,10 @@ public final class CitemBuilder {
 
         // An item that was only created (never saved from its editor) has no update id yet.
         meta.getPersistentDataContainer().set(Keys.UUUID.get(), PersistentDataType.STRING, getString(data, "update_uuid", "").trim());
+        // Magic: the wand flag and the magic component, kept on the item for the engine.
+        if (CitemRules.isWand(data)) meta.getPersistentDataContainer().set(Keys.WAND.get(), PersistentDataType.BOOLEAN, true);
+        String magic = CitemRules.magicComponent(data);
+        if (magic != null) meta.getPersistentDataContainer().set(Keys.MAGIC.get(), PersistentDataType.STRING, magic);
 
         if (data.has("flags") && data.get("flags").isJsonObject()) {
             JsonObject flags = data.getAsJsonObject("flags");

@@ -27,6 +27,19 @@ public final class CitemRules {
 
     private CitemRules() {}
 
+    /** Whether the item data marks the one wand item (magic spec §6.2): {@code "wand": true}. */
+    public static boolean isWand(com.google.gson.JsonObject data) {
+        com.google.gson.JsonElement w = data.get("wand");
+        return w != null && w.isJsonPrimitive() && w.getAsJsonPrimitive().isBoolean() && w.getAsBoolean();
+    }
+
+    /** The item data's magic component as JSON (kept on the item for the engine), or null for none (spec §6.3). */
+    @javax.annotation.Nullable
+    public static String magicComponent(com.google.gson.JsonObject data) {
+        com.google.gson.JsonElement m = data.get("magic");
+        return m != null && m.isJsonObject() ? m.toString() : null;
+    }
+
     /**
      * Whether placing a custom item (as a block or as a display) is refused on this server.
      * Only a server whose tag was set explicitly to {@code live} refuses. A server without a

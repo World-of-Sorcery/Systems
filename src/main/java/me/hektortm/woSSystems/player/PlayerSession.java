@@ -45,6 +45,12 @@ public final class PlayerSession {
     public final Set<String> completedQuests = ConcurrentHashMap.newKeySet();
     /** Profile showcase: slot index → citem id. */
     public final Map<Integer, String> showcase = new ConcurrentHashMap<>();
+    /** The session's magic (null: none written yet in this realm) and known spells (magic spec §4); read by MagicPlayers at load. */
+    @Nullable
+    public JsonObject magic;
+    public final java.util.List<String> spells = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** Level and XP per known spell ({id: {level, xp}}; null from an older API). */
+    public JsonObject spellProgress;
 
     private volatile String nickname;
     private volatile String bio;
@@ -111,6 +117,11 @@ public final class PlayerSession {
         for (JsonObject c : objects(json, "showcase")) s.showcase.put(Json.integer(c, "slot", 0), Json.str(c, "citem_id"));
         for (JsonObject q : objects(json, "quests")) s.quests.put(Json.str(q, "quest_id"), q);
         for (JsonElement q : Json.array(json, "completed_quests")) s.completedQuests.add(q.getAsString());
+        JsonElement magic = Json.field(json, "magic");
+        if (magic != null && magic.isJsonObject()) s.magic = magic.getAsJsonObject();
+        s.spells.addAll(Json.strings(json, "spells"));
+        JsonElement progress = Json.field(json, "spell_progress");
+        if (progress != null && progress.isJsonObject()) s.spellProgress = progress.getAsJsonObject();
         return s;
     }
 

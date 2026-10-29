@@ -119,6 +119,12 @@ public class PlaceholderResolver {
         switch (name) {
             case "player_name": return player == null ? null : player.getName();
             case "player_uuid": return player == null ? null : player.getUniqueId().toString();
+            case "mana":
+            case "mana_max":
+            case "mana_regen":
+            case "spell_selected":
+            case "wand_color":
+                return player == null || plugin.getMagic() == null ? null : magic(name, player);
             case "player_nick": {
                 if (player == null) return null;
                 String nick = hub.getNicknameDAO().getNickname(player.getUniqueId());
@@ -129,6 +135,24 @@ public class PlaceholderResolver {
                 if (constant == null || constant.getValue() == null) return null;
                 return depth < MAX_DEPTH ? resolve(constant.getValue(), player, binding, depth + 1) : constant.getValue();
             }
+        }
+    }
+
+    /** The magic placeholders (spec §4, §9): mana, max, regen per second, the selected spell's name, the wand colour. */
+    private String magic(String name, Player player) {
+        var m = plugin.getMagic();
+        var d = m.players().data(player);
+        if (d == null) return "";
+        switch (name) {
+            case "mana": return me.hektortm.woSSystems.systems.magic.MagicRules.manaText(d.mana());
+            case "mana_max": return me.hektortm.woSSystems.systems.magic.MagicRules.manaText(d.max());
+            case "mana_regen": return java.math.BigDecimal.valueOf(d.regen()).stripTrailingZeros().toPlainString();
+            case "spell_selected": {
+                String id = d.selected();
+                var spell = id == null ? null : m.stores().spell(id);
+                return spell == null ? "" : spell.name();
+            }
+            default: return d.wand() == null ? "" : d.wand().color();
         }
     }
 

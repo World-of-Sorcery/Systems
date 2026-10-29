@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Sums inside texts: braces that hold a calculation, like
@@ -14,18 +15,30 @@ import java.util.Locale;
  * placeholders inside are filled in ({@code {5 + 3}} → {@code 8}). Pure; no
  * server needed.
  *
- * <p>A calculation holds numbers, {@code + - * / %}, brackets and the
- * functions {@code min}, {@code max} (two or more values), {@code round},
- * {@code floor}, {@code ceil} and {@code abs}. It needs at least one operator
- * or function, so {@code {5}} stays as written. The result shows up to two
- * decimals and none when it is whole ({@code 10 / 4} → {@code 2.5},
- * {@code 10 / 2} → {@code 5}). Braces that hold anything else (a placeholder
- * nobody knew, the JSON of a {@code tellraw}, a typo, a division by zero) are
- * left as written.</p>
+ * <p>A calculation holds numbers, {@code + - * / %}, {@code ^} (power),
+ * brackets, {@code pi} and the functions {@code min}, {@code max} (two or more
+ * values), {@code round}, {@code floor}, {@code ceil}, {@code abs},
+ * {@code sqrt}, {@code sin}, {@code cos}, {@code tan} (radians) and
+ * {@code rand()} (0 to 1). It needs at least one operator or function, so
+ * {@code {5}} stays as written. The result shows up to two decimals and none
+ * when it is whole ({@code 10 / 4} → {@code 2.5}, {@code 10 / 2} →
+ * {@code 5}). Braces that hold anything else (a placeholder nobody knew, the
+ * JSON of a {@code tellraw}, a typo, a division by zero) are left as written.</p>
+ *
+ * <p>{@link #compile} reads a calculation once with named variables and
+ * evaluates it many times (the particle formulas of spells; wos-api checks the
+ * same grammar in {@code internal/spellgraph/formula.go}).</p>
  */
 public final class Maths {
 
     private Maths() {}
+
+    /** A calculation read once; {@link #eval} takes the variables' values in the order they were named. */
+    @FunctionalInterface
+    public interface Formula {
+        /** @throws IllegalArgumentException on a division or modulo by zero */
+        double eval(double... vars);
+    }
 
     /** {@code text} with every calculation in braces replaced by its result; inner braces first. */
     public static String fill(String text) {
@@ -59,14 +72,27 @@ public final class Maths {
     public static String calculate(String expression) {
         if (!looksLikeMaths(expression)) return null;
         try {
-            Parser parser = new Parser(expression.toLowerCase(Locale.ROOT));
-            double value = parser.expression();
-            parser.skipSpaces();
-            if (!parser.done() || Double.isNaN(value) || Double.isInfinite(value)) return null;
+            double value = compile(expression).eval();
+            if (Double.isNaN(value) || Double.isInfinite(value)) return null;
             return format(value);
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    /**
+     * Reads a calculation that may use the named variables (case-insensitive).
+     *
+     * @throws IllegalArgumentException when it isn't one (a typo, an unknown name)
+     */
+    public static Formula compile(String expression, String... variables) {
+        List<String> names = new ArrayList<>();
+        for (String v : variables) names.add(v.toLowerCase(Locale.ROOT));
+        Parser parser = new Parser(expression.toLowerCase(Locale.ROOT), names);
+        Formula f = parser.expression();
+        parser.skipSpaces();
+        if (!parser.done()) throw new IllegalArgumentException("unexpected text at " + (parser.pos + 1));
+        return f;
     }
 
     /** A number as the calculations show it: up to two decimals, none when whole. */
@@ -81,19 +107,24 @@ public final class Maths {
         boolean operator = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            if ("+-*/%(".indexOf(c) >= 0) operator = true;
+            if ("+-*/%^(".indexOf(c) >= 0) operator = true;
             else if (!(Character.isDigit(c) || c == '.' || c == ',' || c == ')' || c == ' ' || Character.isLetter(c))) return false;
         }
         return operator;
     }
 
-    /** expression = term (('+' | '-') term)*; term = unary (('*' | '/' | '%') unary)*. */
+    /**
+     * expression = term (('+' | '-') term)*; term = unary (('*' | '/' | '%') unary)*;
+     * unary = ('-' | '+') unary | power; power = primary ('^' unary)?.
+     */
     private static final class Parser {
         private final String s;
+        private final List<String> vars;
         private int pos;
 
-        Parser(String s) {
+        Parser(String s, List<String> vars) {
             this.s = s;
+            this.vars = vars;
         }
 
         boolean done() {
@@ -113,24 +144,33 @@ public final class Maths {
             return false;
         }
 
-        double expression() {
-            double value = term();
+        Formula expression() {
+            Formula value = term();
             while (true) {
-                if (eat('+')) value += term();
-                else if (eat('-')) value -= term();
-                else return value;
+                Formula a = value;
+                if (eat('+')) {
+                    Formula b = term();
+                    value = v -> a.eval(v) + b.eval(v);
+                } else if (eat('-')) {
+                    Formula b = term();
+                    value = v -> a.eval(v) - b.eval(v);
+                } else return value;
             }
         }
 
-        private double term() {
-            double value = unary();
+        private Formula term() {
+            Formula value = unary();
             while (true) {
-                if (eat('*')) value *= unary();
-                else if (eat('/')) value = divide(value, unary());
-                else if (eat('%')) {
-                    double by = unary();
-                    if (by == 0) throw new IllegalArgumentException("modulo by zero");
-                    value %= by;
+                Formula a = value;
+                if (eat('*')) {
+                    Formula b = unary();
+                    value = v -> a.eval(v) * b.eval(v);
+                } else if (eat('/')) {
+                    Formula b = unary();
+                    value = v -> divide(a.eval(v), b.eval(v));
+                } else if (eat('%')) {
+                    Formula b = unary();
+                    value = v -> modulo(a.eval(v), b.eval(v));
                 } else return value;
             }
         }
@@ -140,62 +180,94 @@ public final class Maths {
             return a / b;
         }
 
-        private double unary() {
-            if (eat('-')) return -unary();
-            if (eat('+')) return unary();
-            return primary();
+        private static double modulo(double a, double b) {
+            if (b == 0) throw new IllegalArgumentException("modulo by zero");
+            return a % b;
         }
 
-        private double primary() {
+        private Formula unary() {
+            if (eat('-')) {
+                Formula a = unary();
+                return v -> -a.eval(v);
+            }
+            if (eat('+')) return unary();
+            Formula base = primary();
+            if (!eat('^')) return base;
+            Formula exp = unary();
+            return v -> Math.pow(base.eval(v), exp.eval(v));
+        }
+
+        private Formula primary() {
             skipSpaces();
             if (eat('(')) {
-                double value = expression();
+                Formula value = expression();
                 if (!eat(')')) throw new IllegalArgumentException("missing )");
                 return value;
             }
-            if (pos < s.length() && Character.isLetter(s.charAt(pos))) return function();
+            if (pos < s.length() && Character.isLetter(s.charAt(pos))) return name();
             return number();
         }
 
-        private double number() {
+        private Formula number() {
             int start = pos;
             while (pos < s.length() && (Character.isDigit(s.charAt(pos)) || s.charAt(pos) == '.')) pos++;
             if (start == pos) throw new IllegalArgumentException("number expected");
-            return Double.parseDouble(s.substring(start, pos)); // NumberFormatException is an IllegalArgumentException
+            double n = Double.parseDouble(s.substring(start, pos)); // NumberFormatException is an IllegalArgumentException
+            return v -> n;
         }
 
-        private double function() {
+        private Formula name() {
             int start = pos;
             while (pos < s.length() && Character.isLetter(s.charAt(pos))) pos++;
             String name = s.substring(start, pos);
-            if (!eat('(')) throw new IllegalArgumentException("( expected after " + name);
-            List<Double> args = new ArrayList<>();
-            args.add(expression());
-            while (eat(',')) args.add(expression());
-            if (!eat(')')) throw new IllegalArgumentException("missing )");
+            if (!eat('(')) {
+                int index = vars.indexOf(name);
+                if (index >= 0) return v -> v[index];
+                if (name.equals("pi")) return v -> Math.PI;
+                throw new IllegalArgumentException("( expected after " + name);
+            }
+            List<Formula> args = new ArrayList<>();
+            if (!eat(')')) {
+                args.add(expression());
+                while (eat(',')) args.add(expression());
+                if (!eat(')')) throw new IllegalArgumentException("missing )");
+            }
             return apply(name, args);
         }
 
-        private static double apply(String name, List<Double> args) {
+        private static Formula apply(String name, List<Formula> args) {
             switch (name) {
                 case "min":
                 case "max": {
                     if (args.size() < 2) throw new IllegalArgumentException(name + " needs two values");
-                    double out = args.get(0);
-                    for (double v : args) out = name.equals("min") ? Math.min(out, v) : Math.max(out, v);
-                    return out;
+                    boolean min = name.equals("min");
+                    Formula[] all = args.toArray(new Formula[0]);
+                    return v -> {
+                        double out = all[0].eval(v);
+                        for (Formula f : all) out = min ? Math.min(out, f.eval(v)) : Math.max(out, f.eval(v));
+                        return out;
+                    };
                 }
-                case "round": return one(name, args, Math.round(args.get(0)));
-                case "floor": return one(name, args, Math.floor(args.get(0)));
-                case "ceil": return one(name, args, Math.ceil(args.get(0)));
-                case "abs": return one(name, args, Math.abs(args.get(0)));
+                case "rand": {
+                    if (!args.isEmpty()) throw new IllegalArgumentException("rand takes no value");
+                    return v -> ThreadLocalRandom.current().nextDouble();
+                }
+                case "round": return one(name, args, a -> (double) Math.round(a));
+                case "floor": return one(name, args, Math::floor);
+                case "ceil": return one(name, args, Math::ceil);
+                case "abs": return one(name, args, Math::abs);
+                case "sqrt": return one(name, args, Math::sqrt);
+                case "sin": return one(name, args, Math::sin);
+                case "cos": return one(name, args, Math::cos);
+                case "tan": return one(name, args, Math::tan);
                 default: throw new IllegalArgumentException("unknown function " + name);
             }
         }
 
-        private static double one(String name, List<Double> args, double result) {
+        private static Formula one(String name, List<Formula> args, java.util.function.DoubleUnaryOperator op) {
             if (args.size() != 1) throw new IllegalArgumentException(name + " takes one value");
-            return result;
+            Formula a = args.get(0);
+            return v -> op.applyAsDouble(a.eval(v));
         }
     }
 }

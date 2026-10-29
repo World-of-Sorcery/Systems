@@ -149,6 +149,7 @@ public final class WoSSystems extends JavaPlugin {
     private CitemDisplays citemDisplays;
     private DailyReset dailyReset;
     private QuestEngine questEngine;
+    private me.hektortm.woSSystems.systems.magic.MagicSystem magic;
     private final DebugMode debugMode = new DebugMode();
     private final DebugLabels debugLabels = new DebugLabels(debugMode);
 
@@ -256,6 +257,7 @@ public final class WoSSystems extends JavaPlugin {
 // Initialize the remaining managers
         crecipeManager = new me.hektortm.woSSystems.systems.crecipes.CrecipeManager(daoHub);
         questEngine = new QuestEngine(this, daoHub);
+        magic = new me.hektortm.woSSystems.systems.magic.MagicSystem(this, daoHub);
         // The writes a quit makes (QuitListener, QuestListener); they also run when another
         // server takes a player over before this server sees the quit (session hand-off).
         daoHub.getSessions().onLeaving(uuid -> {
@@ -293,6 +295,10 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "debug", core);
             lang.loadLangFileExternal(this, "help", core);
             lang.loadLangFileExternal(this, "resourcepack", core);
+            lang.loadLangFileExternal(this, "magic", core);
+            lang.loadLangFileExternal(this, "magic_spell", core);
+            lang.loadLangFileExternal(this, "magic_mana", core);
+            lang.loadLangFileExternal(this, "magic_wand", core);
         } else {
             getLogger().severe("WoSCore not found. Disabling WoSSystems");
         }
@@ -391,6 +397,7 @@ public final class WoSSystems extends JavaPlugin {
         DISPLAY_NAME = registerStringFlag("display-name", registry);
         ENTER_INTERACTION = registerStringFlag("enter-interaction", registry);
         LEAVE_INTERACTION = registerStringFlag("leave-interaction", registry);
+        me.hektortm.woSSystems.systems.magic.cast.MagicFlags.register(registry); // wos-spells
 
     }
 
@@ -519,6 +526,10 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("link", new LinkCommand());
         cmdReg("dialog", new me.hektortm.woSSystems.systems.dialogs.cmd.DialogCommand(daoHub));
         cmdReg("quest", new QuestCommand(questEngine));
+        cmdReg("spell", me.hektortm.woSSystems.systems.magic.cmd.MagicCommands.spell(this, magic));
+        cmdReg("mana", me.hektortm.woSSystems.systems.magic.cmd.MagicCommands.mana(magic));
+        cmdReg("wand", me.hektortm.woSSystems.systems.magic.cmd.MagicCommands.wand(magic));
+        cmdReg("spells", me.hektortm.woSSystems.systems.magic.cmd.MagicCommands.spells(magic));
         cmdReg("bug", new BugCommand(this));
     }
 
@@ -749,6 +760,11 @@ public final class WoSSystems extends JavaPlugin {
     public me.hektortm.woSSystems.systems.crecipes.CrecipeManager getCrecipeManager() {
         return crecipeManager;
     }
+    /** WoS magic (spells, wands, mana); null before onEnable built it. */
+    public me.hektortm.woSSystems.systems.magic.MagicSystem getMagic() {
+        return magic;
+    }
+
     public QuestEngine getQuestEngine() {
         return questEngine;
     }

@@ -85,7 +85,8 @@ public class ActionHandler {
         CSCREEN("cscreen"),
         CRECIPE("crecipe"),
         LOOTTABLE("loottable"),
-        QUEST("quest");
+        QUEST("quest"),
+        SPELL("spell");
 
         private final String type;
         SourceType(String type) {

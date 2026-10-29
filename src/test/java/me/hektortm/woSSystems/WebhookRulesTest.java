@@ -14,6 +14,16 @@ class WebhookRulesTest {
         return ServerIdentity.from(null, env);
     }
 
+    /** A write made with the web service token has no editor: the reload still happens, without a title. */
+    @Test
+    void anEmptyOrOddEditorIsNoEditor() {
+        assertThat(WebhookRules.editor("")).isNull();
+        assertThat(WebhookRules.editor(null)).isNull();
+        assertThat(WebhookRules.editor("not-a-uuid")).isNull();
+        assertThat(WebhookRules.editor("0f8fad5b-d9cb-469f-a165-70867728950e")).hasToString("0f8fad5b-d9cb-469f-a165-70867728950e");
+        assertThat(WebhookRules.editor("0f8fad5bd9cb469fa16570867728950e")).hasToString("0f8fad5b-d9cb-469f-a165-70867728950e");
+    }
+
     @Test
     void liveIgnoresCitems() {
         boolean live = WebhookRules.refusesContent(fromEnv(Map.of("WOS_SERVER_TAG", "live")));

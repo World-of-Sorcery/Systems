@@ -54,6 +54,30 @@ class MathsTest {
     }
 
     @Test
+    void powersTrigAndPi() {
+        assertThat(Maths.calculate("2 ^ 3")).isEqualTo("8");
+        assertThat(Maths.calculate("-2^2")).isEqualTo("-4");
+        assertThat(Maths.calculate("2^3^2")).isEqualTo("512"); // right to left
+        assertThat(Maths.calculate("2 ^ -1")).isEqualTo("0.5");
+        assertThat(Maths.calculate("sqrt(16) + cos(0)")).isEqualTo("5");
+        assertThat(Maths.calculate("round(pi * 100)")).isEqualTo("314");
+        assertThat(Maths.calculate("floor(rand())")).isEqualTo("0");
+        assertThat(Maths.calculate("rand(1)")).isNull();
+    }
+
+    @Test
+    void compiledFormulasTakeVariables() {
+        Maths.Formula f = Maths.compile("cos(a) * R + i", "i", "a", "r");
+        assertThat(f.eval(2, 0, 3)).isEqualTo(5.0);
+        assertThat(f.eval(0, Math.PI, 1)).isEqualTo(-1.0);
+        Maths.Formula div = Maths.compile("1 / i", "i");
+        assertThat(div.eval(4)).isEqualTo(0.25);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> div.eval(0)).isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Maths.compile("q + 1", "i")).isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> Maths.compile("1 2")).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void fillsCalculationsInsideTexts() {
         assertThat(Maths.fill("You have {5 + 3} gold")).isEqualTo("You have 8 gold");
         assertThat(Maths.fill("{{5 + 3} * 2}")).isEqualTo("16");

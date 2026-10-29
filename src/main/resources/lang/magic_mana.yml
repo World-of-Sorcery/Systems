@@ -1,0 +1,8 @@
+# /mana help (magic).
+help:
+  header: "Mana Commands:"
+  set: "%cyan_300%/mana set <player> <amount> §7- Set a player's mana."
+  give: "%cyan_300%/mana give <player> <amount> §7- Give a player mana."
+  take: "%cyan_300%/mana take <player> <amount> §7- Take mana from a player."
+  max: "%cyan_300%/mana max <set|give|take> <player> <amount> §7- Change a player's max mana."
+  help: "%cyan_300%/mana help §7- Display this help message."
