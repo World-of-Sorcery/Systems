@@ -522,14 +522,14 @@ public class GUIManager implements Listener {
                 ItemFlag.HIDE_DYE);
     }
 
-    /** "hide" (or "hidden") hides the tooltip; anything else is a tooltip style ("ns:key", else minecraft:key). */
+    /** "hide" (or "hidden") hides the tooltip; anything else is a tooltip style ("ns:key", else wos:key). */
     private void applyTooltip(ItemMeta meta, GUISlotConfig config, Text text) {
         String tooltip = text.plain(config.getTooltip());
         if (GuiRules.hidesTooltip(tooltip)) {
             meta.setHideTooltip(true);
             return;
         }
-        NamespacedKey style = key(config, "tooltip", tooltip, "minecraft");
+        NamespacedKey style = key(config, "tooltip", tooltip, "wos");
         if (style != null) meta.setTooltipStyle(style);
     }
 

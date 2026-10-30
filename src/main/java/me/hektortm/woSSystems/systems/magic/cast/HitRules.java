@@ -14,9 +14,6 @@ import java.util.Set;
  */
 public final class HitRules {
 
-    /** Effects that harm their target (heal, particles, sound, run_actions don't); push and turn obey PvP too (spec §3.3). */
-    static final Set<String> HARMFUL = Set.of("damage", "push", "turn", "potion", "fire", "teleport");
-
     private HitRules() { }
 
     /** Whether a shape hits an entity at all (its outlet runs for it). */
@@ -41,8 +38,8 @@ public final class HitRules {
     }
 
     /** Whether an effect may act on its target. */
-    public static boolean mayAffect(String effect, boolean targetIsCaster, boolean targetIsPlayer, boolean pvpAllows) {
-        if (targetIsCaster || !targetIsPlayer || !HARMFUL.contains(effect)) return true;
+    public static boolean mayAffect(boolean harmful, boolean targetIsCaster, boolean targetIsPlayer, boolean pvpAllows) {
+        if (targetIsCaster || !targetIsPlayer || !harmful) return true;
         return pvpAllows;
     }
 }

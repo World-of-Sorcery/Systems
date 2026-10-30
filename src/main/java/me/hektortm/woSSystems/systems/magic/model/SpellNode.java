@@ -66,6 +66,10 @@ public final class SpellNode {
         return out;
     }
 
+    public SpellCatalog.Kind kind() {
+        return kind;
+    }
+
     public String type() {
         return kind.type();
     }
@@ -128,6 +132,12 @@ public final class SpellNode {
             if (e.isJsonPrimitive() && e.getAsJsonPrimitive().isString()) out.add(e.getAsString());
         }
         return out;
+    }
+
+    /** A list field as raw JSON (conditions …); empty when missing or not a list. */
+    public JsonArray array(String key) {
+        JsonElement v = value(key);
+        return v != null && v.isJsonArray() ? v.getAsJsonArray() : new JsonArray();
     }
 
     static boolean isNumber(JsonElement e) {

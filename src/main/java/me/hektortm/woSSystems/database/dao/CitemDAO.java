@@ -179,6 +179,14 @@ public class CitemDAO {
         return p == null ? null : p.citemId();
     }
 
+    /** The "placed" interaction of the item placed at {@code location}; null when there is none. */
+    public String placedActionAt(Location location) {
+        Placed p = at(location);
+        if (p == null) return null;
+        String id = placedActionOf(p.citemId());
+        return id.isEmpty() ? null : id;
+    }
+
     public boolean isItemDisplay(Location location) {
         return at(location) != null;
     }

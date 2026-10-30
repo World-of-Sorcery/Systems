@@ -16,6 +16,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
@@ -157,15 +158,24 @@ public final class ChargeService implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
         cancel(e.getPlayer(), true);
+        cast.clicks().clear(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         cancel(e.getEntity(), false);
+        cast.clicks().clear(e.getEntity().getUniqueId());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         cancel(e.getPlayer(), false);
+        cast.clicks().clear(e.getPlayer().getUniqueId());
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent e) {
+        cancel(e.getPlayer(), true);
+        cast.clicks().clear(e.getPlayer().getUniqueId());
     }
 }

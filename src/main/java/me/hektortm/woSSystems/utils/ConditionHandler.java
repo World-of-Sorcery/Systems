@@ -8,6 +8,9 @@ import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.cscreens.CscreenRules;
 import me.hektortm.woSSystems.systems.citems.CitemManager;
 import me.hektortm.woSSystems.systems.cooldowns.CooldownManager;
+import me.hektortm.woSSystems.systems.interactions.SpellHits;
+import me.hektortm.woSSystems.systems.magic.MagicData;
+import me.hektortm.woSSystems.systems.magic.MagicSystem;
 import me.hektortm.woSSystems.systems.stats.StatsManager;
 import me.hektortm.woSSystems.systems.unlockables.UnlockableManager;
 import me.hektortm.woSSystems.utils.model.Condition;
@@ -91,7 +94,12 @@ public class ConditionHandler {
      * {@code has_currency}, {@code has_not_currency},
      * {@code has_permission},
      * {@code in_world},
-     * {@code is_sneaking}, {@code is_not_sneaking}.</p>
+     * {@code is_sneaking}, {@code is_not_sneaking};
+     * magic: {@code has_spell}, {@code has_not_spell}, {@code has_spell_level_greater_than|less_than|equal_to},
+     * {@code has_spell_selected}, {@code has_not_spell_selected}, {@code has_spell_cooldown},
+     * {@code has_not_spell_cooldown}, {@code has_mana}, {@code has_not_mana} (the value is the amount),
+     * {@code has_wand}, {@code has_not_wand}, {@code is_holding_wand}, {@code is_not_holding_wand},
+     * and in an interaction's spell rows {@code hit_by_spell}, {@code not_hit_by_spell} ({@link SpellHits}).</p>
      *
      * @param player    the player to evaluate against
      * @param condition the condition definition to evaluate
@@ -166,6 +174,26 @@ public class ConditionHandler {
                 case "is_sneaking":                     return player.isSneaking();
                 case "is_not_sneaking":                 return !player.isSneaking();
 
+                // Magic (spec §9). Without magic data (magic off, not loaded yet) the "has" ones fail.
+                case "has_spell":                       return knows(player, condition.getValue());
+                case "has_not_spell":                   return !knows(player, condition.getValue());
+                case "has_spell_level_greater_than":    return spellLevel(player, condition.getValue()) > amount(condition);
+                case "has_spell_level_less_than":       return spellLevel(player, condition.getValue()) < amount(condition);
+                case "has_spell_level_equal_to":        return spellLevel(player, condition.getValue()) == amount(condition);
+                case "has_spell_selected":              return condition.getValue().equalsIgnoreCase(selectedSpell(player));
+                case "has_not_spell_selected":          return !condition.getValue().equalsIgnoreCase(selectedSpell(player));
+                case "has_spell_cooldown":              return spellCooldownMs(player, condition.getValue()) > 0;
+                case "has_not_spell_cooldown":          return spellCooldownMs(player, condition.getValue()) <= 0;
+                case "has_mana":                        return mana(player) >= Double.parseDouble(condition.getValue().trim());
+                case "has_not_mana":                    return mana(player) < Double.parseDouble(condition.getValue().trim());
+                case "has_wand":                        return hasWand(player);
+                case "has_not_wand":                    return !hasWand(player);
+                case "is_holding_wand":                 return holdsWand(player);
+                case "is_not_holding_wand":             return !holdsWand(player);
+                // Only in an interaction's spell rows: the spell that hit it (SpellHits).
+                case SpellHits.HIT_BY:                  return SpellHits.matches(condition.getValue(), SpellHits.spell(inputs));
+                case SpellHits.NOT_HIT_BY:              return SpellHits.spell(inputs) != null && !SpellHits.matches(condition.getValue(), SpellHits.spell(inputs));
+
                 default: return false;
             }
         } catch (NumberFormatException e) {
@@ -225,6 +253,24 @@ public class ConditionHandler {
                 case "is_on_quest", "is_not_on_quest" -> isOnQuest(player, id) ? "on it" : "not on it";
                 case "has_completed_quest", "has_not_completed_quest" -> hasCompletedQuest(player, id) ? "completed" : "not completed";
                 case "is_on_quest_step", "is_not_on_quest_step" -> questSteps(player, id);
+                case "has_spell", "has_not_spell" -> knows(player, id) ? "knows it" : "doesn't know it";
+                case "has_spell_level_greater_than", "has_spell_level_less_than", "has_spell_level_equal_to" ->
+                        "level " + spellLevel(player, id);
+                case "has_spell_selected", "has_not_spell_selected" -> {
+                    String selected = selectedSpell(player);
+                    yield selected == null ? "has no spell selected" : "has " + selected + " selected";
+                }
+                case "has_spell_cooldown", "has_not_spell_cooldown" -> {
+                    long left = spellCooldownMs(player, id);
+                    yield left <= 0 ? "ready" : (left + 999) / 1000 + "s left";
+                }
+                case "has_mana", "has_not_mana" -> "has " + mana(player);
+                case "has_wand", "has_not_wand" -> hasWand(player) ? "has a wand" : "has no wand";
+                case "is_holding_wand", "is_not_holding_wand" -> holdsWand(player) ? "holds their wand" : "holds no wand";
+                case SpellHits.HIT_BY, SpellHits.NOT_HIT_BY -> {
+                    String hit = SpellHits.spell(inputs);
+                    yield hit == null ? "not a spell hit" : "hit by " + hit;
+                }
                 default -> null;
             };
         } catch (Exception e) {
@@ -258,6 +304,51 @@ public class ConditionHandler {
         QuestRun run = engine == null ? null : engine.runsOf(player).get(id);
         if (run == null || !run.running()) return "not on it";
         return run.active().isEmpty() ? "on it, at no step" : "at " + String.join(", ", run.active());
+    }
+
+    /** The player's magic data; null when magic is off or not loaded for them. */
+    @Nullable
+    private MagicData magic(Player player) {
+        MagicSystem m = plugin.getMagic();
+        return m == null ? null : m.players().data(player);
+    }
+
+    private boolean knows(Player player, String spellId) {
+        MagicData d = magic(player);
+        return d != null && d.knows(spellId);
+    }
+
+    /** The player's level of the spell; 0 when they don't know it. */
+    private int spellLevel(Player player, String spellId) {
+        MagicData d = magic(player);
+        return d == null || !d.knows(spellId) ? 0 : d.level(spellId);
+    }
+
+    @Nullable
+    private String selectedSpell(Player player) {
+        MagicData d = magic(player);
+        return d == null ? null : d.selected();
+    }
+
+    private long spellCooldownMs(Player player, String spellId) {
+        MagicData d = magic(player);
+        return d == null ? 0 : d.cooldownLeft(spellId, System.currentTimeMillis());
+    }
+
+    private double mana(Player player) {
+        MagicData d = magic(player);
+        return d == null ? 0 : d.mana();
+    }
+
+    /** The player has a wand of their own (they may not be carrying it). */
+    private boolean hasWand(Player player) {
+        MagicData d = magic(player);
+        return d != null && d.wand() != null;
+    }
+
+    private boolean holdsWand(Player player) {
+        MagicSystem m = plugin.getMagic();
+        return m != null && m.wands().holdsWand(player);
     }
 
     /** The player finished that quest with success at least once (sequences record no completion). */

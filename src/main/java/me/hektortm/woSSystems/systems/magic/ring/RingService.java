@@ -241,6 +241,10 @@ public final class RingService implements Listener {
         long now = System.currentTimeMillis();
         if (now - s.lastCast < DOUBLE_EVENT_MS) return; // an attack and a swing for one click
         s.lastCast = now;
+        if (magic.cast().clicks().offer(p.getUniqueId(), p.isSneaking())) {
+            close(p);
+            return;
+        }
         if (s.open) close(p);
         MagicData d = magic.players().data(p);
         String sel = d == null ? null : d.selected();

@@ -13,7 +13,8 @@ import javax.annotation.Nullable;
 
 /**
  * A spell's shape hit something: an entity (also an NPC, which spells never harm — spell
- * locks react to it), or a block. Spell locks and quest events listen (part 5).
+ * locks react to it), or a block. Spell locks are run by the cast itself ({@link SpellLocks});
+ * quest events may listen (part 5).
  */
 public final class SpellHitEvent extends Event {
 

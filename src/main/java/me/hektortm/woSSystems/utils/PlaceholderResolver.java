@@ -109,6 +109,7 @@ public class PlaceholderResolver {
                     : String.valueOf(plugin.getEcoManager().getCurrencyBalance(player.getUniqueId(), token.id()));
             case "cooldowns" -> player == null || token.id() == null ? null : cooldown(token.key(), token.id(), player, binding);
             case "citems" -> token.id() == null ? null : citem(token.key(), token.id());
+            case "spells" -> player == null || token.id() == null || plugin.getMagic() == null ? null : spell(token.key(), token.id(), player);
             case "glyph" -> glyph(token.id());
             case "shift" -> shift(token.id());
             default -> null;
@@ -153,6 +154,28 @@ public class PlaceholderResolver {
                 return spell == null ? "" : spell.name();
             }
             default: return d.wand() == null ? "" : d.wand().color();
+        }
+    }
+
+    /**
+     * {@code {spells.<key>:<spell>}}: the player's {@code level} (0 when they don't know it),
+     * {@code xp} towards the next level, the spell's {@code name}, and {@code cooldown}
+     * (whole seconds left, 0 when ready).
+     */
+    @Nullable
+    private String spell(String key, String id, Player player) {
+        var m = plugin.getMagic();
+        var d = m.players().data(player);
+        switch (key) {
+            case "level": return String.valueOf(d == null || !d.knows(id) ? 0 : d.level(id));
+            case "xp": return d == null || !d.knows(id) ? "0"
+                    : java.math.BigDecimal.valueOf(d.progress(id).xp()).stripTrailingZeros().toPlainString();
+            case "name": {
+                var spell = m.stores().spell(id);
+                return spell == null ? "" : spell.name();
+            }
+            case "cooldown": return String.valueOf(d == null ? 0 : (d.cooldownLeft(id, System.currentTimeMillis()) + 999) / 1000);
+            default: return null;
         }
     }
 

@@ -99,11 +99,16 @@ public final class CscreenRules {
      * value; a key the screen doesn't have becomes empty. The values are put in
      * as they are (they are not read for placeholders themselves). With
      * {@code inputs} null (not a screen's commands) the text stays as written.
+     * A key with a dot is a local value of another kind, filled as
+     * {@code {<namespace>.<key>}}: an interaction run by a spell hit has
+     * {@code hit.spell} … ({@code SpellHits}); unknown ones stay as written.
      */
     public static String fillInputs(String text, @Nullable Map<String, String> inputs) {
         if (inputs == null) return text;
-        return Placeholders.replace(text, token ->
-                "input".equals(token.namespace()) && token.key() != null && token.id() == null
-                        ? inputs.getOrDefault(token.key(), "") : null);
+        return Placeholders.replace(text, token -> {
+            if (token.namespace() == null || token.key() == null || token.id() != null) return null;
+            if ("input".equals(token.namespace())) return inputs.getOrDefault(token.key(), "");
+            return inputs.get(token.namespace() + "." + token.key());
+        });
     }
 }

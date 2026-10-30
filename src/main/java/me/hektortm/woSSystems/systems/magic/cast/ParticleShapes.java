@@ -121,6 +121,20 @@ public final class ParticleShapes {
             case "polygon", "star" -> {
                 return outline(s, i, n);
             }
+            case "cube" -> {
+                return cubeEdge(r, (double) i / n * CUBE_EDGES.length);
+            }
+            case "cone" -> {
+                int base = (n + 1) / 2, k = i - base, per = Math.max(1, (n - base + 3) / 4);
+                if (k < 0) return new double[]{Math.cos(2 * Math.PI * i / base) * r, 0, Math.sin(2 * Math.PI * i / base) * r};
+                double q = (double) (k / 4 + 1) / per, ang = Math.PI / 2 * (k % 4);
+                return new double[]{Math.cos(ang) * r * (1 - q), h * q, Math.sin(ang) * r * (1 - q)};
+            }
+            case "heart" -> {
+                double sin = Math.sin(a);
+                double y = 13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a);
+                return new double[]{16 * sin * sin * sin * r / 16, y * r / 16, 0};
+            }
             case "formula" -> {
                 if (s.x() == null || s.y() == null || s.z() == null) return null;
                 double[] vars = {i, n, p, a, t, life, r, h};
@@ -136,6 +150,23 @@ public final class ParticleShapes {
                 return null;
             }
         }
+    }
+
+    /** The 12 edges of a cube, each from one corner to another (signs of x, y, z). */
+    private static final int[][][] CUBE_EDGES = {
+            {{-1, -1, -1}, {1, -1, -1}}, {{-1, 1, -1}, {1, 1, -1}}, {{-1, -1, 1}, {1, -1, 1}}, {{-1, 1, 1}, {1, 1, 1}},
+            {{-1, -1, -1}, {-1, 1, -1}}, {{1, -1, -1}, {1, 1, -1}}, {{-1, -1, 1}, {-1, 1, 1}}, {{1, -1, 1}, {1, 1, 1}},
+            {{-1, -1, -1}, {-1, -1, 1}}, {{1, -1, -1}, {1, -1, 1}}, {{-1, 1, -1}, {-1, 1, 1}}, {{1, 1, -1}, {1, 1, 1}},
+    };
+
+    /** The point {@code u} edges along the cube of half side {@code r} (the whole part picks the edge). */
+    private static double[] cubeEdge(double r, double u) {
+        int e = Math.min(CUBE_EDGES.length - 1, (int) Math.floor(u));
+        double f = u - e;
+        int[] from = CUBE_EDGES[e][0], to = CUBE_EDGES[e][1];
+        double[] out = new double[3];
+        for (int k = 0; k < 3; k++) out[k] = (from[k] + (to[k] - from[k]) * f) * r;
+        return out;
     }
 
     /** A polygon (sides corners) or star (sides tips, inner corners at 40 %), the points spread along its outline. */

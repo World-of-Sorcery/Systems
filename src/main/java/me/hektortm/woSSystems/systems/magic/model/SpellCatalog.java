@@ -18,15 +18,26 @@ import java.util.Map;
 public final class SpellCatalog {
 
     /** One node kind: its defaults by field key, its outlet keys, whether it acts on a target entity. */
-    public record Kind(String type, String category, Map<String, JsonElement> defaults, List<String> outlets, boolean entityEffect) {
+    public record Kind(String type, String category, Map<String, JsonElement> defaults, List<String> outlets, boolean entityEffect,
+                       boolean harmful, Map<String, List<String>> harmlessWhen) {
         public boolean isShape() {
             return "shape".equals(category);
+        }
+
+        public boolean harmful(SpellNode n) {
+            if (!harmful) return false;
+            if (harmlessWhen.isEmpty()) return true;
+            for (Map.Entry<String, List<String>> e : harmlessWhen.entrySet()) {
+                String val = n.str(e.getKey());
+                if (e.getValue().contains(val)) return false;
+            }
+            return true;
         }
     }
 
     /** The caps every spell obeys (spec §3.4). */
     public record Limits(int maxNodes, int maxDepth, int maxShapes, int maxAreas, int maxCommands, int areaEntitiesPerTick, int maxAnimations,
-                         int maxLevel, int maxVelocity) { }
+                         int maxLevel, int maxVelocity, int maxRuns, int maxItems, int maxDisplays, int maxFakeBlocks, int maxCastDepth) { }
 
     private final Map<String, Kind> kinds;
     private final Map<String, JsonElement> settingDefaults;
@@ -48,13 +59,30 @@ public final class SpellCatalog {
                 if (o.isJsonObject()) outlets.add(Json.str(o.getAsJsonObject(), "key", ""));
             }
             String type = Json.str(k, "type", "");
+            boolean harmful = Json.bool(k, "harmful", false);
+            Map<String, List<String>> harmlessWhen = new HashMap<>();
+            JsonObject hw = Json.object(k, "harmless_when");
+            for (String key : hw.keySet()) {
+                JsonElement elem = hw.get(key);
+                if (elem != null && elem.isJsonArray()) {
+                    List<String> list = new ArrayList<>();
+                    for (JsonElement item : elem.getAsJsonArray()) {
+                        if (item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()) {
+                            list.add(item.getAsString());
+                        }
+                    }
+                    harmlessWhen.put(key, List.copyOf(list));
+                }
+            }
             kinds.put(type, new Kind(type, Json.str(k, "category", ""), defaults(Json.array(k, "fields")), List.copyOf(outlets),
-                    Json.bool(k, "entity_effect", false)));
+                    Json.bool(k, "entity_effect", false), harmful, Map.copyOf(harmlessWhen)));
         }
         JsonObject l = Json.object(json, "limits");
         Limits limits = new Limits(Json.integer(l, "max_nodes", 40), Json.integer(l, "max_depth", 6), Json.integer(l, "max_shapes", 10),
                 Json.integer(l, "max_areas", 4), Json.integer(l, "max_commands", 20), Json.integer(l, "area_entities_per_tick", 16),
-                Json.integer(l, "max_animations", 8), Json.integer(l, "max_level", 20), Json.integer(l, "max_velocity", 4));
+                Json.integer(l, "max_animations", 8), Json.integer(l, "max_level", 20), Json.integer(l, "max_velocity", 4),
+                Json.integer(l, "max_runs", 500), Json.integer(l, "max_items", 64), Json.integer(l, "max_displays", 16),
+                Json.integer(l, "max_fake_blocks", 200), Json.integer(l, "max_cast_depth", 2));
         return new SpellCatalog(Map.copyOf(kinds), defaults(Json.array(json, "settings")), limits);
     }
 

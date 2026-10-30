@@ -18,6 +18,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -251,14 +252,14 @@ public class InteractionManager {
 
     /** Debug mode's lines about a row that didn't run: which rule it has and each condition, met or not. */
     private List<String> skippedLines(Player player, String interactionId, InteractionAction action, List<Condition> conditionList,
-                                      InteractionKey key) {
+                                      InteractionKey key, @Nullable Map<String, String> values) {
         boolean one = "one".equalsIgnoreCase(action.getMatchType());
         List<String> lines = new ArrayList<>();
         lines.add(DebugFormat.header("interaction", interactionId, "row " + action.getActionId(),
                 one ? "skipped: needs one of these, none is met" : "skipped: needs all of these"));
         for (Condition condition : conditionList) {
             lines.add(DebugFormat.condition(condition.getName(), condition.getValue(), condition.getParameter(),
-                    conditions.evaluate(player, condition, key), conditions.actual(player, condition, key)));
+                    conditions.evaluate(player, condition, key, values), conditions.actual(player, condition, key, values)));
         }
         return lines;
     }
@@ -273,7 +274,8 @@ public class InteractionManager {
      * conditions must pass.  Actions whose conditions fail are skipped.
      * Action groups with behaviour {@code "continue"} allow subsequent groups
      * to also run; any other behaviour value stops processing after the first
-     * passing group.</p>
+     * passing group. Spell rows are skipped: they run only by
+     * {@link #triggerBySpell}.</p>
      *
      * @param interactionId the ID of the interaction to trigger
      * @param player        the player who triggered the interaction
@@ -281,6 +283,41 @@ public class InteractionManager {
      *                      (may be {@code null} for global triggers)
      */
     public void triggerInteraction(String interactionId, Player player, InteractionKey key) {
+        triggerInteraction(interactionId, player, key, null);
+    }
+
+    /**
+     * A spell hit the interaction's block, NPC or placed item (spell locks, {@link SpellHits}):
+     * its spell rows run for the caster, knowing the spell. An interaction without spell rows
+     * (or that doesn't exist) does nothing.
+     *
+     * @param level the caster's level of the spell
+     */
+    public void triggerBySpell(String interactionId, Player caster, InteractionKey key, String spellId, String spellName, int level) {
+        if (!reactsToSpells(interactionId)) return;
+        triggerInteraction(interactionId, caster, key, SpellHits.values(spellId, spellName, level));
+    }
+
+    /** Whether the interaction has a spell row. */
+    public boolean reactsToSpells(String interactionId) {
+        Interaction inter = getInteraction(interactionId);
+        if (inter == null) return false;
+        for (InteractionAction action : inter.getActions()) {
+            if (SpellHits.isSpellRow(rowConditions(interactionId, action))) return true;
+        }
+        return false;
+    }
+
+    private List<Condition> rowConditions(String interactionId, InteractionAction action) {
+        return hub.getConditionDAO().getConditions(ConditionType.INTERACTION, interactionId + ":" + action.getActionId());
+    }
+
+    /**
+     * As {@link #triggerInteraction(String, Player, InteractionKey)}; {@code values} are the
+     * run's local values: a spell hit's ({@link SpellHits#values}) runs only the spell rows,
+     * anything else (null) only the other rows.
+     */
+    private void triggerInteraction(String interactionId, Player player, InteractionKey key, @Nullable Map<String, String> values) {
         Interaction inter = getInteraction(interactionId);
         if (inter == null) {
             player.sendMessage("§cThis is not configured correctly. Please message a Staff member.");
@@ -290,32 +327,31 @@ public class InteractionManager {
 
         List<InteractionAction> actions = inter.getActions();
         DebugMode debug = plugin.getDebugMode();
+        String hitBy = SpellHits.spell(values);
 
         for (InteractionAction action : actions) {
-            List<Condition> conditionList = hub.getConditionDAO().getConditions(
-                    ConditionType.INTERACTION,
-                    interactionId + ":" + action.getActionId()
-            );
+            List<Condition> conditionList = rowConditions(interactionId, action);
+            if (SpellHits.isSpellRow(conditionList) != (hitBy != null)) continue;
             if (!conditionList.isEmpty()) {
                 boolean shouldRun;
                 if ("one".equalsIgnoreCase(action.getMatchType())) {
-                    shouldRun = conditionList.isEmpty() || conditionList.stream().anyMatch(cond -> conditions.evaluate(player, cond, key));
+                    shouldRun = conditionList.stream().anyMatch(cond -> conditions.evaluate(player, cond, key, values));
                 } else {
-                    shouldRun = conditions.checkConditions(player, conditionList, key);
+                    shouldRun = conditionList.stream().allMatch(cond -> conditions.evaluate(player, cond, key, values));
                 }
 
                 if (!shouldRun) {
                     // Scheduled like the rows that run, so the debug lines keep the rows' order.
                     if (debug.isOn(player)) {
-                        List<String> lines = skippedLines(player, interactionId, action, conditionList, key);
+                        List<String> lines = skippedLines(player, interactionId, action, conditionList, key, values);
                         Bukkit.getScheduler().runTask(plugin, () -> lines.forEach(line -> debug.tell(player, line)));
                     }
                     continue;
                 }
             }
 
-            String detail = "row " + action.getActionId() + " (" + action.getBehaviour() + ")";
-            Bukkit.getScheduler().runTask(WoSSystems.getPlugin(WoSSystems.class), () -> {actionHandler.executeActions(player, action.getActions(), ActionHandler.SourceType.INTERACTION, interactionId, key, detail);});
+            String detail = "row " + action.getActionId() + " (" + action.getBehaviour() + ")" + (hitBy == null ? "" : ", hit by spell " + hitBy);
+            Bukkit.getScheduler().runTask(WoSSystems.getPlugin(WoSSystems.class), () -> {actionHandler.executeActions(player, action.getActions(), ActionHandler.SourceType.INTERACTION, interactionId, key, detail, values);});
 
             if ("continue".equalsIgnoreCase(action.getBehaviour())) {
                 continue;

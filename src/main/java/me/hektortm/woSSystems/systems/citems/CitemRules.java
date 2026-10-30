@@ -41,6 +41,17 @@ public final class CitemRules {
     }
 
     /**
+     * The item data's tooltip style: {@code "ns:name"} as written, a bare name is
+     * ours ({@code wos}); null for none or a value that is no valid key.
+     */
+    @javax.annotation.Nullable
+    public static me.hektortm.woSSystems.systems.guis.GuiRules.Key tooltipStyle(com.google.gson.JsonObject data) {
+        com.google.gson.JsonElement t = data.get("tooltip");
+        if (t == null || !t.isJsonPrimitive()) return null;
+        return me.hektortm.woSSystems.systems.guis.GuiRules.resourceKey(t.getAsString(), "wos");
+    }
+
+    /**
      * Whether placing a custom item (as a block or as a display) is refused on this server.
      * Only a server whose tag was set explicitly to {@code live} refuses. A server without a
      * tag is the pre-network legacy single server: its {@code isLive()} is true by default,

@@ -20,6 +20,25 @@ class CitemRulesTest {
     }
 
     @Test
+    void tooltipStyleKeepsItsNamespaceAndABareNameIsOurs() {
+        // "wos:black" used to throw: it went into the minecraft namespace whole.
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":\"wos:black\"}")))
+                .isEqualTo(new me.hektortm.woSSystems.systems.guis.GuiRules.Key("wos", "black"));
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":\"black\"}")))
+                .isEqualTo(new me.hektortm.woSSystems.systems.guis.GuiRules.Key("wos", "black"));
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":\"minecraft:black\"}")))
+                .isEqualTo(new me.hektortm.woSSystems.systems.guis.GuiRules.Key("minecraft", "black"));
+    }
+
+    @Test
+    void noTooltipStyleForNoneOrAnInvalidKey() {
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{}"))).isNull();
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":null}"))).isNull();
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":\"\"}"))).isNull();
+        assertThat(CitemRules.tooltipStyle(CitemMagicTest.data("{\"tooltip\":\"two words\"}"))).isNull();
+    }
+
+    @Test
     void placeAllowedOnUnconfiguredLegacyServer() {
         assertThat(CitemRules.placeRefused(me.hektortm.wosCore.server.ServerIdentity.defaults())).isFalse();
     }

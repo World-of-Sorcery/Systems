@@ -9,6 +9,7 @@ import me.hektortm.woSSystems.systems.magic.MagicText;
 import me.hektortm.woSSystems.systems.magic.model.SpellDef;
 import me.hektortm.woSSystems.utils.model.Condition;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.wosCore.pvp.PvpCheck;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -46,23 +47,39 @@ public final class CastService {
     private final LevelService levels;
     private final FallGuard falls;
     private final ChargeService charges;
-    private volatile PvpGate pvp = PvpGate.DENY;
+    private final ClickRouter clicks = new ClickRouter();
+    private final Barriers barriers = new Barriers();
+    private final SpellLitter litter;
+    private final TimedStates states;
+    private final SpellVisuals visuals;
+    private final SpellLocks locks;
 
-    public CastService(WoSSystems plugin, MagicSystem magic, SpellDeaths deaths, LevelService levels, FallGuard falls) {
+    public CastService(WoSSystems plugin, MagicSystem magic, SpellDeaths deaths, LevelService levels, FallGuard falls, SpellLitter litter, TimedStates states, SpellVisuals visuals,
+                       SpellLocks locks) {
         this.plugin = plugin;
         this.magic = magic;
         this.deaths = deaths;
         this.levels = levels;
         this.falls = falls;
+        this.litter = litter;
+        this.states = states;
+        this.visuals = visuals;
+        this.locks = locks;
         this.charges = new ChargeService(plugin, magic, this);
     }
 
-    /** Part 5 (the PvP plugin) replaces the gate. */
-    public void usePvpGate(PvpGate gate) {
-        this.pvp = gate;
+    /**
+     * The PvP plugin's rule (magic spec §8: both have PvP on, or the region forces it), which it
+     * registers as Core's {@link PvpCheck}. Without the PvP plugin no player harms another.
+     */
+    private static PvpCheck pvp() {
+        PvpCheck check = Bukkit.getServicesManager().load(PvpCheck.class);
+        return check != null ? check : (attacker, victim) -> false;
     }
 
     public ChargeService charges() { return charges; }
+
+    public ClickRouter clicks() { return clicks; }
 
     public Result cast(Player p, String spellId, Mode mode) {
         SpellDef d = magic.stores().spell(spellId);
@@ -133,7 +150,12 @@ public final class CastService {
 
             public void kill() { levels.giveXp(p, base, d.xpKill()); }
         };
-        new SpellRun(plugin, p, d, wandColor, data.attributes().damagePct(), pvp, deaths, xp, falls).run(d.roots(), SpellRun.Ctx.of(tip, dir, null, p, 0));
+        SpellRun.Services services = new SpellRun.Services(clicks, litter, barriers, states, visuals, locks, id -> {
+            SpellDef s = magic.stores().spell(id);
+            MagicData now = magic.players().data(p);
+            return s == null ? null : s.at(now == null ? 1 : now.level(id)); // level 1 when not known
+        }, magic.players()::data);
+        new SpellRun(plugin, p, d, wandColor, data.attributes().damagePct(), pvp(), deaths, xp, falls, services).run(d.roots(), SpellRun.Ctx.of(tip, dir, null, p, 0));
         if (gainsXp) levels.giveXp(p, base, d.xpCast());
         return Result.CAST;
     }

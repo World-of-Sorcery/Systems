@@ -12,7 +12,7 @@ class SpellModelTest {
 
     /** A cut-down catalogue in the API's shape (GET /v1/content/spells/catalog). */
     static final String CATALOG = """
-            {"version":1,
+            {"version":4,
              "settings":[{"key":"mana_cost","type":"number","default":10},{"key":"cooldown","type":"number","default":2},
                          {"key":"condition_match","type":"choice","default":"all"},{"key":"cast_color","type":"color","default":"wand"}],
              "kinds":[
@@ -20,11 +20,13 @@ class SpellModelTest {
                   {"key":"gravity","type":"boolean","default":false},{"key":"pierce","type":"integer","default":0},
                   {"key":"particle","type":"particle","default":"dust"}],
                 "outlets":[{"key":"on_hit_entity","has_entity":true},{"key":"on_hit_block","has_entity":false}]},
-               {"type":"damage","category":"effect","entity_effect":true,"fields":[{"key":"amount","type":"number","default":4},
+               {"type":"damage","category":"effect","entity_effect":true,"harmful":true,"fields":[{"key":"amount","type":"number","default":4},
                   {"key":"affects","type":"choice","default":"all"}],"outlets":[]},
+               {"type":"teleport","category":"effect","harmful":true,"harmless_when":{"who":["caster"]},"fields":[{"key":"who","type":"choice","default":"caster"},{"key":"to","type":"choice","default":"point"}],"outlets":[]},
+               {"type":"heal","category":"effect","entity_effect":true,"fields":[{"key":"amount","type":"number","default":4}],"outlets":[]},
                {"type":"run_actions","category":"effect","fields":[{"key":"commands","type":"commands"}],"outlets":[]}
              ],
-             "limits":{"max_nodes":40,"max_depth":6,"max_shapes":10,"max_areas":4,"max_commands":20,"area_entities_per_tick":16}}
+             "limits":{"max_nodes":60,"max_depth":6,"max_shapes":10,"max_areas":4,"max_commands":20,"area_entities_per_tick":16,"max_runs":500,"max_items":64,"max_displays":16,"max_fake_blocks":200,"max_cast_depth":2}}
             """;
 
     static SpellCatalog catalog() {
@@ -110,5 +112,26 @@ class SpellModelTest {
                 "{\"id\":\"oak\",\"name\":\"Oak\",\"item_model\":\"wos:wand_oak\",\"tint\":false,\"unlockable\":null}").getAsJsonObject());
         assertThat(k).isEqualTo(new WandSkin("oak", "Oak", "wos:wand_oak", false, null));
         assertThat(List.of(k)).hasSize(1);
+    }
+
+    @Test
+    void readsHarmfulAndLimits() {
+        SpellCatalog cat = catalog();
+        assertThat(cat.limits().maxRuns()).isEqualTo(500);
+        assertThat(cat.limits().maxItems()).isEqualTo(64);
+        assertThat(cat.limits().maxDisplays()).isEqualTo(16);
+        assertThat(cat.limits().maxFakeBlocks()).isEqualTo(200);
+        assertThat(cat.limits().maxCastDepth()).isEqualTo(2);
+
+        SpellDef d = spell("{}", "{\"on_cast\":[{\"type\":\"damage\"},{\"type\":\"teleport\",\"who\":\"target\"},{\"type\":\"teleport\",\"who\":\"caster\"},{\"type\":\"heal\"}]}");
+        SpellNode damage = d.roots().get(0);
+        SpellNode teleportTarget = d.roots().get(1);
+        SpellNode teleportCaster = d.roots().get(2);
+        SpellNode heal = d.roots().get(3);
+
+        assertThat(damage.kind().harmful(damage)).isTrue();
+        assertThat(teleportTarget.kind().harmful(teleportTarget)).isTrue();
+        assertThat(teleportCaster.kind().harmful(teleportCaster)).isFalse();
+        assertThat(heal.kind().harmful(heal)).isFalse();
     }
 }
