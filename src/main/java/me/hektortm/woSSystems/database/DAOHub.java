@@ -53,6 +53,8 @@ public class DAOHub {
     private final CommandsDAO commandsDAO;
     private final CrecipeDAO crecipeDAO;
     private final QuestStore questStore;
+    private final me.hektortm.woSSystems.systems.magic.MagicStores magicStores;
+    private final ApiWriter writer;
 
 
     /**
@@ -88,6 +90,8 @@ public class DAOHub {
         this.commandsDAO    = new CommandsDAO(content, api, log);
         this.crecipeDAO     = new CrecipeDAO(content, api, conditionDAO, log);
         this.questStore     = new QuestStore(s);
+        this.magicStores    = new me.hektortm.woSSystems.systems.magic.MagicStores(s);
+        this.writer         = s.writer();
     }
     public EconomyDAO getEconomyDAO()           { return economyDAO;        }
     public UnlockableDAO getUnlockableDAO()     { return unlockableDAO;     }
@@ -110,6 +114,9 @@ public class DAOHub {
     public CommandsDAO getCommandsDAO()         { return commandsDAO;       }
     public CrecipeDAO getCrecipeDAO()           { return crecipeDAO;        }
     public QuestStore getQuestStore()           { return questStore;        }
+    public me.hektortm.woSSystems.systems.magic.MagicStores getMagicStores() { return magicStores; }
+    /** The ordered writer every DAO uses (magic writes its player data through it too). */
+    public ApiWriter getWriter()                { return writer;            }
     public PlayerSessions getSessions()         { return sessions;          }
 
     /**

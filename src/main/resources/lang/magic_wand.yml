@@ -1,0 +1,8 @@
+# /wand help (magic).
+help:
+  header: "Wand Commands:"
+  give: "%cyan_300%/wand give <player> §7- Give a player their wand (made on the first give)."
+  restore: "%cyan_300%/wand restore <player> §7- Give a player their wand back."
+  colour: "%cyan_300%/wand colour <player> <#RRGGBB|random> §7- Change a wand's colour."
+  skin: "%cyan_300%/wand skin <player> <skin|default> §7- Change a wand's look."
+  help: "%cyan_300%/wand help §7- Display this help message."

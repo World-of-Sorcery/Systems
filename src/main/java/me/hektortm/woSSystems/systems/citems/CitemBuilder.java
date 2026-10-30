@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.citems;
 
 import com.google.gson.*;
+import me.hektortm.woSSystems.systems.guis.GuiRules;
 import me.hektortm.woSSystems.utils.Keys;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -124,6 +125,10 @@ public final class CitemBuilder {
 
         // An item that was only created (never saved from its editor) has no update id yet.
         meta.getPersistentDataContainer().set(Keys.UUUID.get(), PersistentDataType.STRING, getString(data, "update_uuid", "").trim());
+        // Magic: the wand flag and the magic component, kept on the item for the engine.
+        if (CitemRules.isWand(data)) meta.getPersistentDataContainer().set(Keys.WAND.get(), PersistentDataType.BOOLEAN, true);
+        String magic = CitemRules.magicComponent(data);
+        if (magic != null) meta.getPersistentDataContainer().set(Keys.MAGIC.get(), PersistentDataType.STRING, magic);
 
         if (data.has("flags") && data.get("flags").isJsonObject()) {
             JsonObject flags = data.getAsJsonObject("flags");
@@ -186,11 +191,15 @@ public final class CitemBuilder {
         }
 
         // ── Custom tooltip style ─────────────────────────────────────────────
-        // Stored in PDC so the resource pack / plugin logic can read it
-        if (data.has("tooltip") && !data.get("tooltip").isJsonNull()) {
-
-            NamespacedKey tooltip = new NamespacedKey("minecraft", data.get("tooltip").getAsString());
-            meta.setTooltipStyle(tooltip);
+        // "ns:name" as written, a bare name is ours (wos); the pack holds its
+        // sprites as <ns>:tooltip/<name>_background and _frame.
+        GuiRules.Key tooltip = CitemRules.tooltipStyle(data);
+        if (tooltip != null) {
+            meta.setTooltipStyle(new NamespacedKey(tooltip.namespace(), tooltip.path()));
+        } else if (data.has("tooltip") && data.get("tooltip").isJsonPrimitive()
+                && !data.get("tooltip").getAsString().isBlank()) {
+            Bukkit.getLogger().warning("[CitemBuilder] " + id + ": invalid tooltip style '"
+                    + data.get("tooltip").getAsString() + "', ignored");
         }
 
         // ── Click interactions ────────────────────────────────────────────────

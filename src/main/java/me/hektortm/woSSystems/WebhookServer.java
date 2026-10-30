@@ -86,7 +86,7 @@ public class WebhookServer {
             String id = json.get("id").getAsString();
             plugin.getLogger().info("[Webhook] ID: " + id);
 
-            UUID editorUUID = parseUUID(json.get("editor_uuid").getAsString());
+            UUID editorUUID = WebhookRules.editor(json.has("editor_uuid") && !json.get("editor_uuid").isJsonNull() ? json.get("editor_uuid").getAsString() : null);
             plugin.getLogger().info("[Webhook] UUID: " + editorUUID);
 
             if (!WebhookRules.accept(type, live)) {

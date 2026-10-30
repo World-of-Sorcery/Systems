@@ -1,0 +1,11 @@
+# /spell help (magic).
+help:
+  header: "Spell Commands:"
+  learn: "%cyan_300%/spell learn <player> <spell> §7- Teach a player a spell."
+  forget: "%cyan_300%/spell forget <player> <spell> §7- Take a spell away."
+  cast: "%cyan_300%/spell cast <player> <spell> [free] §7- Cast a spell as a player."
+  test: "%cyan_300%/spell test <spell> [level] §7- Cast a spell's draft yourself (at a level)."
+  xp: "%cyan_300%/spell xp <give|take> <player> <spell> <amount> §7- Change a player's XP in a spell."
+  level: "%cyan_300%/spell level set <player> <spell> <level> §7- Set a player's level in a spell."
+  list: "%cyan_300%/spell list [player] §7- The spells a player knows (or every spell)."
+  help: "%cyan_300%/spell help §7- Display this help message."

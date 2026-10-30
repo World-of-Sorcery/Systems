@@ -127,6 +127,19 @@ public class CitemDAO {
         return store.exists(id);
     }
 
+    /** The id of the citem marked as the wand (magic spec §6.2; wos-api allows one), or null. */
+    @javax.annotation.Nullable
+    public String wandId() {
+        for (Map.Entry<String, ItemStack> e : store.asMap().entrySet()) {
+            ItemStack item = e.getValue();
+            if (item != null && item.hasItemMeta()
+                    && item.getItemMeta().getPersistentDataContainer().has(Keys.WAND.get(), PersistentDataType.BOOLEAN)) {
+                return e.getKey();
+            }
+        }
+        return null;
+    }
+
     // ─── Placed item displays ───────────────────────────────────────────────────
 
     /** Records an item placed as a display at {@code blockLocation}. */
@@ -164,6 +177,14 @@ public class CitemDAO {
     public String getItemDisplayID(Location location) {
         Placed p = at(location);
         return p == null ? null : p.citemId();
+    }
+
+    /** The "placed" interaction of the item placed at {@code location}; null when there is none. */
+    public String placedActionAt(Location location) {
+        Placed p = at(location);
+        if (p == null) return null;
+        String id = placedActionOf(p.citemId());
+        return id.isEmpty() ? null : id;
     }
 
     public boolean isItemDisplay(Location location) {

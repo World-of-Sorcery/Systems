@@ -6,7 +6,7 @@
 
     <groupId>me.hektortm</groupId>
     <artifactId>WoSSystems</artifactId>
-    <version>1.2.15</version>
+    <version>1.2.16</version>
     <packaging>jar</packaging>
     <name>WoSSystems</name>
 
@@ -132,7 +132,7 @@
         <dependency>
             <groupId>me.hektortm</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

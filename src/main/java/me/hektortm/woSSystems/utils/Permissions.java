@@ -31,6 +31,16 @@ public enum Permissions {
     // non-console sender whatever their permissions (WosConsoleCommand).
     WOS_CONSOLE("wos.console"),
 
+    // Magic (spec 2026-10-19-magic-system-design §10).
+    SPELL_LEARN("spell.learn"),
+    SPELL_CAST("spell.cast"),
+    SPELL_TEST("spell.test"),
+    SPELL_LIST("spell.list"),
+    SPELL_PROGRESS("spell.progress"),
+    MANA_SET("mana.set"),
+    WAND_GIVE("wand.give"),
+    WAND_MANAGE("wand.manage"),
+
     STATS_GIVE("stats.modify.give"),
     STATS_TAKE("stats.modify.take"),
     STATS_SET("stats.modify.set"),
