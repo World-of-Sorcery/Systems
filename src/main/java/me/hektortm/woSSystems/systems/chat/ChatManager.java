@@ -7,6 +7,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.profiles.ProfileDialogs;
+import me.hektortm.woSSystems.utils.PlaceholderResolver;
 import me.hektortm.woSSystems.utils.types.CosmeticType;
 import me.hektortm.wosCore.Utils;
 import net.kyori.adventure.text.Component;
@@ -41,11 +42,13 @@ public class ChatManager {
 
     private final DAOHub hub;
     private final NicknameManager nickManager;
+    private final PlaceholderResolver placeholderResolver;
     private final ProfileDialogs profileDialogs;
 
-    public ChatManager(DAOHub hub, NicknameManager nickManager, ProfileDialogs profileDialogs) {
+    public ChatManager(DAOHub hub, NicknameManager nickManager, PlaceholderResolver placeholderResolver, ProfileDialogs profileDialogs) {
         this.hub = hub;
         this.nickManager = nickManager;
+        this.placeholderResolver = placeholderResolver;
         this.profileDialogs = profileDialogs;
     }
 
@@ -77,7 +80,7 @@ public class ChatManager {
         String badgeId = hub.getCosmeticsDAO().getCurrentCosmeticId(sender, CosmeticType.BADGE);
         if (badgeId == null) return null;
 
-        Component badge = Utils.parseColorCodes(hub.getCosmeticsDAO().getCurrentCosmetic(sender, CosmeticType.BADGE));
+        Component badge = Utils.parseColorCodes(placeholderResolver.resolvePlaceholders(hub.getCosmeticsDAO().getCurrentCosmetic(sender, CosmeticType.BADGE), sender));
         String description = hub.getCosmeticsDAO().getCosmeticDescription(CosmeticType.BADGE, badgeId);
         return description == null ? badge : badge.hoverEvent(HoverEvent.showText(Utils.parseColorCodes(description)));
     }

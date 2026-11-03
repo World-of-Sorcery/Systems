@@ -246,7 +246,7 @@ public final class WoSSystems extends JavaPlugin {
         cooldownManager = new CooldownManager(daoHub);
         nickManager = new NicknameManager(daoHub);
         profileDialogs = new ProfileDialogs(daoHub, nickManager);
-        chatManager = new ChatManager(daoHub, nickManager, profileDialogs);
+        chatManager = new ChatManager(daoHub, nickManager, getPlaceholderResolver(), profileDialogs);
         msgService = new me.hektortm.woSSystems.systems.chat.MsgService(this, core.network(), core.networkOnline(),
                 WoSCore.identity().id(), lang);
 

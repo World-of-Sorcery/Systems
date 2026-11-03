@@ -7,6 +7,7 @@ import io.papermc.paper.registry.data.dialog.action.DialogAction;
 import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.utils.PlaceholderResolver;
 import me.hektortm.woSSystems.utils.types.CosmeticType;
 import me.hektortm.wosCore.Utils;
 import net.kyori.adventure.text.Component;
@@ -52,12 +53,14 @@ public class CosmeticManager {
     private record Tab(CosmeticType type, String label, String singular) {}
 
     private final DAOHub hub;
+    private final PlaceholderResolver placeholderResolver;
 
     /**
      * @param hub the DAO hub used to access cosmetic and player data
      */
-    public CosmeticManager(DAOHub hub) {
+    public CosmeticManager(DAOHub hub, PlaceholderResolver placeholderResolver) {
         this.hub = hub;
+        this.placeholderResolver = placeholderResolver;
     }
 
     /** Opens the menu on the first tab (Titles). */
@@ -147,12 +150,12 @@ public class CosmeticManager {
 
     /** One cosmetic: the tooltip shows the full name, description and obtained date; click to equip. */
     private ActionButton cosmeticButton(Player p, Tab tab, String id, String display, boolean equipped) {
-        Component name = Utils.parseColorCodes(display);
+        Component name = Utils.parseColorCodes(placeholderResolver.resolvePlaceholders(display, p));
         Component label = equipped ? Component.text("\u2714 ", NamedTextColor.GREEN).append(name) : name;
 
         // Long names get cut off on a narrow button, so the tooltip starts with the full name.
         Component tooltip = name.append(Component.newline())
-                .append(Utils.parseColorCodes(hub.getCosmeticsDAO().getCosmeticDescription(tab.type(), id)));
+                .append(Utils.parseColorCodes(placeholderResolver.resolvePlaceholders(hub.getCosmeticsDAO().getCosmeticDescription(tab.type(), id), p)));
         String obtained = hub.getCosmeticsDAO().getPlayerObtainedTime(p, id);
         if (obtained != null && !obtained.isEmpty()) {
             tooltip = tooltip.append(Component.newline()).append(Component.text("Obtained " + obtained, NamedTextColor.GOLD));
