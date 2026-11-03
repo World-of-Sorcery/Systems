@@ -26,6 +26,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -61,11 +62,16 @@ final class SpellRun {
      * Where a node runs: the point (and look direction), the target entity if the event has
      * one, where the caster and the target were when the event happened (teleports go
      * there, so two of them swap the pair in either order), and the seconds since the
-     * shape that made the event started (particle shapes animate by it).
+     * shape that made the event started (particle shapes animate by it), and the bolt the
+     * event is of while it still flies (Change bolt changes it; flow nodes keep it).
      */
-    record Ctx(Location point, Vector dir, @Nullable LivingEntity target, Location casterAt, @Nullable Location targetAt, double age) {
+    record Ctx(Location point, Vector dir, @Nullable LivingEntity target, Location casterAt, @Nullable Location targetAt, double age, @Nullable Bolt bolt) {
         static Ctx of(Location point, Vector dir, @Nullable LivingEntity target, Player caster, double age) {
-            return new Ctx(point, dir, target, caster.getLocation(), target == null ? null : target.getLocation(), age);
+            return new Ctx(point, dir, target, caster.getLocation(), target == null ? null : target.getLocation(), age, null);
+        }
+
+        Ctx withBolt(@Nullable Bolt b) {
+            return new Ctx(point, dir, target, casterAt, targetAt, age, b);
         }
     }
 
@@ -195,6 +201,8 @@ final class SpellRun {
             case "cone" -> cone(n, c);
             case "chain" -> chain(n, c);
             case "orbit" -> orbit(n, c);
+            case "fragments" -> fragments(n, c);
+            case "change_bolt" -> changeBolt(n, c);
             case "self" -> run(n.children("then"), at(c, caster.getLocation().add(0, 1, 0), caster));
             case "wait" -> waitThen(n, c);
             case "at_level" -> run(n.children("then"), c); // parsed only into the tiers that reach its level
@@ -223,7 +231,7 @@ final class SpellRun {
         double later = c.age() + ticks / 20.0;
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!caster.isOnline()) return;
-            run(n.children("then"), Ctx.of(c.point(), c.dir(), c.target(), caster, later));
+            run(n.children("then"), Ctx.of(c.point(), c.dir(), c.target(), caster, later).withBolt(c.bolt()));
         }, ticks);
     }
 
@@ -266,9 +274,14 @@ final class SpellRun {
     }
 
     private void hitEntity(SpellNode shape, LivingEntity e, Ctx c) {
+        hitEntity(shape, e, c, null);
+    }
+
+    /** {@code bolt}: the bolt that hit, when it flies on (pierce), so Change bolt can change it. */
+    private void hitEntity(SpellNode shape, LivingEntity e, Ctx c, @Nullable Bolt bolt) {
         Location at = e.getLocation().add(0, e.getHeight() / 2, 0);
         Bukkit.getPluginManager().callEvent(new SpellHitEvent(caster, reported, e, null, at));
-        run(shape.children("on_hit_entity"), at(c, at, e));
+        run(shape.children("on_hit_entity"), at(c, at, e).withBolt(bolt));
     }
 
     private void hitBlock(SpellNode shape, Block b, Location at, Ctx c) {
@@ -288,7 +301,7 @@ final class SpellRun {
         List<Bolt> launched = new ArrayList<>();
         for (Vector dir : Steering.spread(c.dir(), count, n.num("spread"), n.str("spread_pattern"), ThreadLocalRandom.current())) {
             if (!startShape(false)) break;
-            launched.add(launch(n, c, dir));
+            launched.add(launch(n, c, dir, n.num("speed")));
         }
         if (launched.isEmpty()) return;
         SpellFx.sound(c.point(), n.str("sound"), 1f, 1f);
@@ -317,33 +330,35 @@ final class SpellRun {
                         b.aimAt(aim);
                     }
                     SpellRun.this.run(n.children("on_redirect"), Ctx.of(b.at().clone(), toward.lengthSquared() < 1.0E-9 ? b.vel().clone() : toward,
-                            null, caster, b.ticks() / 20.0));
+                            null, caster, b.ticks() / 20.0).withBolt(b));
                 }
                 return bolts.stream().noneMatch(Bolt::canRedirect);
             }
         });
     }
 
-    /** One bolt flying from the context's point along {@code dir}. */
-    private Bolt launch(SpellNode n, Ctx c, Vector dir) {
-        double range = n.num("range");
-        double size = n.num("size");
-        int pierce = n.integer("pierce");
-        boolean gravity = n.bool("gravity");
+    /**
+     * One bolt flying from the context's point along {@code dir} at {@code speed}: a
+     * projectile's (all its fields) or a fragment's (the fields it lacks read as off / 0).
+     * Range, size, pierce, gravity, acceleration and trail live on the bolt: Change bolt may change them.
+     */
+    private Bolt launch(SpellNode n, Ctx c, Vector dir, double speed) {
         boolean comesBack = n.bool("return");
         boolean throughBlocks = n.bool("through_blocks");
-        double acceleration = n.num("acceleration");
-        SpellFx.Brush trail = trailBrush(n);
-        String pattern = n.str("trail");
+        String pattern = n.str("trail").isBlank() ? "line" : n.str("trail");
         double trailRadius = n.num("trail_radius");
         double trailTurns = n.num("trail_turns");
         List<SpellNode> flight = n.children("on_flight");
         String steer = n.str("steer");
         double turnRate = n.num("turn_rate");
         double aimRange = n.num("aim_range");
-        Vector vel = dir.clone().normalize().multiply(n.num("speed"));
-        Bolt bolt = new Bolt(c.point(), vel, "redirect".equals(steer) ? n.integer("redirects") : 0, n.integer("bounces"));
-        LivingEntity homing = "home".equals(steer) ? homeTarget(n.str("home_on"), bolt.at(), vel, range) : null;
+        Vector vel = dir.clone().normalize().multiply(speed);
+        Bolt bolt = new Bolt(c.point(), vel, "redirect".equals(steer) ? n.integer("redirects") : 0, n.integer("bounces"))
+                .flight(n.num("range"), n.num("size"), n.integer("pierce"), n.bool("gravity"), n.num("acceleration"))
+                .redirectable("redirect".equals(steer));
+        SpellFx.Look look = trailLook(n);
+        bolt.trail(look, look == null ? null : SpellFx.brush(look));
+        LivingEntity homing = "home".equals(steer) ? homeTarget(n.str("home_on"), bolt.at(), vel, bolt.range()) : null;
         Barriers barriers = services.barriers();
         UUID owner = caster.getUniqueId();
         new BukkitRunnable() {
@@ -375,8 +390,8 @@ final class SpellRun {
                     ends();
                     return;
                 }
-                if (acceleration != 0 && bolt.vel().lengthSquared() > 1.0E-12) {
-                    double speed = Steering.nextSpeed(bolt.vel().length(), acceleration);
+                if (bolt.acceleration() != 0 && bolt.vel().lengthSquared() > 1.0E-12) {
+                    double speed = Steering.nextSpeed(bolt.vel().length(), bolt.acceleration());
                     if (speed <= 0) {
                         ends();
                         return;
@@ -411,7 +426,7 @@ final class SpellRun {
                         ends();
                         return;
                     }
-                    if (bolt.travelled() > range) {
+                    if (bolt.travelled() > bolt.range()) {
                         if (comesBack && !bolt.returning()) {
                             bolt.startReturn(); // turns back next tick
                             break;
@@ -428,7 +443,7 @@ final class SpellRun {
                             bolt.at().setY(from.getY());
                             bolt.at().setZ(from.getZ());
                             bolt.setVel(Steering.reflect(bolt.vel(), faceNormal(w, from, step)));
-                            SpellRun.this.run(n.children("on_bounce"), Ctx.of(hitAt, bolt.vel().clone(), null, caster, bolt.ticks() / 20.0));
+                            SpellRun.this.run(n.children("on_bounce"), Ctx.of(hitAt, bolt.vel().clone(), null, caster, bolt.ticks() / 20.0).withBolt(bolt));
                             break;
                         }
                         stop();
@@ -436,23 +451,64 @@ final class SpellRun {
                         return;
                     }
                     if (!b.getType().isAir()) touch(services.locks().at(b)); // a button, a torch …: it flies on
-                    if (trail != null) drawTrail(trail, pattern, from, step, before, trailRadius, trailTurns, w);
+                    if (bolt.trail() != null) drawTrail(bolt.trail(), pattern, from, step, before, trailRadius, trailTurns, w);
+                    double size = bolt.size();
                     for (Entity e : w.getNearbyEntities(bolt.at(), size, size, size)) {
                         if (!(e instanceof LivingEntity le) || !bolt.hit().add(e.getUniqueId())) continue;
                         touchNpc(e);
                         if (!HitRules.shapeHits(e == caster, isNpc(e), false)) continue;
-                        hitEntity(n, le, c);
-                        if (bolt.incPierced() > pierce) {
-                            stop();
-                            return;
-                        }
+                        boolean last = bolt.pierced() >= bolt.pierce();
+                        if (last) stop(); // before its events, so Change bolt there changes nothing
+                        hitEntity(n, le, c, last ? null : bolt);
+                        bolt.incPierced();
+                        if (last || !bolt.isActive()) return;
                     }
                 }
-                if (!flight.isEmpty()) SpellRun.this.run(flight, Ctx.of(bolt.at().clone(), bolt.vel().clone(), null, caster, bolt.ticks() / 20.0));
-                if (gravity) bolt.vel().setY(bolt.vel().getY() - 0.05);
+                if (!flight.isEmpty()) SpellRun.this.run(flight, Ctx.of(bolt.at().clone(), bolt.vel().clone(), null, caster, bolt.ticks() / 20.0).withBolt(bolt));
+                if (bolt.gravity()) bolt.vel().setY(bolt.vel().getY() - 0.05);
             }
         }.runTaskTimer(plugin, 0L, 1L);
         return bolt;
+    }
+
+    /**
+     * Fragments (2026-11-03 spec §5): {@code count} bolts flying out from the point at once,
+     * each at the speed give or take {@code speed_spread}. One shape; a cast flies at most
+     * {@code max_fragments}.
+     */
+    private void fragments(SpellNode n, Ctx c) {
+        if (!startShape(false)) return;
+        int wanted = Math.max(1, n.integer("count"));
+        int count = budget.fragments(wanted);
+        if (count < wanted) overBudget("fragments");
+        if (count == 0) return;
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        double speed = n.num("speed");
+        double spread = n.num("speed_spread");
+        for (Vector dir : Steering.burst(c.dir(), count, n.str("pattern"), n.num("angle"), r)) {
+            launch(n, c, dir, Math.max(Bolt.MIN_SPEED, speed * (1 + (r.nextDouble() * 2 - 1) * spread)));
+        }
+        SpellFx.sound(c.point(), n.str("sound"), 1f, 1f);
+    }
+
+    /** Change bolt (2026-11-03 spec §6): changes the bolt this event is of from now on; nothing once it has ended. */
+    private void changeBolt(SpellNode n, Ctx c) {
+        Bolt b = c.bolt();
+        if (b == null || !b.isActive()) return;
+        Boolean gravity = switch (n.str("gravity")) {
+            case "on" -> true;
+            case "off" -> false;
+            default -> null;
+        };
+        b.change(n.num("speed"), n.num("speed_factor"), "set".equals(n.str("acceleration_mode")) ? n.num("acceleration") : null, gravity,
+                n.str("range_mode"), n.num("extra_range"), n.num("size"), n.integer("pierce"), n.integer("redirects"));
+        String particle = n.str("particle");
+        String color = n.str("color");
+        if (particle.isBlank() && color.isBlank()) return;
+        SpellFx.Look old = b.trailLook();
+        if (particle.isBlank() && old == null) return; // a colour alone for a bolt without a trail
+        SpellFx.Look look = trailLook(particle.isBlank() ? old.id() : particle, color.isBlank() && old != null ? old.color() : color);
+        b.trail(look, SpellFx.brush(look));
     }
 
     /** The outward face of the block a step from {@code from} ran into; straight back when it can't be read. */
@@ -516,7 +572,7 @@ final class SpellRun {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (over[0]) return;
             over[0] = true;
-            if (caster.isOnline()) run(n.children("on_timeout"), Ctx.of(c.point(), c.dir(), c.target(), caster, c.age() + ticks / 20.0));
+            if (caster.isOnline()) run(n.children("on_timeout"), Ctx.of(c.point(), c.dir(), c.target(), caster, c.age() + ticks / 20.0).withBolt(c.bolt()));
         }, ticks);
     }
 
@@ -536,7 +592,7 @@ final class SpellRun {
                     cancel();
                     return;
                 }
-                SpellRun.this.run(then, Ctx.of(c.point(), c.dir(), c.target(), caster, c.age() + done * every / 20.0));
+                SpellRun.this.run(then, Ctx.of(c.point(), c.dir(), c.target(), caster, c.age() + done * every / 20.0).withBolt(c.bolt()));
                 if (++done >= times) cancel();
             }
         }.runTaskTimer(plugin, every, every);
@@ -581,9 +637,12 @@ final class SpellRun {
         Aim.Hit aim = "aim".equals(n.str("to")) || "aimed".equals(n.str("target")) ? Aim.of(caster, range) : null;
         LivingEntity old = c.target() != null && c.target().isValid() ? c.target() : null;
         Vector point = switch (n.str("to")) {
-            case "caster" -> caster.getLocation().toVector();
-            case "caster_eye" -> caster.getEyeLocation().toVector();
-            case "target" -> old == null ? c.point().toVector() : old.getLocation().add(0, old.getHeight() / 2, 0).toVector();
+            case "caster" -> part(caster, "feet").toVector();
+            case "caster_body" -> part(caster, "body").toVector();
+            case "caster_eye" -> part(caster, "head").toVector();
+            case "target_feet" -> old == null ? c.point().toVector() : part(old, "feet").toVector();
+            case "target" -> old == null ? c.point().toVector() : part(old, "body").toVector();
+            case "target_head" -> old == null ? c.point().toVector() : part(old, "head").toVector();
             case "aim" -> aim.point().toVector();
             case "ground" -> {
                 RayTraceResult down = w.rayTraceBlocks(c.point(), new Vector(0, -1, 0), 16, FluidCollisionMode.NEVER, true);
@@ -602,7 +661,7 @@ final class SpellRun {
             case "none" -> null;
             default -> old;
         };
-        run(n.children("then"), Ctx.of(moved.toLocation(w), facing, target, caster, c.age()));
+        run(n.children("then"), Ctx.of(moved.toLocation(w), facing, target, caster, c.age()).withBolt(c.bolt()));
     }
 
     /**
@@ -622,8 +681,19 @@ final class SpellRun {
     /** The brush of a shape's trail (its particle and colour), or null for none. */
     @Nullable
     private SpellFx.Brush trailBrush(SpellNode n) {
+        SpellFx.Look look = trailLook(n);
+        return look == null ? null : SpellFx.brush(look);
+    }
+
+    /** The look of a shape's trail, or null for none. */
+    @Nullable
+    private SpellFx.Look trailLook(SpellNode n) {
         String particle = n.str("particle");
-        return particle.isBlank() ? null : SpellFx.brush(new SpellFx.Look(particle, color(n.str("color")), "", 1.1f, "", 0));
+        return particle.isBlank() ? null : trailLook(particle, n.str("color"));
+    }
+
+    private SpellFx.Look trailLook(String particle, String color) {
+        return new SpellFx.Look(particle, color(color), "", 1.1f, "", 0);
     }
 
     /**
@@ -1025,6 +1095,7 @@ final class SpellRun {
     }
 
     private void effect(SpellNode n, Ctx c) {
+        c = placed(n, c);
         String type = n.type();
         LivingEntity t = null;
         if (n.isEntityEffect()) {
@@ -1095,6 +1166,12 @@ final class SpellRun {
                 if (t instanceof Player p) services.states().fly(p, n.num("seconds"), n.num("speed"));
             }
             case "display" -> display(n, c);
+            case "wear" -> {
+                ItemStack item = services.litter().modelled(n.str("item"), n.str("model"));
+                if (item != null) services.visuals().wear(t, n.str("slot"), item, n.num("seconds"), n.bool("self_view"));
+            }
+            case "attribute" -> services.states().attribute(t, reported.id(), n.str("attribute"), n.str("mode"), n.num("amount"), n.num("seconds"),
+                    t instanceof Player p ? services.magic().apply(p) : null);
             case "fake_blocks" -> {
                 Material m = Material.matchMaterial(n.str("block"));
                 if (m == null || !m.isBlock()) return;
@@ -1121,14 +1198,41 @@ final class SpellRun {
             case "caster" -> caster;
             default -> null;
         };
-        Supplier<Location> follow = followed == null ? null
-                : () -> followed.isValid() ? followed.getLocation().add(0, followed.getHeight() / 2, 0) : null;
+        String anchor = Placement.bodyPart(n.str("at"));
+        Supplier<Location> follow = followed == null ? null : () -> followed.isValid() ? part(followed, anchor) : null;
         Location at = follow == null ? c.point() : follow.get();
         String target = c.target() == null ? "" : c.target().getName();
         String glow = n.str("glow_color");
-        services.visuals().display(at, new SpellVisuals.DisplayLook(n.str("kind"), n.str("item"), n.str("block"),
+        services.visuals().display(at, new SpellVisuals.DisplayLook(n.str("kind"), n.str("item"), n.str("model"), n.str("block"),
                 n.str("text").replace("{caster}", caster.getName()).replace("{target}", target), n.num("scale"), n.num("spin"),
                 n.str("billboard"), n.bool("glow"), glow.isBlank() ? "" : color(glow), n.num("seconds"), n.num("up"), n.str("grow")), follow);
+    }
+
+    /**
+     * Place at (2026-11-03 spec §1): an effect with {@code at} set to a part of the target or
+     * the caster happens there instead of at the event's point; the facing and the target stay.
+     * A target part without a (valid) target keeps the point.
+     */
+    private Ctx placed(SpellNode n, Ctx c) {
+        String at = n.str("at");
+        LivingEntity who = at.startsWith("caster_") ? caster
+                : at.startsWith("target_") && c.target() != null && c.target().isValid() ? c.target() : null;
+        if (who == null) return c;
+        return new Ctx(part(who, Placement.bodyPart(at)), c.dir(), c.target(), c.casterAt(), c.targetAt(), c.age(), c.bolt());
+    }
+
+    /**
+     * A part of an entity (2026-11-03 spec §1): {@code feet} where it stands, {@code head} its
+     * eyes, else its middle; facing as its body turns (the head as the head turns).
+     */
+    static Location part(LivingEntity e, String part) {
+        Location at = switch (part) {
+            case "feet" -> e.getLocation();
+            case "head" -> e.getEyeLocation();
+            default -> e.getLocation().add(0, e.getHeight() / 2, 0);
+        };
+        if (!"head".equals(part)) at.setYaw(e.getBodyYaw());
+        return at;
     }
 
     private static void heal(LivingEntity t, double amount) {

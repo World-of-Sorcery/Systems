@@ -1,5 +1,6 @@
 package me.hektortm.woSSystems.database.dao;
 
+import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.content.ApiSource;
 import me.hektortm.woSSystems.content.ContentStore;
 import me.hektortm.woSSystems.content.Json;
@@ -143,12 +144,20 @@ public class CosmeticsDAO {
 
     public String getCosmeticDescription(CosmeticType type, String id) {
         Cosmetic def = id == null ? null : definitions.get(id);
-        return def != null && def.getDescription() != null ? def.getDescription() : "§7Default";
+        return def != null && def.getDescription() != null ? withPlaceholders(def.getDescription()) : "§7Default";
     }
 
     public String getCosmeticDisplay(CosmeticType type, String id) {
         Cosmetic def = id == null ? null : definitions.get(id);
-        return def == null ? null : def.getDisplay();
+        return def == null ? null : withPlaceholders(def.getDisplay());
+    }
+
+    /**
+     * Fills in the placeholders that need no player ({@code {glyph:id}}, {@code {shift:n}}, constants), so
+     * glyphs show in chat, the tab list, profiles and the cosmetic menu alike.
+     */
+    private static String withPlaceholders(String text) {
+        return text == null ? null : WoSSystems.getInstance().getPlaceholderResolver().resolvePlaceholders(text, null);
     }
 
     private static String path(UUID uuid, CosmeticType type, String id) {

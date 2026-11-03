@@ -1,7 +1,10 @@
 package me.hektortm.woSSystems.systems.magic.cast;
 
+import me.hektortm.woSSystems.systems.magic.MagicAttributes;
+import me.hektortm.woSSystems.systems.magic.MagicData;
 import org.bukkit.GameMode;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
@@ -21,13 +24,15 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import javax.annotation.Nullable;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * Effects that last a while and must end cleanly (more-nodes spec §4.5): freeze, shield,
- * vanish and fly. Each ends by its own timer; what could outlive a logout or restart is
+ * vanish, fly, and attribute changes (2026-11-03 spec §3). Each ends by its own timer; what could outlive a logout or restart is
  * put right when the entity is seen again.
  */
 public final class TimedStates implements Listener {
@@ -45,6 +50,8 @@ public final class TimedStates implements Listener {
     private final FallGuard falls;
     private final Map<UUID, Vanish> vanished = new HashMap<>();
     private final Map<UUID, BukkitTask> flying = new HashMap<>();
+    /** The end of each running Minecraft attribute change, by "entity uuid:modifier key". */
+    private final Map<String, BukkitTask> attributeEnds = new HashMap<>();
 
     public TimedStates(Plugin plugin, FallGuard falls) {
         this.plugin = plugin;
@@ -103,6 +110,44 @@ public final class TimedStates implements Listener {
             now.removeModifier(raise);
             if (e.isValid()) e.setAbsorptionAmount(Math.min(e.getAbsorptionAmount(), now.getValue()));
         }, Math.max(1, Math.round(seconds * 20)));
+    }
+
+    // ── attribute ──
+
+    /**
+     * Attribute: changes {@code attribute} of {@code e} by {@code amount} ({@code mode} add /
+     * percent) for {@code seconds}. The same spell and attribute replace their earlier change
+     * and its time. Minecraft attributes use a transient modifier (never saved, so a restart
+     * or logout ends it); the magic ones a timed bonus on {@code magic} (null: no magic, nothing).
+     *
+     * @return whether anything changed
+     */
+    public boolean attribute(LivingEntity e, String spellId, String attribute, String mode, double amount, double seconds, @Nullable MagicData magic) {
+        long ticks = Math.max(1, Math.round(seconds * 20));
+        String key = EffectRules.attributeKey(spellId, attribute);
+        MagicAttributes bonus = EffectRules.magicBonus(attribute, amount);
+        if (bonus != null) {
+            if (magic == null) return false;
+            magic.spellBonus(key, bonus, System.currentTimeMillis() + ticks * 50);
+            return true;
+        }
+        Attribute type = Registry.ATTRIBUTE.get(NamespacedKey.minecraft(attribute));
+        AttributeInstance inst = type == null ? null : e.getAttribute(type);
+        if (inst == null) return false;
+        NamespacedKey mod = new NamespacedKey("wos", key);
+        inst.removeModifier(mod);
+        inst.addTransientModifier(new AttributeModifier(mod, EffectRules.modifierAmount(mode, amount),
+                "percent".equals(mode) ? AttributeModifier.Operation.MULTIPLY_SCALAR_1 : AttributeModifier.Operation.ADD_NUMBER));
+        String endKey = e.getUniqueId() + ":" + key;
+        BukkitTask old = attributeEnds.remove(endKey);
+        if (old != null) old.cancel();
+        attributeEnds.put(endKey, plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            attributeEnds.remove(endKey);
+            AttributeInstance now = e.getAttribute(type);
+            if (now != null) now.removeModifier(mod);
+            if (type == Attribute.MAX_HEALTH && e.isValid() && now != null && e.getHealth() > now.getValue()) e.setHealth(now.getValue());
+        }, ticks));
+        return true;
     }
 
     // ── vanish ──

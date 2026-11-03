@@ -5,12 +5,15 @@ import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityType;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
+import com.github.retrooper.packetevents.protocol.player.Equipment;
+import com.github.retrooper.packetevents.protocol.player.EquipmentSlot;
 import com.github.retrooper.packetevents.protocol.player.User;
 import com.github.retrooper.packetevents.util.Quaternion4f;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.util.Vector3f;
 import com.github.retrooper.packetevents.wrapper.PacketWrapper;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEquipment;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
@@ -27,6 +30,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -37,24 +41,30 @@ import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
  * The looks-only effects (more-nodes spec §4.4): fireworks that never hurt, lightning
- * without damage, displays sent as packets, and fake blocks only the nearby players see.
- * Nothing here changes the world.
+ * without damage, displays sent as packets, fake blocks only the nearby players see, and
+ * worn items sent as equipment packets (2026-11-03 spec §2). Nothing here changes the world.
  */
 public final class SpellVisuals implements Listener {
 
     private static final double DISPLAY_VIEW = 64, FAKE_VIEW = 48;
     private static final int STEP = 2;
+    private static final long WEAR_STEP = 10;
     // Metadata indexes of display entities (Minecraft 1.21.x), as in interactions/DisplayManager.
     private static final int META_FLAGS = 0, META_INTERPOLATION_DELAY = 8, META_INTERPOLATION_DURATION = 9, META_TELEPORT_DURATION = 10,
             META_SCALE = 12, META_LEFT_ROTATION = 13, META_BILLBOARD = 15, META_GLOW_COLOR = 22, META_CONTENT = 23;
@@ -62,6 +72,8 @@ public final class SpellVisuals implements Listener {
 
     private final Plugin plugin;
     private final SpellLitter litter;
+    /** The running Wear of each entity's slot ("uuid:slot"): a newer one replaces it. */
+    private final Map<String, BukkitTask> worn = new HashMap<>();
 
     public SpellVisuals(Plugin plugin, SpellLitter litter) {
         this.plugin = plugin;
@@ -108,13 +120,14 @@ public final class SpellVisuals implements Listener {
 
     // ── display ──
 
-    /** What a display shows and how. {@code item} / {@code block} / {@code text} by {@code kind}; text already filled in. */
-    public record DisplayLook(String kind, String item, String block, String text, double scale, double spin, String billboard,
+    /** What a display shows and how. {@code item} (+ {@code model}) / {@code block} / {@code text} by {@code kind}; text already filled in. */
+    public record DisplayLook(String kind, String item, String model, String block, String text, double scale, double spin, String billboard,
                               boolean glow, String glowColor, double seconds, double up, String grow) { }
 
     /**
      * A display entity sent to the players within 64 blocks of {@code at} for its seconds,
-     * spinning / growing as set; {@code follow} (null: stays) gives where to keep it each step.
+     * spinning / growing as set; {@code follow} (null: stays) gives where to keep it each step,
+     * and which way it turns (its yaw).
      */
     public void display(Location at, DisplayLook look, @Nullable Supplier<Location> follow) {
         World w = at.getWorld();
@@ -146,7 +159,7 @@ public final class SpellVisuals implements Listener {
         first.addAll(pose(look, 0, 0));
         for (User u : viewers) {
             send(u, new WrapperPlayServerSpawnEntity(id, Optional.of(UUID.randomUUID()), type,
-                    new Vector3d(start.getX(), start.getY(), start.getZ()), 0f, 0f, 0f, 0, Optional.empty()));
+                    new Vector3d(start.getX(), start.getY(), start.getZ()), 0f, follow == null ? 0f : start.getYaw(), 0f, 0, Optional.empty()));
             send(u, new WrapperPlayServerEntityMetadata(id, first));
         }
         int life = (int) Math.max(1, Math.round(look.seconds() * 20));
@@ -167,7 +180,7 @@ public final class SpellVisuals implements Listener {
                 }
                 Location to = follow == null ? null : follow.get();
                 if (to != null && to.getWorld() == w) {
-                    for (User u : viewers) send(u, new WrapperPlayServerEntityTeleport(id, new Vector3d(to.getX(), to.getY() + look.up(), to.getZ()), 0f, 0f, false));
+                    for (User u : viewers) send(u, new WrapperPlayServerEntityTeleport(id, new Vector3d(to.getX(), to.getY() + look.up(), to.getZ()), to.getYaw(), 0f, false));
                 }
             }
         }.runTaskTimer(plugin, STEP, STEP);
@@ -196,7 +209,7 @@ public final class SpellVisuals implements Listener {
                     return LegacyComponentSerializer.legacyAmpersand().deserialize(look.text());
                 }
                 default -> {
-                    ItemStack item = look.item().isBlank() ? null : litter.stack(look.item());
+                    ItemStack item = litter.modelled(look.item(), look.model());
                     return item == null ? null : SpigotConversionUtil.fromBukkitItemStack(item);
                 }
             }
@@ -204,6 +217,77 @@ public final class SpellVisuals implements Listener {
             plugin.getLogger().warning("[Magic] display can't be shown: " + e.getMessage());
             return null;
         }
+    }
+
+    // ── wear ──
+
+    /**
+     * Wear: {@code item} shown in {@code slot} of {@code e} to the players within 64 blocks
+     * (the wearer too when {@code selfView}) for {@code seconds}, sent again every half second
+     * so newcomers and real equipment changes don't drop it; then everyone who saw it gets
+     * the real equipment again. Ends early when the entity dies or leaves.
+     */
+    public void wear(LivingEntity e, String slot, ItemStack item, double seconds, boolean selfView) {
+        String key = e.getUniqueId() + ":" + slot;
+        BukkitTask old = worn.remove(key);
+        if (old != null) old.cancel();
+        EquipmentSlot packetSlot = packetSlot(slot);
+        org.bukkit.inventory.EquipmentSlot realSlot = realSlot(slot);
+        var shown = SpigotConversionUtil.fromBukkitItemStack(item);
+        int life = (int) Math.max(1, Math.round(seconds * 20));
+        Set<UUID> sawIt = new HashSet<>();
+        BukkitTask task = new BukkitRunnable() {
+            int age;
+
+            @Override
+            public void run() {
+                boolean over = age >= life || !e.isValid() || e.isDead();
+                age += WEAR_STEP;
+                if (over) {
+                    cancel();
+                    BukkitTask mine = worn.get(key);
+                    if (mine != null && mine.getTaskId() == getTaskId()) worn.remove(key);
+                    var real = e.getEquipment() == null ? null : SpigotConversionUtil.fromBukkitItemStack(e.getEquipment().getItem(realSlot));
+                    for (UUID id : sawIt) {
+                        Player p = plugin.getServer().getPlayer(id);
+                        User u = p == null ? null : user(p);
+                        if (u != null && real != null) send(u, new WrapperPlayServerEntityEquipment(e.getEntityId(), List.of(new Equipment(packetSlot, real))));
+                        if (p == e) p.updateInventory(); // its own armour slots come back too
+                    }
+                    return;
+                }
+                for (Player p : e.getWorld().getPlayers()) {
+                    if (p == e ? !selfView : p.getLocation().distanceSquared(e.getLocation()) > DISPLAY_VIEW * DISPLAY_VIEW) continue;
+                    User u = user(p);
+                    if (u == null) continue;
+                    send(u, new WrapperPlayServerEntityEquipment(e.getEntityId(), List.of(new Equipment(packetSlot, shown))));
+                    sawIt.add(p.getUniqueId());
+                }
+            }
+        }.runTaskTimer(plugin, 0L, WEAR_STEP);
+        worn.put(key, task);
+    }
+
+    private static EquipmentSlot packetSlot(String slot) {
+        return switch (slot) {
+            case "chest" -> EquipmentSlot.CHEST_PLATE;
+            case "legs" -> EquipmentSlot.LEGGINGS;
+            case "feet" -> EquipmentSlot.BOOTS;
+            case "mainhand" -> EquipmentSlot.MAIN_HAND;
+            case "offhand" -> EquipmentSlot.OFF_HAND;
+            default -> EquipmentSlot.HELMET;
+        };
+    }
+
+    private static org.bukkit.inventory.EquipmentSlot realSlot(String slot) {
+        return switch (slot) {
+            case "chest" -> org.bukkit.inventory.EquipmentSlot.CHEST;
+            case "legs" -> org.bukkit.inventory.EquipmentSlot.LEGS;
+            case "feet" -> org.bukkit.inventory.EquipmentSlot.FEET;
+            case "mainhand" -> org.bukkit.inventory.EquipmentSlot.HAND;
+            case "offhand" -> org.bukkit.inventory.EquipmentSlot.OFF_HAND;
+            default -> org.bukkit.inventory.EquipmentSlot.HEAD;
+        };
     }
 
     // ── fake blocks ──
