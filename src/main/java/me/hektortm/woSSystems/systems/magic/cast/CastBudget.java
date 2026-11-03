@@ -4,7 +4,7 @@ import me.hektortm.woSSystems.systems.magic.model.SpellCatalog;
 
 /**
  * What one cast may still do, shared by all its nodes, also inside Cast spell (more-nodes
- * spec §3.4): node runs, items + falling blocks, displays and fake blocks. The Cast spell
+ * spec §3.4): node runs, items + falling blocks, displays, fake blocks and fragments. The Cast spell
  * nesting depth is not here: it belongs to each nested run, so a delayed node deep inside
  * one still counts its depth. Main thread only.
  */
@@ -15,6 +15,7 @@ final class CastBudget {
     private int items;
     private int displays;
     private int fakeBlocks;
+    private int fragments;
     private boolean over;
 
     CastBudget(SpellCatalog.Limits limits) {
@@ -44,6 +45,13 @@ final class CastBudget {
         if (displays >= limits.maxDisplays()) return false;
         displays++;
         return true;
+    }
+
+    /** Takes as many of {@code n} fragments as still fit and returns that count. */
+    int fragments(int n) {
+        int take = Math.max(0, Math.min(n, limits.maxFragments() - fragments));
+        fragments += take;
+        return take;
     }
 
     /** Takes as many of {@code n} fake blocks as still fit and returns that count. */

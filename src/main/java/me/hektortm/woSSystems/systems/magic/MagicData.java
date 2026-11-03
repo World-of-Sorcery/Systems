@@ -45,6 +45,10 @@ public final class MagicData {
     private int selPos = -1;
     private final Map<String, Long> cooldownEnds = new ConcurrentHashMap<>();
     private MagicAttributes attributes = MagicAttributes.NONE;
+    /** Timed bonuses of Attribute effects (2026-11-03 spec §3) by key: the same key replaces, each goes when its time ends. */
+    private final Map<String, Bonus> spellBonuses = new LinkedHashMap<>();
+
+    private record Bonus(MagicAttributes a, long until) { }
 
     private MagicData() {
         Arrays.fill(loadout, "");
@@ -118,12 +122,25 @@ public final class MagicData {
 
     public synchronized double baseRegen() { return baseRegen; }
 
-    /** The effective max (base + item bonuses). */
-    public synchronized double max() { return MagicRules.effectiveMax(baseMax, attributes); }
+    /** The effective max (base + item and spell bonuses). */
+    public synchronized double max() { return MagicRules.effectiveMax(baseMax, attributes()); }
 
-    public synchronized double regen() { return MagicRules.effectiveRegen(baseRegen, attributes); }
+    public synchronized double regen() { return MagicRules.effectiveRegen(baseRegen, attributes()); }
 
-    public synchronized MagicAttributes attributes() { return attributes; }
+    /** The item bonuses plus the spell bonuses that still run. */
+    public synchronized MagicAttributes attributes() { return attributes(System.currentTimeMillis()); }
+
+    synchronized MagicAttributes attributes(long now) {
+        spellBonuses.values().removeIf(b -> b.until() <= now);
+        MagicAttributes a = attributes;
+        for (Bonus b : spellBonuses.values()) a = a.plus(b.a());
+        return a;
+    }
+
+    /** A spell's timed bonus until {@code until} (epoch ms); one with the same key is replaced. */
+    public synchronized void spellBonus(String key, MagicAttributes bonus, long until) {
+        spellBonuses.put(key, new Bonus(bonus, until));
+    }
 
     /** New item bonuses; mana above the new max is cut. */
     public synchronized void setAttributes(MagicAttributes a) {

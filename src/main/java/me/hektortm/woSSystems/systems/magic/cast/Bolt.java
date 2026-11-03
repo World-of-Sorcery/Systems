@@ -133,4 +133,85 @@ public final class Bolt {
         this.redirectsLeft = 0;
         this.hit.clear();
     }
+
+    // ── what Change bolt may change (2026-11-03 spec §6); set at launch ──
+
+    private double range = 16;
+    private double size = 0.4;
+    private int pierce;
+    private boolean gravity;
+    private double acceleration;
+    @Nullable
+    private SpellFx.Look trailLook;
+    @Nullable
+    private SpellFx.Brush trail;
+    /** Launched with {@code steer: redirect}: only such a bolt gets more redirects. */
+    private boolean redirectable;
+
+    public double range() { return range; }
+
+    public double size() { return size; }
+
+    public int pierce() { return pierce; }
+
+    public boolean gravity() { return gravity; }
+
+    public double acceleration() { return acceleration; }
+
+    @Nullable
+    public SpellFx.Brush trail() { return trail; }
+
+    /** The look its trail brush was made from (null: no trail). */
+    @Nullable
+    public SpellFx.Look trailLook() { return trailLook; }
+
+    public Bolt trail(@Nullable SpellFx.Look look, @Nullable SpellFx.Brush brush) {
+        this.trailLook = look;
+        this.trail = brush;
+        return this;
+    }
+
+    /** The flight it was launched with. */
+    public Bolt flight(double range, double size, int pierce, boolean gravity, double acceleration) {
+        this.range = range;
+        this.size = size;
+        this.pierce = pierce;
+        this.gravity = gravity;
+        this.acceleration = acceleration;
+        return this;
+    }
+
+    /**
+     * Change bolt: {@code speed} > 0 sets the speed, then {@code factor} multiplies it (kept
+     * within 0.05–4, the direction stays); null keeps acceleration / gravity; range
+     * {@code reset} starts the distance flown again, {@code extend} adds {@code extraRange};
+     * {@code size} > 0 sets the hit radius; pierce and redirects are added (redirects only on a
+     * bolt that obeys clicks and isn't on its way back).
+     */
+    public void change(double speed, double factor, @Nullable Double acceleration, @Nullable Boolean gravity, String rangeMode, double extraRange,
+                       double size, int morePierce, int moreRedirects) {
+        double now = vel.length();
+        if (now > 1.0E-9) {
+            double next = speed > 0 ? speed : now;
+            next = Math.max(MIN_SPEED, Math.min(MAX_SPEED, next * factor));
+            this.vel = vel.clone().multiply(next / now);
+        }
+        if (acceleration != null) this.acceleration = acceleration;
+        if (gravity != null) this.gravity = gravity;
+        switch (rangeMode) {
+            case "reset" -> this.travelled = 0;
+            case "extend" -> this.range += extraRange;
+            default -> { }
+        }
+        if (size > 0) this.size = size;
+        this.pierce += Math.max(0, morePierce);
+        if (moreRedirects > 0 && !returning && redirectable) this.redirectsLeft += moreRedirects;
+    }
+
+    public Bolt redirectable(boolean yes) {
+        this.redirectable = yes;
+        return this;
+    }
+
+    static final double MIN_SPEED = 0.05, MAX_SPEED = 4;
 }

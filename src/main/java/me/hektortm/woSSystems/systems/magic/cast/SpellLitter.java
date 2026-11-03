@@ -2,6 +2,7 @@ package me.hektortm.woSSystems.systems.magic.cast;
 
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.dao.CitemDAO;
+import me.hektortm.woSSystems.systems.guis.GuiRules;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -75,6 +76,24 @@ public final class SpellLitter implements Listener {
             s = citems.getCitem(item);
         }
         if (s == null && unknownItems.add(item)) plugin.getLogger().warning("[Magic] unknown item '" + item + "'");
+        return s;
+    }
+
+    /**
+     * The stack for an item field with an optional model field (2026-11-03 spec §4): the
+     * item showing that model (a bare name is {@code wos:}); with a model and no item, a paper
+     * item carries it. Null when neither gives anything.
+     */
+    @Nullable
+    ItemStack modelled(String item, String model) {
+        GuiRules.Key key = GuiRules.resourceKey(model, "wos");
+        if (key == null && !model.isBlank() && unknownItems.add("model " + model)) plugin.getLogger().warning("[Magic] invalid model '" + model + "'");
+        ItemStack s = item.isBlank() ? (key == null ? null : new ItemStack(Material.PAPER)) : stack(item);
+        if (s == null || key == null) return s;
+        ItemMeta meta = s.getItemMeta();
+        if (meta == null) return s;
+        meta.setItemModel(new NamespacedKey(key.namespace(), key.path()));
+        s.setItemMeta(meta);
         return s;
     }
 

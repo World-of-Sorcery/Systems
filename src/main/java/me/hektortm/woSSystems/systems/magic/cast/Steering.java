@@ -85,6 +85,39 @@ public final class Steering {
         }
 
         // Fan: symmetric around dir in the horizontal plane of the look
+        return fan(base, count, degrees, out);
+    }
+
+    /**
+     * The directions of {@code count} fragments (2026-11-03 spec §5), spread evenly over the
+     * surface they may fly into: {@code sphere} every way, {@code dome} the upper half,
+     * {@code cone} within half of {@code angleDegrees} of {@code facing}.
+     */
+    public static List<Vector> burst(Vector facing, int count, String pattern, double angleDegrees, Random r) {
+        Vector axis = switch (pattern) {
+            case "cone" -> facing.lengthSquared() < 1e-9 ? new Vector(0, 1, 0) : facing.clone().normalize();
+            default -> new Vector(0, 1, 0);
+        };
+        double maxTheta = switch (pattern) {
+            case "sphere" -> Math.PI;
+            case "cone" -> Math.toRadians(Math.max(0, Math.min(180, angleDegrees)) / 2);
+            default -> Math.PI / 2;
+        };
+        Vector arbitrary = Math.abs(axis.getX()) < 0.9 ? new Vector(1, 0, 0) : new Vector(0, 1, 0);
+        Vector u = axis.clone().crossProduct(arbitrary).normalize();
+        Vector v = axis.clone().crossProduct(u).normalize();
+        double minCos = Math.cos(maxTheta);
+        List<Vector> out = new ArrayList<>(Math.max(0, count));
+        for (int i = 0; i < count; i++) {
+            double cos = 1 - r.nextDouble() * (1 - minCos); // even over the cap, not bunched at its tip
+            double sin = Math.sqrt(Math.max(0, 1 - cos * cos));
+            double phi = r.nextDouble() * 2 * Math.PI;
+            out.add(axis.clone().multiply(cos).add(u.clone().multiply(sin * Math.cos(phi))).add(v.clone().multiply(sin * Math.sin(phi))).normalize());
+        }
+        return out;
+    }
+
+    private static List<Vector> fan(Vector base, int count, double degrees, List<Vector> out) {
         for (int i = 0; i < count; i++) {
             double offsetDeg = (i - (count - 1) / 2.0) * degrees;
             Vector rotated;

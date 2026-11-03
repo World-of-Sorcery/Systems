@@ -80,4 +80,17 @@ class MagicDataTest {
         assertThat(d.mana()).isEqualTo(70); // cut to the new max
         assertThat(d.regen()).isEqualTo(4);
     }
+
+    @Test
+    void spellBonusesAddUpReplaceByKeyAndEnd() {
+        MagicData d = MagicData.fromSession(null, List.of(), START);
+        long now = 1_000_000;
+        d.spellBonus("a", new MagicAttributes(50, 0, 0, 0), now + 5_000);
+        d.spellBonus("b", new MagicAttributes(0, 1, 10, 0), now + 2_000);
+        assertThat(d.attributes(now)).isEqualTo(new MagicAttributes(50, 1, 10, 0));
+        d.spellBonus("a", new MagicAttributes(20, 0, 0, 0), now + 5_000); // the same key replaces
+        assertThat(d.attributes(now)).isEqualTo(new MagicAttributes(20, 1, 10, 0));
+        assertThat(d.attributes(now + 3_000)).isEqualTo(new MagicAttributes(20, 0, 0, 0));
+        assertThat(d.attributes(now + 6_000)).isEqualTo(MagicAttributes.NONE);
+    }
 }
