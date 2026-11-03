@@ -13,6 +13,13 @@ final class Placement {
 
     private Placement() {}
 
+    /** The part a Place at value names: {@code feet}, {@code head}, else {@code body} (also for {@code point}). */
+    static String bodyPart(String at) {
+        if (at.endsWith("_feet")) return "feet";
+        if (at.endsWith("_head")) return "head";
+        return "body";
+    }
+
     /** Where {@code point} ends up after moving along the flat facing; right is the facing turned clockwise seen from above. */
     static Vector offset(Vector point, Vector facing, double forward, double up, double right) {
         double fx = facing.getX();

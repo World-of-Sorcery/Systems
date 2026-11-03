@@ -12,6 +12,15 @@ import static org.assertj.core.api.Assertions.within;
 /** The maths of Move, Random and Check (more-nodes spec §4.2). */
 class PlacementTest {
 
+    @Test
+    void placeAtNamesAPart() {
+        assertThat(Placement.bodyPart("target_feet")).isEqualTo("feet");
+        assertThat(Placement.bodyPart("caster_head")).isEqualTo("head");
+        assertThat(Placement.bodyPart("target_body")).isEqualTo("body");
+        assertThat(Placement.bodyPart("point")).isEqualTo("body");
+        assertThat(Placement.bodyPart("")).isEqualTo("body");
+    }
+
     private static final double E = 1.0E-9;
 
     @Test
