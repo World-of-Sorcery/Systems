@@ -85,7 +85,7 @@ public final class SpellDef {
                 apply(set, s, g);
             }
             List<String> warnings = new ArrayList<>();
-            List<SpellNode> roots = SpellNode.parseList(Json.array(g, "on_cast"), catalog, warnings, "on_cast", 1, lvl);
+            List<SpellNode> roots = SpellNode.parseList(Json.array(g, "on_cast"), catalog, warnings, "on_cast", lvl);
             tiers.add(new SpellDef(Json.str(v, "spell_id", ""), Json.integer(v, "version", 0), Json.str(v, "name", ""),
                     Json.str(v, "description", ""), Json.str(v, "icon", ""), s, catalog, List.copyOf(roots),
                     List.copyOf(warnings), lvl, shared, costs, casterOnly));

@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.magic.cast;
 
 import me.hektortm.woSSystems.systems.magic.WandRules;
+import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -119,5 +120,25 @@ public final class SpellFx {
         NamespacedKey key = key(id);
         if (key == null || at.getWorld() == null) return;
         at.getWorld().playSound(at, key.toString(), volume, pitch);
+    }
+
+    /**
+     * A block with optional states as staff write it ({@code minecraft:oak_stairs[facing=north]}).
+     * States the block doesn't have give its default look; null for an unknown id or an item
+     * that is no block.
+     */
+    @Nullable
+    public static BlockData blockData(String spec) {
+        if (spec == null || spec.isBlank()) return null;
+        String s = spec.trim().toLowerCase(Locale.ROOT);
+        try {
+            BlockData data = Bukkit.createBlockData(s);
+            if (data.getMaterial().isBlock()) return data;
+        } catch (IllegalArgumentException wrongStates) {
+            // below: the block without its states
+        }
+        int states = s.indexOf('[');
+        Material m = Material.matchMaterial(states < 0 ? s : s.substring(0, states));
+        return m == null || !m.isBlock() ? null : m.createBlockData();
     }
 }

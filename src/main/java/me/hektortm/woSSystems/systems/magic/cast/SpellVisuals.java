@@ -18,13 +18,16 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import me.hektortm.woSSystems.systems.interactions.DisplayRules;
+import me.hektortm.woSSystems.systems.interactions.DisplaySettings.Vec3;
 import me.hektortm.woSSystems.systems.magic.WandRules;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
@@ -67,8 +70,11 @@ public final class SpellVisuals implements Listener {
     private static final long WEAR_STEP = 10;
     // Metadata indexes of display entities (Minecraft 1.21.x), as in interactions/DisplayManager.
     private static final int META_FLAGS = 0, META_INTERPOLATION_DELAY = 8, META_INTERPOLATION_DURATION = 9, META_TELEPORT_DURATION = 10,
-            META_SCALE = 12, META_LEFT_ROTATION = 13, META_BILLBOARD = 15, META_GLOW_COLOR = 22, META_CONTENT = 23;
+            META_TRANSLATION = 11, META_SCALE = 12, META_LEFT_ROTATION = 13, META_BILLBOARD = 15, META_BRIGHTNESS = 16, META_VIEW_RANGE = 17,
+            META_SHADOW_RADIUS = 18, META_SHADOW_STRENGTH = 19, META_GLOW_COLOR = 22, META_CONTENT = 23,
+            META_ITEM_DISPLAY = 24, META_LINE_WIDTH = 24, META_BACKGROUND = 25, META_TEXT_OPACITY = 26, META_TEXT_FLAGS = 27;
     private static final byte FLAG_GLOWING = 0x40;
+    private static final byte TEXT_SHADOW = 0x01, TEXT_SEE_THROUGH = 0x02, TEXT_DEFAULT_BACKGROUND = 0x04, TEXT_ALIGN_LEFT = 0x08, TEXT_ALIGN_RIGHT = 0x10;
 
     private final Plugin plugin;
     private final SpellLitter litter;
@@ -118,11 +124,84 @@ public final class SpellVisuals implements Listener {
         if (at.getWorld() != null) at.getWorld().strikeLightningEffect(at);
     }
 
+    // ── song ──
+
+    /**
+     * Song (2026-11-03): each note at its tick, where {@code follow} says (null: at {@code at}; the
+     * last place once it gives none), on the Jukebox / Note Blocks volume. Heard by everyone near,
+     * or only by the caster when {@code casterOnly}. Ends with its last note, or when the caster logs out.
+     */
+    public void song(Location at, List<Song.Note> notes, @Nullable Supplier<Location> follow, Player caster, boolean casterOnly) {
+        if (notes.isEmpty() || at.getWorld() == null) return;
+        new BukkitRunnable() {
+            int tick;
+            int next;
+            Location where = at.clone();
+
+            @Override
+            public void run() {
+                if (!caster.isOnline()) {
+                    cancel();
+                    return;
+                }
+                Location to = follow == null ? null : follow.get();
+                if (to != null) where = to;
+                while (next < notes.size() && notes.get(next).tick() <= tick) play(where, notes.get(next++), casterOnly ? caster : null);
+                if (next >= notes.size()) cancel();
+                tick++;
+            }
+        }.runTaskTimer(plugin, 0, 1);
+    }
+
+    private static void play(Location at, Song.Note n, @Nullable Player only) {
+        NamespacedKey key = SpellFx.key(n.sound());
+        if (key == null || at.getWorld() == null) return;
+        if (only != null) only.playSound(at, key.toString(), SoundCategory.RECORDS, n.volume(), n.pitch());
+        else at.getWorld().playSound(at, key.toString(), SoundCategory.RECORDS, n.volume(), n.pitch());
+    }
+
     // ── display ──
 
-    /** What a display shows and how. {@code item} (+ {@code model}) / {@code block} / {@code text} by {@code kind}; text already filled in. */
-    public record DisplayLook(String kind, String item, String model, String block, String text, double scale, double spin, String billboard,
-                              boolean glow, String glowColor, double seconds, double up, String grow) { }
+    /**
+     * What a display shows and how (2026-11-03: all of Minecraft's display settings). {@code item} (+ {@code model},
+     * {@code itemTransform}) / {@code block} (with states) / {@code text} by {@code kind}; text already filled in.
+     * {@code stretch} multiplies {@code scale} per axis; {@code tilt} is degrees around x, y, z; {@code offset} the
+     * translation; {@code brightness} packed, or -1 for the world's light; colours are #RRGGBB or "".
+     */
+    public record DisplayLook(String kind, String item, String model, String itemTransform, String block, String text, TextStyle textStyle,
+                              double scale, Vec3 stretch, Vec3 tilt, Vec3 offset, double up, double spin, char spinAxis, String billboard, String grow,
+                              boolean glow, String glowColor, int brightness, float viewRange, float shadowRadius, float shadowStrength,
+                              double seconds) { }
+
+    /** A text display's look: line width (pixels), background ARGB, text opacity, style flags. */
+    public record TextStyle(int lineWidth, int background, int opacity, byte flags) {
+        static final TextStyle PLAIN = new TextStyle(200, 0x40000000, 255, (byte) 0);
+    }
+
+    /** The style flags byte of a text display. */
+    static byte textFlags(boolean shadow, boolean seeThrough, boolean defaultBackground, String align) {
+        int f = (shadow ? TEXT_SHADOW : 0) | (seeThrough ? TEXT_SEE_THROUGH : 0) | (defaultBackground ? TEXT_DEFAULT_BACKGROUND : 0);
+        if ("left".equals(align)) f |= TEXT_ALIGN_LEFT;
+        else if ("right".equals(align)) f |= TEXT_ALIGN_RIGHT;
+        return (byte) f;
+    }
+
+    /** A text background as ARGB: {@code hex} ("": black, Minecraft's default) at {@code opacity} 0–255. */
+    static int background(String hex, int opacity) {
+        int rgb = Math.max(0, rgb(hex));
+        return Math.max(0, Math.min(255, opacity)) << 24 | rgb;
+    }
+
+    /** Fixed light (0–15 each) packed for the client, or -1: lit by the world. */
+    static int brightness(String mode, int block, int sky) {
+        return "fixed".equals(mode) ? DisplayRules.packBrightness(Math.max(0, Math.min(15, block)), Math.max(0, Math.min(15, sky))) : -1;
+    }
+
+    /** The display's rotation at {@code t} seconds: its tilt, then its spin around the chosen axis. */
+    static DisplayRules.Quat rotation(DisplayLook look, double t) {
+        DisplayRules.Quat tilt = DisplayRules.fromDegrees(look.tilt());
+        return look.spin() == 0 ? tilt : DisplayRules.multiply(DisplayRules.turn(look.spinAxis(), look.spin() * t), tilt);
+    }
 
     /**
      * A display entity sent to the players within 64 blocks of {@code at} for its seconds,
@@ -153,9 +232,25 @@ public final class SpellVisuals implements Listener {
         if (look.glow() && rgb(look.glowColor()) >= 0) first.add(new EntityData<>(META_GLOW_COLOR, EntityDataTypes.INT, rgb(look.glowColor())));
         first.add(new EntityData<>(META_BILLBOARD, EntityDataTypes.BYTE, billboard(look.billboard())));
         first.add(new EntityData<>(META_TELEPORT_DURATION, EntityDataTypes.INT, STEP));
-        if ("block".equals(look.kind())) first.add(new EntityData<>(META_CONTENT, EntityDataTypes.BLOCK_STATE, (Integer) content));
-        else if ("text".equals(look.kind())) first.add(new EntityData<>(META_CONTENT, EntityDataTypes.ADV_COMPONENT, (net.kyori.adventure.text.Component) content));
-        else first.add(new EntityData<>(META_CONTENT, EntityDataTypes.ITEMSTACK, (com.github.retrooper.packetevents.protocol.item.ItemStack) content));
+        Vec3 offset = look.offset();
+        first.add(new EntityData<>(META_TRANSLATION, EntityDataTypes.VECTOR3F, new Vector3f((float) offset.x(), (float) offset.y(), (float) offset.z())));
+        if (look.brightness() >= 0) first.add(new EntityData<>(META_BRIGHTNESS, EntityDataTypes.INT, look.brightness()));
+        first.add(new EntityData<>(META_VIEW_RANGE, EntityDataTypes.FLOAT, look.viewRange()));
+        first.add(new EntityData<>(META_SHADOW_RADIUS, EntityDataTypes.FLOAT, look.shadowRadius()));
+        first.add(new EntityData<>(META_SHADOW_STRENGTH, EntityDataTypes.FLOAT, look.shadowStrength()));
+        if ("block".equals(look.kind())) {
+            first.add(new EntityData<>(META_CONTENT, EntityDataTypes.BLOCK_STATE, (Integer) content));
+        } else if ("text".equals(look.kind())) {
+            TextStyle style = look.textStyle();
+            first.add(new EntityData<>(META_CONTENT, EntityDataTypes.ADV_COMPONENT, (net.kyori.adventure.text.Component) content));
+            first.add(new EntityData<>(META_LINE_WIDTH, EntityDataTypes.INT, style.lineWidth()));
+            first.add(new EntityData<>(META_BACKGROUND, EntityDataTypes.INT, style.background()));
+            first.add(new EntityData<>(META_TEXT_OPACITY, EntityDataTypes.BYTE, (byte) style.opacity()));
+            first.add(new EntityData<>(META_TEXT_FLAGS, EntityDataTypes.BYTE, style.flags()));
+        } else {
+            first.add(new EntityData<>(META_CONTENT, EntityDataTypes.ITEMSTACK, (com.github.retrooper.packetevents.protocol.item.ItemStack) content));
+            first.add(new EntityData<>(META_ITEM_DISPLAY, EntityDataTypes.BYTE, DisplayRules.itemDisplay(look.itemTransform())));
+        }
         first.addAll(pose(look, 0, 0));
         for (User u : viewers) {
             send(u, new WrapperPlayServerSpawnEntity(id, Optional.of(UUID.randomUUID()), type,
@@ -186,15 +281,16 @@ public final class SpellVisuals implements Listener {
         }.runTaskTimer(plugin, STEP, STEP);
     }
 
-    /** Scale and spin at {@code t} seconds, {@code life} (0–1) through, eased by the client over one step. */
+    /** Scale (stretched per axis) and rotation (tilt, then spin) at {@code t} seconds, {@code life} (0–1) through, eased by the client over one step. */
     private static List<EntityData<?>> pose(DisplayLook look, double t, double life) {
-        float s = (float) (look.scale() * growScale(look.grow(), life));
-        double half = Math.toRadians(look.spin() * t) / 2;
+        double s = look.scale() * growScale(look.grow(), life);
+        Vec3 k = look.stretch();
+        DisplayRules.Quat q = rotation(look, t);
         return List.of(
                 new EntityData<>(META_INTERPOLATION_DELAY, EntityDataTypes.INT, 0),
                 new EntityData<>(META_INTERPOLATION_DURATION, EntityDataTypes.INT, STEP),
-                new EntityData<>(META_SCALE, EntityDataTypes.VECTOR3F, new Vector3f(s, s, s)),
-                new EntityData<>(META_LEFT_ROTATION, EntityDataTypes.QUATERNION, new Quaternion4f(0, (float) Math.sin(half), 0, (float) Math.cos(half))));
+                new EntityData<>(META_SCALE, EntityDataTypes.VECTOR3F, new Vector3f((float) (s * k.x()), (float) (s * k.y()), (float) (s * k.z()))),
+                new EntityData<>(META_LEFT_ROTATION, EntityDataTypes.QUATERNION, new Quaternion4f(q.x(), q.y(), q.z(), q.w())));
     }
 
     @Nullable
@@ -202,8 +298,8 @@ public final class SpellVisuals implements Listener {
         try {
             switch (look.kind()) {
                 case "block" -> {
-                    Material m = Material.matchMaterial(look.block());
-                    return m == null || !m.isBlock() ? null : SpigotConversionUtil.fromBukkitBlockData(m.createBlockData()).getGlobalId();
+                    BlockData data = SpellFx.blockData(look.block());
+                    return data == null ? null : SpigotConversionUtil.fromBukkitBlockData(data).getGlobalId();
                 }
                 case "text" -> {
                     return LegacyComponentSerializer.legacyAmpersand().deserialize(look.text());
@@ -344,11 +440,7 @@ public final class SpellVisuals implements Listener {
 
     /** The billboard byte of a display: fixed 0, vertical 1, horizontal 2, center 3. */
     static byte billboard(String mode) {
-        return switch (mode) {
-            case "vertical" -> 1;
-            case "center" -> 3;
-            default -> 0;
-        };
+        return DisplayRules.billboard(mode);
     }
 
     /** #RRGGBB as a number; -1 for anything else ("" is none). */

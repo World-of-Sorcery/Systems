@@ -36,7 +36,7 @@ public final class SpellCatalog {
     }
 
     /** The caps every spell obeys (spec §3.4). */
-    public record Limits(int maxNodes, int maxDepth, int maxShapes, int maxAreas, int maxCommands, int areaEntitiesPerTick, int maxAnimations,
+    public record Limits(int maxShapes, int maxAreas, int maxCommands, int areaEntitiesPerTick, int maxAnimations,
                          int maxLevel, int maxVelocity, int maxRuns, int maxItems, int maxDisplays, int maxFakeBlocks, int maxCastDepth,
                          int maxFragments) { }
 
@@ -79,7 +79,7 @@ public final class SpellCatalog {
                     Json.bool(k, "entity_effect", false), harmful, Map.copyOf(harmlessWhen)));
         }
         JsonObject l = Json.object(json, "limits");
-        Limits limits = new Limits(Json.integer(l, "max_nodes", 40), Json.integer(l, "max_depth", 6), Json.integer(l, "max_shapes", 10),
+        Limits limits = new Limits(Json.integer(l, "max_shapes", 10),
                 Json.integer(l, "max_areas", 4), Json.integer(l, "max_commands", 20), Json.integer(l, "area_entities_per_tick", 16),
                 Json.integer(l, "max_animations", 8), Json.integer(l, "max_level", 20), Json.integer(l, "max_velocity", 4),
                 Json.integer(l, "max_runs", 500), Json.integer(l, "max_items", 64), Json.integer(l, "max_displays", 16),

@@ -15,6 +15,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -23,6 +24,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import javax.annotation.Nullable;
 
@@ -32,7 +34,7 @@ import java.util.UUID;
 
 /**
  * Effects that last a while and must end cleanly (more-nodes spec §4.5): freeze, shield,
- * vanish, fly, and attribute changes (2026-11-03 spec §3). Each ends by its own timer; what could outlive a logout or restart is
+ * vanish, fly, glide, and attribute changes (2026-11-03 spec §3). Each ends by its own timer; what could outlive a logout or restart is
  * put right when the entity is seen again.
  */
 public final class TimedStates implements Listener {
@@ -46,10 +48,16 @@ public final class TimedStates implements Listener {
 
     private record Vanish(BukkitTask end, boolean endsOnCast, boolean endsOnDamage) { }
 
+    private record Glide(BukkitTask end, long from, boolean endsOnLand) { }
+
+    /** A glide never ends by landing in its first half second, so it can take off from the ground. */
+    static final long GLIDE_TAKE_OFF_MS = 500;
+
     private final Plugin plugin;
     private final FallGuard falls;
     private final Map<UUID, Vanish> vanished = new HashMap<>();
     private final Map<UUID, BukkitTask> flying = new HashMap<>();
+    private final Map<UUID, Glide> gliding = new HashMap<>();
     /** The end of each running Minecraft attribute change, by "entity uuid:modifier key". */
     private final Map<String, BukkitTask> attributeEnds = new HashMap<>();
 
@@ -222,6 +230,52 @@ public final class TimedStates implements Listener {
         }
     }
 
+    // ── glide ──
+
+    /**
+     * Glide (2026-11-03): elytra gliding for {@code seconds}, with or without an elytra. {@code lift}
+     * and {@code boost} push the player off at the start. A new glide while one runs only resets the
+     * time. The game's "stop gliding" is refused while it lasts, except by landing or water when
+     * {@code endsOnLand}; when the time is up the game takes the glide away (no elytra) and they
+     * take no fall damage until they land. Kept in memory only: gliding is not saved.
+     */
+    public void glide(Player p, double seconds, double lift, double boost, boolean endsOnLand) {
+        Glide old = gliding.remove(p.getUniqueId());
+        if (old != null) old.end().cancel();
+        Vector push = p.getLocation().getDirection().multiply(boost).add(new Vector(0, lift, 0));
+        if (push.lengthSquared() > 0) p.setVelocity(p.getVelocity().add(push));
+        BukkitTask end = plugin.getServer().getScheduler().runTaskLater(plugin, () -> stopGlide(p, true), Math.max(1, Math.round(seconds * 20)));
+        gliding.put(p.getUniqueId(), new Glide(end, System.currentTimeMillis(), endsOnLand));
+        p.setGliding(true);
+    }
+
+    /** Whether a spell's glide goes on when the game would stop it. */
+    static boolean keepsGliding(boolean endsOnLand, long sinceStartMs, boolean onGround, boolean inWater, boolean riding) {
+        if (riding) return false;
+        if (!endsOnLand || sinceStartMs < GLIDE_TAKE_OFF_MS) return true;
+        return !onGround && !inWater;
+    }
+
+    /** Ends a spell's glide; with {@code guard}, a player still in the air takes no fall damage until they land. */
+    private void stopGlide(Player p, boolean guard) {
+        Glide g = gliding.remove(p.getUniqueId());
+        if (g == null) return;
+        g.end().cancel();
+        if (guard && p.isOnline() && !((Entity) p).isOnGround()) falls.protect(p, 30);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onGlideToggle(EntityToggleGlideEvent e) {
+        if (e.isGliding() || !(e.getEntity() instanceof Player p)) return;
+        Glide g = gliding.get(p.getUniqueId());
+        if (g == null) return;
+        if (keepsGliding(g.endsOnLand(), System.currentTimeMillis() - g.from(), ((Entity) p).isOnGround(), p.isInWater(), p.isInsideVehicle())) {
+            e.setCancelled(true);
+        } else {
+            stopGlide(p, false);
+        }
+    }
+
     // ── events ──
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -241,12 +295,14 @@ public final class TimedStates implements Listener {
     public void onDeath(PlayerDeathEvent e) {
         unvanish(e.getEntity());
         land(e.getEntity(), false);
+        stopGlide(e.getEntity(), false);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         unvanish(e.getPlayer());
         land(e.getPlayer(), false); // abilities are saved with the player: never log out with a spell's flight
+        stopGlide(e.getPlayer(), false);
     }
 
     /** An entity seen again after a logout, unload or restart: thawed now if its freeze is over, else when it is. */

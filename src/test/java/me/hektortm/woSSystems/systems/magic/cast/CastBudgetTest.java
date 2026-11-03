@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CastBudgetTest {
 
     private static CastBudget budget() {
-        return new CastBudget(new SpellCatalog.Limits(60, 6, 10, 4, 20, 16, 8, 20, 4, 500, 64, 16, 200, 2, 64));
+        return new CastBudget(new SpellCatalog.Limits(10, 4, 20, 16, 8, 20, 4, 500, 64, 16, 200, 2, 64));
     }
 
     @Test

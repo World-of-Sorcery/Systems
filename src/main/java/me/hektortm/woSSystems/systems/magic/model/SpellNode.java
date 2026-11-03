@@ -29,11 +29,11 @@ public final class SpellNode {
     }
 
     /**
-     * Reads a list of nodes for a caster at {@code level}. Unknown types, non-objects and nodes
-     * nested deeper than the catalogue allows are skipped, each with a warning; their siblings
-     * stay. An {@code at_level} node above {@code level} is left out (spec §3.5).
+     * Reads a list of nodes for a caster at {@code level}. Unknown types and non-objects are
+     * skipped, each with a warning; their siblings stay. Nodes nest as deep as the spell has
+     * them (no depth limit since 2026-11-03). An {@code at_level} node above {@code level} is left out (spec §3.5).
      */
-    public static List<SpellNode> parseList(JsonArray list, SpellCatalog catalog, List<String> warnings, String path, int depth, int level) {
+    public static List<SpellNode> parseList(JsonArray list, SpellCatalog catalog, List<String> warnings, String path, int level) {
         List<SpellNode> out = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             String at = path + "[" + i + "]";
@@ -49,16 +49,12 @@ public final class SpellNode {
                 warnings.add(at + ": unknown type '" + type + "'");
                 continue;
             }
-            if (depth > catalog.limits().maxDepth()) {
-                warnings.add(at + ": nested too deep");
-                continue;
-            }
             if ("at_level".equals(type) && Json.integer(n, "level", 2) > level) continue;
             Map<String, List<SpellNode>> children = new HashMap<>();
             for (String outlet : kind.outlets()) {
                 JsonElement c = n.get(outlet);
                 if (c != null && c.isJsonArray()) {
-                    children.put(outlet, parseList(c.getAsJsonArray(), catalog, warnings, at + "." + outlet, depth + 1, level));
+                    children.put(outlet, parseList(c.getAsJsonArray(), catalog, warnings, at + "." + outlet, level));
                 }
             }
             out.add(new SpellNode(kind, Json.str(n, "id", ""), n, children));

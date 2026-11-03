@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.magic.cast;
 
 import me.hektortm.woSSystems.WoSSystems;
+import me.hektortm.woSSystems.systems.interactions.DisplaySettings.Vec3;
 import me.hektortm.woSSystems.systems.magic.MagicData;
 import me.hektortm.woSSystems.systems.magic.MagicRules;
 import me.hektortm.woSSystems.systems.magic.model.SpellDef;
@@ -12,7 +13,6 @@ import me.hektortm.wosCore.pvp.PvpCheck;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.World;
@@ -20,6 +20,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
@@ -1129,6 +1130,10 @@ final class SpellRun {
             }
             case "particle_shape" -> particleShape(n, c);
             case "sound" -> SpellFx.sound(c.point(), n.str("sound"), (float) n.num("volume"), (float) n.num("pitch"));
+            case "song" -> {
+                List<Song.Note> notes = Song.schedule(n.array("notes"), n.integer("loops"));
+                services.visuals().song(c.point(), notes, follow(n, c), caster, "caster".equals(n.str("heard_by")));
+            }
             case "run_actions" -> runActions(n, c);
             case "drop_items" -> {
                 int amount = budget.itemsTaken(n.integer("amount"));
@@ -1137,11 +1142,11 @@ final class SpellRun {
                         "vanish".equals(n.str("pickup")), n.str("vanish_particle"), n.str("vanish_sound"), n.bool("glow"));
             }
             case "falling_blocks" -> {
-                Material m = Material.matchMaterial(n.str("block"));
-                if (m == null || !m.isBlock()) return;
+                BlockData block = SpellFx.blockData(n.str("block"));
+                if (block == null) return;
                 int amount = budget.itemsTaken(n.integer("amount"));
                 if (amount == 0) overBudget("items");
-                else services.litter().fallingBlocks(c.point(), m.createBlockData(), amount, n.num("spread"), n.num("lift"),
+                else services.litter().fallingBlocks(c.point(), block, amount, n.num("spread"), n.num("lift"),
                         "shatter".equals(n.str("on_land")), n.integer("seconds"));
             }
             case "freeze" -> services.states().freeze(t, n.num("seconds"));
@@ -1165,6 +1170,9 @@ final class SpellRun {
             case "fly" -> {
                 if (t instanceof Player p) services.states().fly(p, n.num("seconds"), n.num("speed"));
             }
+            case "glide" -> {
+                if (t instanceof Player p) services.states().glide(p, n.num("seconds"), n.num("lift"), n.num("boost"), n.bool("ends_on_land"));
+            }
             case "display" -> display(n, c);
             case "wear" -> {
                 ItemStack item = services.litter().modelled(n.str("item"), n.str("model"));
@@ -1173,12 +1181,12 @@ final class SpellRun {
             case "attribute" -> services.states().attribute(t, reported.id(), n.str("attribute"), n.str("mode"), n.num("amount"), n.num("seconds"),
                     t instanceof Player p ? services.magic().apply(p) : null);
             case "fake_blocks" -> {
-                Material m = Material.matchMaterial(n.str("block"));
-                if (m == null || !m.isBlock()) return;
+                BlockData block = SpellFx.blockData(n.str("block"));
+                if (block == null) return;
                 List<int[]> cells = Geometry.fakeCells(n.str("form"), (int) Math.round(n.num("radius")), c.dir());
                 int allowed = budget.fakeBlocks(cells.size());
                 if (allowed < cells.size()) overBudget("fake blocks");
-                if (allowed > 0) services.visuals().fakeBlocks(c.point(), m.createBlockData(), cells.subList(0, allowed), n.num("seconds"));
+                if (allowed > 0) services.visuals().fakeBlocks(c.point(), block, cells.subList(0, allowed), n.num("seconds"));
             }
             case "aggro" -> {
                 if (t instanceof Mob m) m.setTarget("calm".equals(n.str("mode")) ? null : caster);
@@ -1193,19 +1201,41 @@ final class SpellRun {
             overBudget("displays");
             return;
         }
+        Supplier<Location> follow = follow(n, c);
+        Location at = follow == null ? c.point() : follow.get();
+        if (at == null) at = c.point();
+        String target = c.target() == null ? "" : c.target().getName();
+        SpellVisuals.TextStyle text = new SpellVisuals.TextStyle(n.integer("line_width"), SpellVisuals.background(optionalColor(n.str("background")),
+                n.integer("background_opacity")), n.integer("text_opacity"),
+                SpellVisuals.textFlags(n.bool("text_shadow"), n.bool("see_through"), n.bool("default_background"), n.str("text_align")));
+        String axis = n.str("spin_axis");
+        services.visuals().display(at, new SpellVisuals.DisplayLook(n.str("kind"), n.str("item"), n.str("model"), n.str("item_transform"), n.str("block"),
+                n.str("text").replace("{caster}", caster.getName()).replace("{target}", target), text,
+                n.num("scale"), new Vec3(n.num("scale_x"), n.num("scale_y"), n.num("scale_z")), new Vec3(n.num("rotate_x"), n.num("rotate_y"), n.num("rotate_z")),
+                new Vec3(n.num("offset_x"), n.num("offset_y"), n.num("offset_z")), n.num("up"), n.num("spin"), axis.isEmpty() ? 'y' : axis.charAt(0),
+                n.str("billboard"), n.str("grow"), n.bool("glow"), optionalColor(n.str("glow_color")),
+                SpellVisuals.brightness(n.str("brightness"), n.integer("block_light"), n.integer("sky_light")),
+                (float) n.num("view_range"), (float) n.num("shadow_radius"), (float) n.num("shadow_strength"), n.num("seconds")), follow);
+    }
+
+    /**
+     * Where a following display or song is each step: the part chosen in Place at (body when it is
+     * point) of the target or the caster; null when it doesn't follow, or the entity is gone.
+     */
+    @Nullable
+    private Supplier<Location> follow(SpellNode n, Ctx c) {
         LivingEntity followed = switch (n.str("follow")) {
             case "target" -> c.target() != null && c.target().isValid() ? c.target() : null;
             case "caster" -> caster;
             default -> null;
         };
         String anchor = Placement.bodyPart(n.str("at"));
-        Supplier<Location> follow = followed == null ? null : () -> followed.isValid() ? part(followed, anchor) : null;
-        Location at = follow == null ? c.point() : follow.get();
-        String target = c.target() == null ? "" : c.target().getName();
-        String glow = n.str("glow_color");
-        services.visuals().display(at, new SpellVisuals.DisplayLook(n.str("kind"), n.str("item"), n.str("model"), n.str("block"),
-                n.str("text").replace("{caster}", caster.getName()).replace("{target}", target), n.num("scale"), n.num("spin"),
-                n.str("billboard"), n.bool("glow"), glow.isBlank() ? "" : color(glow), n.num("seconds"), n.num("up"), n.str("grow")), follow);
+        return followed == null ? null : () -> followed.isValid() ? part(followed, anchor) : null;
+    }
+
+    /** An optional colour field: "" stays none, "wand" or #RRGGBB becomes #RRGGBB. */
+    private String optionalColor(String value) {
+        return value.isBlank() ? "" : color(value);
     }
 
     /**
