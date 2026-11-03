@@ -252,7 +252,7 @@ public final class WoSSystems extends JavaPlugin {
 
         lootTableManager = new LoottableManager(daoHub);
         coinflipCommand = new Coinflip(ecoManager, this, lang);
-        cosmeticManager = new CosmeticManager(daoHub);
+        cosmeticManager = new CosmeticManager(daoHub, getPlaceholderResolver());
 
 // Initialize the remaining managers
         crecipeManager = new me.hektortm.woSSystems.systems.crecipes.CrecipeManager(daoHub);
