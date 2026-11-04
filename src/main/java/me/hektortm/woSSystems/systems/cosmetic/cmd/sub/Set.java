@@ -31,7 +31,7 @@ public class Set extends SubCommand {
 
     @Override
     public List<TabArg> arguments() {
-        return List.of(TabArg.PLAYER, TabArg.of("prefix", "title", "badge"), TabArg.content("cosmetics"));
+        return List.of(TabArg.PLAYER, TabArg.of("title", "badge"), TabArg.content("cosmetics"));
     }
 
     @Override
@@ -50,10 +50,6 @@ public class Set extends SubCommand {
             case "title":
                 parsedType = "Title";
                 cType = CosmeticType.TITLE;
-                break;
-            case "prefix":
-                parsedType = "Prefix";
-                cType = CosmeticType.PREFIX;
                 break;
             case "badge":
                 parsedType = "Badge";

@@ -21,11 +21,12 @@ final class TablistRules {
 
     /**
      * A fake entry: the player's plain name (the profile name), the text shown in the list (colour
-     * codes, as a prefix's display has them) and their skin ({@code null} when their server sent none).
+     * codes, as a LuckPerms prefix has them), its place in the list (the weight of their heaviest
+     * LuckPerms group: the higher, the further up) and their skin ({@code null} when their server sent none).
      */
-    record Entry(String name, String text, @Nullable String skinValue, @Nullable String skinSignature) {
+    record Entry(String name, String text, int order, @Nullable String skinValue, @Nullable String skinSignature) {
         Entry(String name, String text) {
-            this(name, text, null, null);
+            this(name, text, 0, null, null);
         }
 
         boolean sameSkin(Entry other) {
@@ -41,7 +42,7 @@ final class TablistRules {
     }
 
     /**
-     * The text of a fake entry: shown like a player on this server (their live prefix and name), and
+     * The text of a fake entry: shown like a player on this server (their LuckPerms prefix and name), and
      * only a player on a hub gets a grey " · Hub" after it.
      */
     static String displayName(String prefix, String name, boolean onHub) {
@@ -59,12 +60,12 @@ final class TablistRules {
             if (selfId.equals(p.server()) || localUuids.contains(p.uuid())) continue;
             String skin = p.skinValue() == null || p.skinValue().isEmpty() ? null : p.skinValue();
             out.put(p.uuid(), new Entry(p.username(), displayName(p.prefix(), p.username(), p.onHub()),
-                    skin, skin == null ? null : p.skinSignature()));
+                    p.weight(), skin, skin == null ? null : p.skinSignature()));
         }
         return out;
     }
 
-    /** What to send: entries to add, entries whose text changed, uuids to remove. */
+    /** What to send: entries to add, entries whose text or place changed, uuids to remove. */
     record Diff(Map<UUID, Entry> add, Map<UUID, Entry> rename, Set<UUID> remove) {
         boolean isEmpty() {
             return add.isEmpty() && rename.isEmpty() && remove.isEmpty();

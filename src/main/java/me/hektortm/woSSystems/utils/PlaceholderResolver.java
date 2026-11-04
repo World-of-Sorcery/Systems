@@ -21,7 +21,7 @@ import java.util.Locale;
  *
  * <ul>
  *   <li>{@code {player_name}}, {@code {player_nick}} (the nickname, else the name), {@code {player_uuid}}</li>
- *   <li>{@code {player_cosmetic.<type>}}: the equipped cosmetic (prefix, title, badge …)</li>
+ *   <li>{@code {player_cosmetic.<type>}}: the equipped cosmetic (title, badge)</li>
  *   <li>{@code {stats.amount:<id>}}, {@code {stats.max:<id>}}: the player's stat, its max</li>
  *   <li>{@code {global_stats.amount:<id>}}, {@code {global_stats.max:<id>}}</li>
  *   <li>{@code {economy.balance:<currency>}}: the player's balance</li>

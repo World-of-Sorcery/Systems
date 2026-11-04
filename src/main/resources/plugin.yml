@@ -118,10 +118,6 @@ commands:
   cosmetic:
     description: cosmetic management
     usage: /<command>
-  prefixes:
-    description: open Prefix Menu
-    uasge: /<command>
-    aliases: [prefix]
   badges:
     description: open Badge Menu
     uasge: /<command>

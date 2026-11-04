@@ -26,7 +26,7 @@ class PlayerSessionTest {
               "stats": [{"stat_id": "kills", "value": 7}],
               "unlockables": [{"unlockable_id": "door", "temp": false}, {"unlockable_id": "daily_x", "temp": true}],
               "cosmetics": [
-                {"cosmetic_type": "prefix", "cosmetic_id": "mage", "obtained_at": "Mon, Jan 01 2024", "equipped": true},
+                {"cosmetic_type": "badge", "cosmetic_id": "mage", "obtained_at": "Mon, Jan 01 2024", "equipped": true},
                 {"cosmetic_type": "title", "cosmetic_id": "hero", "obtained_at": "Tue, Jan 02 2024", "equipped": false}
               ],
               "nickname": "Stevie",
@@ -44,9 +44,9 @@ class PlayerSessionTest {
         assertThat(s.stats).containsEntry("kills", 7L);
         assertThat(s.permanentUnlocks).containsExactly("door");
         assertThat(s.tempUnlocks).containsExactly("daily_x");
-        assertThat(s.cosmetics).containsKeys(PlayerSession.cosmeticKey(CosmeticType.PREFIX, "mage"),
+        assertThat(s.cosmetics).containsKeys(PlayerSession.cosmeticKey(CosmeticType.BADGE, "mage"),
                 PlayerSession.cosmeticKey(CosmeticType.TITLE, "hero"));
-        assertThat(s.equippedCosmetics).containsExactly(java.util.Map.entry(CosmeticType.PREFIX, "mage"));
+        assertThat(s.equippedCosmetics).containsExactly(java.util.Map.entry(CosmeticType.BADGE, "mage"));
         assertThat(s.nickname()).isEqualTo("Stevie");
         assertThat(s.cooldowns).containsEntry("chest", Instant.parse("2026-01-01T10:00:00Z"));
         assertThat(s.localCooldowns).containsEntry(PlayerSession.localCooldownKey("lever", "world,1,2,3"),
@@ -73,7 +73,8 @@ class PlayerSessionTest {
     void skipsCosmeticTypesThisVersionDoesNotKnow() {
         PlayerSession s = PlayerSession.fromJson(obj("""
             {"player": {"uuid": "%s", "username": "X"},
-             "cosmetics": [{"cosmetic_type": "aura", "cosmetic_id": "fire", "equipped": true}]}""".formatted(UUID_STR)));
+             "cosmetics": [{"cosmetic_type": "aura", "cosmetic_id": "fire", "equipped": true},
+                           {"cosmetic_type": "prefix", "cosmetic_id": "mage", "equipped": true}]}""".formatted(UUID_STR)));
 
         assertThat(s.cosmetics).isEmpty();
         assertThat(s.equippedCosmetics).isEmpty();

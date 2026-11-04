@@ -29,20 +29,6 @@ public class QuickCommands {
         }
     }
 
-    public static class PrefixCommand implements CommandExecutor {
-
-        @Override
-        public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
-            if(PermissionUtil.isPlayer(sender)) return true;
-
-            Player player = (Player) sender;
-
-            cosmeticManager.open(player, CosmeticType.PREFIX);
-
-            return true;
-        }
-    }
-
     public static class TitleCommand implements CommandExecutor {
 
         @Override

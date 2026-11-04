@@ -10,8 +10,6 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoUpdate.PlayerInfo;
 import me.hektortm.wosCore.Utils;
 import me.hektortm.wosCore.presence.NetworkOnline;
-import me.hektortm.wosCore.presence.NetworkPlayer;
-import org.jetbrains.annotations.Nullable;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -23,7 +21,6 @@ import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,10 +31,10 @@ import java.util.logging.Level;
 
 /**
  * Shows the players on the other servers in this server's tab list as fake entries (player info
- * packets, never a real player), from {@link NetworkOnline} every 5 seconds: their live prefix, their
- * name and their skin (so the head shows), with " · Hub" after players on a hub only. The rules of who
- * is shown are in {@link TablistRules}. The same list gives every player's live prefix, which
- * {@link TablistManager} uses on a test realm server ({@link #livePrefix}).
+ * packets, never a real player), from {@link NetworkOnline} every 5 seconds: their LuckPerms prefix,
+ * their name and their skin (so the head shows), with " · Hub" after players on a hub only, sorted by
+ * their LuckPerms group weight like this server's own players. The rules of who is shown are in
+ * {@link TablistRules}.
  *
  * <p>Threads: the request runs on {@link NetworkOnline}'s own thread; everything else, including the
  * packets, runs on the main thread (the answer hops back with the scheduler). A refresh that fails
@@ -54,8 +51,6 @@ public final class NetworkTablist implements Listener {
     private final Map<UUID, TablistRules.Entry> shown = new LinkedHashMap<>();
     /** Players between a login that was allowed and the join. Main thread only. */
     private final Set<UUID> arriving = new HashSet<>();
-    /** Every online player's live prefix display ("" for none), this server's too. Main thread only. */
-    private final Map<UUID, String> livePrefixes = new HashMap<>();
     private int failures;
     /** Whether a refresh's answer has not been handled yet. Main thread only. */
     private boolean refreshing;
@@ -94,8 +89,6 @@ public final class NetworkTablist implements Listener {
                     if (error != null) failed();
                     else {
                         failures = 0;
-                        livePrefixes.clear();
-                        for (NetworkPlayer p : players) livePrefixes.put(p.uuid(), p.prefix());
                         apply(TablistRules.wanted(players, selfId, localUuids()));
                     }
                 });
@@ -107,18 +100,7 @@ public final class NetworkTablist implements Listener {
 
     private void failed() {
         failures++;
-        if (TablistRules.clearAfterFailures(failures)) {
-            livePrefixes.clear();
-            apply(Map.of());
-        }
-    }
-
-    /**
-     * Main thread: the player's live prefix display from the last list ("" for none), {@code null} while
-     * the list has not had them yet (a player who just joined is listed after their server's next report).
-     */
-    public @Nullable String livePrefix(UUID player) {
-        return livePrefixes.get(player);
+        if (TablistRules.clearAfterFailures(failures)) apply(Map.of());
     }
 
     private void apply(Map<UUID, TablistRules.Entry> wanted) {
@@ -176,10 +158,10 @@ public final class NetworkTablist implements Listener {
     private void sendAdd(Map<UUID, TablistRules.Entry> entries, Iterable<? extends Player> to) {
         List<PlayerInfo> infos = new ArrayList<>();
         entries.forEach((id, entry) -> infos.add(new PlayerInfo(
-                profile(id, entry), true, 0, GameMode.SURVIVAL, Utils.parseColorCodes(entry.text()), null)));
+                profile(id, entry), true, 0, GameMode.SURVIVAL, Utils.parseColorCodes(entry.text()), null, entry.order())));
         send(() -> new WrapperPlayServerPlayerInfoUpdate(
                 EnumSet.of(Action.ADD_PLAYER, Action.UPDATE_LISTED, Action.UPDATE_LATENCY,
-                        Action.UPDATE_GAME_MODE, Action.UPDATE_DISPLAY_NAME), infos), to);
+                        Action.UPDATE_GAME_MODE, Action.UPDATE_DISPLAY_NAME, Action.UPDATE_LIST_ORDER), infos), to);
     }
 
     private void sendRename(Map<UUID, TablistRules.Entry> entries, Iterable<? extends Player> to) {
@@ -187,9 +169,10 @@ public final class NetworkTablist implements Listener {
         entries.forEach((id, entry) -> {
             PlayerInfo info = new PlayerInfo(id);
             info.setDisplayName(Utils.parseColorCodes(entry.text()));
+            info.setListOrder(entry.order());
             infos.add(info);
         });
-        send(() -> new WrapperPlayServerPlayerInfoUpdate(EnumSet.of(Action.UPDATE_DISPLAY_NAME), infos), to);
+        send(() -> new WrapperPlayServerPlayerInfoUpdate(EnumSet.of(Action.UPDATE_DISPLAY_NAME, Action.UPDATE_LIST_ORDER), infos), to);
     }
 
     private void sendRemove(List<UUID> ids, Iterable<? extends Player> to) {

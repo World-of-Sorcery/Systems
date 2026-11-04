@@ -223,7 +223,7 @@ public final class WoSSystems extends JavaPlugin {
      //   hologramHandler = new HologramHandler(daoHub);
         bossBarManager = new BossBarManager();
         regionBossBarManager = new RegionBossBar();
-        tab = new TablistManager(daoHub);
+        tab = new TablistManager();
         timeEvents = new TimeEvents(daoHub, bossBarManager);
         timeManager = new TimeManager(timeEvents, daoHub);
         lang = new LangManager(core);
@@ -339,8 +339,6 @@ public final class WoSSystems extends JavaPlugin {
         if (core.network().isEnabled() && core.networkOnline() != null) {
             networkTablist = new me.hektortm.woSSystems.tablist.NetworkTablist(this, core.networkOnline(), WoSCore.identity().id());
             networkTablist.start();
-            // Backend and staging hold the test realm's cosmetics: the tab shows the live prefix instead.
-            if ("test".equals(WoSCore.identity().realm())) tab.useLivePrefixes(networkTablist::livePrefix);
         }
         cooldownManager.start();
         crecipeManager.start();
@@ -511,7 +509,6 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("sign", new SignCommand(citemManager, ecoManager));
         cmdReg("time", new TimeCommand(timeManager, this, lang));
         cmdReg("cosmetic", new CosmeticCommand(cosmeticManager, daoHub));
-        cmdReg("prefixes", new QuickCommands.PrefixCommand());
         cmdReg("badges", new QuickCommands.BadgeCommand());
         cmdReg("titles", new QuickCommands.TitleCommand());
         cmdReg("profile", new ProfileCommand(profileDialogs));

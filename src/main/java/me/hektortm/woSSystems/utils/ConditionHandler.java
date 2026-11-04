@@ -89,7 +89,7 @@ public class ConditionHandler {
      * {@code is_in_region}, {@code is_not_in_region},
      * {@code has_active_cooldown}, {@code has_not_active_cooldown},
      * {@code has_active_local_cooldown}, {@code has_not_active_local_cooldown},
-     * {@code has_badge}, {@code has_not_badge}, {@code has_prefix}, {@code has_not_prefix},
+     * {@code has_badge}, {@code has_not_badge},
      * {@code has_title}, {@code has_not_title},
      * {@code has_currency}, {@code has_not_currency},
      * {@code has_permission},
@@ -153,8 +153,6 @@ public class ConditionHandler {
 
                 case "has_badge":                       return hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.BADGE, condition.getValue());
                 case "has_not_badge":                   return !hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.BADGE, condition.getValue());
-                case "has_prefix":                      return hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.PREFIX, condition.getValue());
-                case "has_not_prefix":                  return !hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.PREFIX, condition.getValue());
                 case "has_title":                       return hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.TITLE, condition.getValue());
                 case "has_not_title":                   return !hub.getCosmeticsDAO().hasCosmetic(player.getUniqueId(), CosmeticType.TITLE, condition.getValue());
 

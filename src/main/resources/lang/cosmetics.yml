@@ -1,7 +1,7 @@
 error:
   exists: "This %type% already exists."
 
-  invalid-type: "Invalid Type. Use 'prefix', 'title', 'badge'"
+  invalid-type: "Invalid Type. Use 'title', 'badge'"
 
 info:
   usage:

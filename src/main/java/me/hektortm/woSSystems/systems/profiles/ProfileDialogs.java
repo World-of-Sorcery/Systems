@@ -10,6 +10,7 @@ import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.input.TextDialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.systems.chat.ChatManager;
 import me.hektortm.woSSystems.systems.chat.NicknameManager;
 import me.hektortm.woSSystems.systems.regions.RegionHandler;
 import me.hektortm.woSSystems.utils.Keys;
@@ -152,11 +153,11 @@ public class ProfileDialogs {
                         .build()));
     }
 
+    /** As in chat: the LuckPerms prefix and the nickname (or name). */
     private Component title(Player target) {
-        String prefix = hub.getCosmeticsDAO().getCurrentCosmetic(target, CosmeticType.PREFIX);
         String nick = nickManager.getNickname(target);
         String name = nick != null ? nick.replace("_", " ") : target.getName();
-        return Utils.parseColorCodes(prefix != null ? prefix + " " + name : name);
+        return Utils.parseColorCodes(ChatManager.withPrefix(target, name));
     }
 
     /** Title and badge cosmetics, shown beside the head. */

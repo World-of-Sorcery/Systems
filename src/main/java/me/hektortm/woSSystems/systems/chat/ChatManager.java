@@ -10,6 +10,7 @@ import me.hektortm.woSSystems.systems.profiles.ProfileDialogs;
 import me.hektortm.woSSystems.utils.PlaceholderResolver;
 import me.hektortm.woSSystems.utils.types.CosmeticType;
 import me.hektortm.wosCore.Utils;
+import me.hektortm.wosCore.presence.PlayerRank;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.event.ClickCallback;
@@ -28,7 +29,8 @@ import java.util.regex.Pattern;
 
 /**
  * Global chat.  There are no channels any more: every message goes to every
- * viewer of the chat event, rendered as {@code [badge] [prefix] name: message}.
+ * viewer of the chat event, rendered as {@code [badge] [prefix] name: message}, the prefix being the
+ * sender's LuckPerms prefix and the name their nickname when they have one.
  *
  * <ul>
  *   <li>Clicking the sender's name opens their profile ({@link ProfileDialogs}).</li>
@@ -74,6 +76,12 @@ public class ChatManager {
         return nick != null ? nick.replace("_", " ") : player.getName();
     }
 
+    /** {@code name} after the player's LuckPerms prefix and a space; just {@code name} without a prefix. */
+    public static String withPrefix(Player player, String name) {
+        String prefix = PlayerRank.of(player).prefix();
+        return prefix.isEmpty() ? name : prefix + " " + name;
+    }
+
     // ── Components ───────────────────────────────────────────────────────
 
     private Component badgeComponent(Player sender) {
@@ -87,9 +95,8 @@ public class ChatManager {
 
     /** {@code [prefix ]name} — hover hints at the click, click opens the player dialog. */
     private Component nameComponent(Player sender) {
-        String prefix = hub.getCosmeticsDAO().getCurrentCosmetic(sender, CosmeticType.PREFIX);
         String name = displayName(sender);
-        Component shown = Utils.parseColorCodes(prefix != null ? prefix + " " + name : name);
+        Component shown = Utils.parseColorCodes(withPrefix(sender, name));
 
         UUID target = sender.getUniqueId();
         return shown

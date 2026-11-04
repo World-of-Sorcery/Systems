@@ -50,19 +50,29 @@ class TablistRulesTest {
     }
 
     @Test
-    void wantedCarriesPrefixHubLabelAndSkin() {
+    void wantedCarriesPrefixHubLabelWeightAndSkin() {
         Map<UUID, TablistRules.Entry> wanted = TablistRules.wanted(List.of(
-                new NetworkPlayer(ALEX, "Alex", "hub-1", "hub", "&6[King]", "tex", "sig"),
-                new NetworkPlayer(BOB, "Bob", "staging", "staging", "", "", null)), "live", Set.of());
-        assertThat(wanted.get(ALEX)).isEqualTo(new TablistRules.Entry("Alex", "&6[King] Alex &7· Hub", "tex", "sig"));
+                new NetworkPlayer(ALEX, "Alex", "hub-1", "hub", "&6[King]", 100, "tex", "sig"),
+                new NetworkPlayer(BOB, "Bob", "staging", "staging", "", 0, "", null)), "live", Set.of());
+        assertThat(wanted.get(ALEX)).isEqualTo(new TablistRules.Entry("Alex", "&6[King] Alex &7· Hub", 100, "tex", "sig"));
         // An empty skin counts as none.
-        assertThat(wanted.get(BOB)).isEqualTo(new TablistRules.Entry("Bob", "Bob", null, null));
+        assertThat(wanted.get(BOB)).isEqualTo(new TablistRules.Entry("Bob", "Bob", 0, null, null));
+    }
+
+    @Test
+    void aNewWeightMovesTheEntryWithoutAddingItAgain() {
+        TablistRules.Entry before = new TablistRules.Entry("Bob", "&7[Guest] Bob", 10, null, null);
+        TablistRules.Entry after = new TablistRules.Entry("Bob", "&a[Member] Bob", 20, null, null);
+        TablistRules.Diff d = TablistRules.diff(Map.of(BOB, before), Map.of(BOB, after), Set.of());
+        assertThat(d.rename()).containsEntry(BOB, after);
+        assertThat(d.add()).isEmpty();
+        assertThat(d.remove()).isEmpty();
     }
 
     @Test
     void aChangedSkinIsRemovedAndAddedAgain() {
-        TablistRules.Entry before = new TablistRules.Entry("Bob", "Bob", null, null);
-        TablistRules.Entry after = new TablistRules.Entry("Bob", "Bob", "tex", "sig");
+        TablistRules.Entry before = new TablistRules.Entry("Bob", "Bob", 0, null, null);
+        TablistRules.Entry after = new TablistRules.Entry("Bob", "Bob", 0, "tex", "sig");
         TablistRules.Diff d = TablistRules.diff(Map.of(BOB, before), Map.of(BOB, after), Set.of());
         assertThat(d.remove()).containsExactly(BOB);
         assertThat(d.add()).containsEntry(BOB, after);

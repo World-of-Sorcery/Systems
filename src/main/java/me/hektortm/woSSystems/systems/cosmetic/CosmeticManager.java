@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * The cosmetic menu, as a single Paper dialog.
  *
- * <p>The page tabs (Titles, Prefixes, Badges) are clickable text at the top; below them
+ * <p>The page tabs (Titles, Badges) are clickable text at the top; below them
  * a 5-wide button grid holds "None" plus the cosmetics of that type the player owns — including ones
  * granted by a permission node.  Clicking a cosmetic equips it and reopens the
  * dialog on the same tab.</p>
@@ -37,7 +37,6 @@ public class CosmeticManager {
     /** Page order and labels. */
     private static final List<Tab> TABS = List.of(
             new Tab(CosmeticType.TITLE, "Titles", "Title"),
-            new Tab(CosmeticType.PREFIX, "Prefixes", "Prefix"),
             new Tab(CosmeticType.BADGE, "Badges", "Badge"));
 
     /** Cosmetic grid: {@value} buttons per row. */
@@ -109,7 +108,7 @@ public class CosmeticManager {
                         : DialogType.multiAction(buttons).columns(GRID_COLUMNS).exitAction(close).build()));
     }
 
-    /** {@code [▶ Titles ◀]   [Prefixes]   [Badges]} — the active page is gold, the others clickable. */
+    /** {@code [▶ Titles ◀]   [Badges]} — the active page is gold, the others clickable. */
     private Component tabBar(Player p, Tab current) {
         Component bar = Component.empty();
         for (int i = 0; i < TABS.size(); i++) {
