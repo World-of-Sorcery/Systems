@@ -49,7 +49,7 @@ public final class CitemBuilder {
         m.put('9', "<#5555FF>"); m.put('a', "<#55FF55>"); m.put('b', "<#55FFFF>");
         m.put('c', "<#FF5555>"); m.put('d', "<#FF55FF>"); m.put('e', "<#FFFF55>");
         m.put('f', "<#FFFFFF>");
-        m.put('l', "<bold>"); m.put('o', "<italic>"); m.put('m', "<strikethrough>");
+        m.put('k', "<obfuscated>"); m.put('l', "<bold>"); m.put('o', "<italic>"); m.put('m', "<strikethrough>");
         m.put('n', "<underlined>"); m.put('r', "<reset>");
         LEGACY_TO_MM = Collections.unmodifiableMap(m);
     }
@@ -544,6 +544,8 @@ public final class CitemBuilder {
                     continue;
                 }
             }
+            // A § MiniMessage doesn't know makes it throw, and the item then fails to load: drop it.
+            if (c == '§') continue;
             sb.append(c);
         }
         return sb.toString();

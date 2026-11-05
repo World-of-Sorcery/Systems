@@ -209,7 +209,9 @@ public class ActionHandler {
                 continue;
             }
             if (cmd.startsWith("empty_line")) {
-                player.sendMessage("");
+                // A space, not "": the server still sends an empty line, but newer clients
+                // (and ViaVersion for them) show nothing for it.
+                player.sendMessage(" ");
                 continue;
             }
             // cooldown give|remove @p <id> [%local%]

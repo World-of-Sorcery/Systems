@@ -1209,8 +1209,11 @@ final class SpellRun {
                 n.integer("background_opacity")), n.integer("text_opacity"),
                 SpellVisuals.textFlags(n.bool("text_shadow"), n.bool("see_through"), n.bool("default_background"), n.str("text_align")));
         String axis = n.str("spin_axis");
+        // Filled in once when the display appears (the caster's values; cheap, loaded data only).
+        String shown = plugin.getPlaceholderResolver().resolvePlaceholders(
+                n.str("text").replace("{caster}", caster.getName()).replace("{target}", target), caster);
         services.visuals().display(at, new SpellVisuals.DisplayLook(n.str("kind"), n.str("item"), n.str("model"), n.str("item_transform"), n.str("block"),
-                n.str("text").replace("{caster}", caster.getName()).replace("{target}", target), text,
+                shown, text,
                 n.num("scale"), new Vec3(n.num("scale_x"), n.num("scale_y"), n.num("scale_z")), new Vec3(n.num("rotate_x"), n.num("rotate_y"), n.num("rotate_z")),
                 new Vec3(n.num("offset_x"), n.num("offset_y"), n.num("offset_z")), n.num("up"), n.num("spin"), axis.isEmpty() ? 'y' : axis.charAt(0),
                 n.str("billboard"), n.str("grow"), n.bool("glow"), optionalColor(n.str("glow_color")),

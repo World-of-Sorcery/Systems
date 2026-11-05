@@ -364,9 +364,9 @@ public class HologramManager implements Listener {
                 };
                 styleFlags |= (byte) (alignBits << 3);
             }
-            if (styleFlags != 0) {
-                metadata.add(new EntityData(Meta.STYLE_FLAGS.index, EntityDataTypes.BYTE, styleFlags));
-            }
+            // Always sent, also 0: the live update after an edit in the portal reuses the entity, so
+            // a flag turned off (see-through, shadow …) stayed on in game when nothing was sent.
+            metadata.add(new EntityData(Meta.STYLE_FLAGS.index, EntityDataTypes.BYTE, styleFlags));
 
             if (settings.has("line_width")) {
                 metadata.add(new EntityData(Meta.LINE_WIDTH.index, EntityDataTypes.INT, settings.get("line_width").getAsInt()));
