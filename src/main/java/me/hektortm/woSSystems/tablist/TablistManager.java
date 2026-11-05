@@ -9,12 +9,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * This server's players in its tab list: their LuckPerms prefix and username, sorted by the weight of
  * their heaviest LuckPerms group (heaviest at the top; the client sorts equal weights by name). The
  * same on every server: LuckPerms is shared. Players on the other servers: {@link NetworkTablist}.
+ * The nametags above their heads show the same ({@link Nametags}).
  */
 public class TablistManager {
     private final WoSSystems plugin = WoSSystems.getPlugin(WoSSystems.class);
@@ -24,19 +26,26 @@ public class TablistManager {
 
     // By the player object, not the uuid: someone who logs in again is a new one and gets everything again.
     private final Map<Player, Sent> sent = new HashMap<>();
+    private final Nametags nametags;
+
+    public TablistManager(Nametags nametags) {
+        this.nametags = nametags;
+    }
 
     public void runTablist() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             sent.keySet().retainAll(Bukkit.getOnlinePlayers());
+            Map<String, String> prefixes = new LinkedHashMap<>();
             for (Player player : Bukkit.getOnlinePlayers()) {
-                setTablist(player);
+                prefixes.put(player.getName(), setTablist(player));
             }
+            nametags.setLocal(prefixes);
         }, 0L, 100L);
     }
 
     // Only what changed is sent: a name in the list goes to every player, so
-    // setting all of them again each time was players × players packets.
-    private void setTablist(Player player) {
+    // setting all of them again each time was players × players packets. Returns the prefix.
+    private String setTablist(Player player) {
         PlayerRank rank = PlayerRank.of(player);
         String name = TablistRules.listName(rank.prefix(), player.getName());
         int online = Bukkit.getOnlinePlayers().size();
@@ -54,5 +63,6 @@ public class TablistManager {
             Component footer = Component.text("Online Players: " + online);
             player.sendPlayerListHeaderAndFooter(header, footer);
         }
+        return rank.prefix();
     }
 }

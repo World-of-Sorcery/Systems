@@ -47,6 +47,7 @@ public final class NetworkTablist implements Listener {
     private final Plugin plugin;
     private final NetworkOnline online;
     private final String selfId;
+    private final Nametags nametags;
     /** What the players' lists hold now: uuid to the entry. Main thread only. */
     private final Map<UUID, TablistRules.Entry> shown = new LinkedHashMap<>();
     /** Players between a login that was allowed and the join. Main thread only. */
@@ -55,10 +56,11 @@ public final class NetworkTablist implements Listener {
     /** Whether a refresh's answer has not been handled yet. Main thread only. */
     private boolean refreshing;
 
-    public NetworkTablist(Plugin plugin, NetworkOnline online, String selfId) {
+    public NetworkTablist(Plugin plugin, NetworkOnline online, String selfId, Nametags nametags) {
         this.plugin = plugin;
         this.online = online;
         this.selfId = selfId;
+        this.nametags = nametags;
     }
 
     /** Main thread, once at enable. */
@@ -73,6 +75,7 @@ public final class NetworkTablist implements Listener {
             sendRemove(new ArrayList<>(shown.keySet()), Bukkit.getOnlinePlayers());
             shown.clear();
         }
+        nametags.setRemote(Set.of());
     }
 
     /**
@@ -107,6 +110,10 @@ public final class NetworkTablist implements Listener {
         TablistRules.Diff diff = TablistRules.diff(shown, wanted, localUuids());
         // Dropped from the book without a packet: these are real players here now.
         shown.keySet().removeIf(id -> !wanted.containsKey(id));
+        // A team each keeps them in name order among the players here (Nametags).
+        Set<String> names = new HashSet<>();
+        for (TablistRules.Entry entry : wanted.values()) names.add(trimName(entry.name()));
+        nametags.setRemote(names);
         if (diff.isEmpty()) return;
 
         var everyone = Bukkit.getOnlinePlayers();

@@ -142,6 +142,7 @@ public final class WoSSystems extends JavaPlugin {
     private TimeManager timeManager;
     private RegionBossBar regionBossBarManager;
     private TablistManager tab;
+    private final me.hektortm.woSSystems.tablist.Nametags nametags = new me.hektortm.woSSystems.tablist.Nametags();
     private me.hektortm.woSSystems.tablist.NetworkTablist networkTablist;
     private CosmeticManager cosmeticManager;
     private ProfileDialogs profileDialogs;
@@ -223,7 +224,7 @@ public final class WoSSystems extends JavaPlugin {
      //   hologramHandler = new HologramHandler(daoHub);
         bossBarManager = new BossBarManager();
         regionBossBarManager = new RegionBossBar();
-        tab = new TablistManager();
+        tab = new TablistManager(nametags);
         timeEvents = new TimeEvents(daoHub, bossBarManager);
         timeManager = new TimeManager(timeEvents, daoHub);
         lang = new LangManager(core);
@@ -337,7 +338,7 @@ public final class WoSSystems extends JavaPlugin {
         tab.runTablist();
         // Only with the bus on: a lone server has nobody else to show and must not ask wos-api every 5 s.
         if (core.network().isEnabled() && core.networkOnline() != null) {
-            networkTablist = new me.hektortm.woSSystems.tablist.NetworkTablist(this, core.networkOnline(), WoSCore.identity().id());
+            networkTablist = new me.hektortm.woSSystems.tablist.NetworkTablist(this, core.networkOnline(), WoSCore.identity().id(), nametags);
             networkTablist.start();
         }
         cooldownManager.start();
@@ -371,6 +372,7 @@ public final class WoSSystems extends JavaPlugin {
             questEngine.shutdown();
         }
         if (networkTablist != null) networkTablist.stop();
+        nametags.clear();
         if (timeManager != null) timeManager.saveGameState();
 //        PacketEvents.getAPI().terminate();
         if (webhookServer != null) webhookServer.stop();
@@ -678,6 +680,10 @@ public final class WoSSystems extends JavaPlugin {
     }
     public WoSCore getCore() {
         return core;
+    }
+    /** The nametags above players' heads (prefix and name, like the tab list). */
+    public me.hektortm.woSSystems.tablist.Nametags getNametags() {
+        return nametags;
     }
     public LogManager getLogManager() {
         return log;

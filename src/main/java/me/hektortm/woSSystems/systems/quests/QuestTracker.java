@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.quests;
 
 import io.papermc.paper.scoreboard.numbers.NumberFormat;
+import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.systems.quests.model.QuestDef;
 import me.hektortm.woSSystems.systems.quests.model.QuestNode;
 import net.kyori.adventure.text.Component;
@@ -44,7 +45,7 @@ final class QuestTracker {
             clear(p);
             return;
         }
-        Scoreboard sb = boards.computeIfAbsent(p.getUniqueId(), k -> Bukkit.getScoreboardManager().getNewScoreboard());
+        Scoreboard sb = boards.computeIfAbsent(p.getUniqueId(), k -> newBoard());
         Objective old = sb.getObjective("wosquests");
         if (old != null) old.unregister();
         Objective o = sb.registerNewObjective("wosquests", Criteria.DUMMY, Component.text("Quests", NamedTextColor.GOLD));
@@ -57,6 +58,14 @@ final class QuestTracker {
             o.getScore(entry).setScore(score--);
         }
         if (p.getScoreboard() != sb) p.setScoreboard(sb);
+    }
+
+    /** A board of the player's own, with the nametag teams (else the names above heads lose their prefix). */
+    private static Scoreboard newBoard() {
+        Scoreboard sb = Bukkit.getScoreboardManager().getNewScoreboard();
+        WoSSystems plugin = WoSSystems.getInstance();
+        if (plugin != null) plugin.getNametags().applyTo(sb);
+        return sb;
     }
 
     private List<String> lines(Collection<QuestRun> runs) {
