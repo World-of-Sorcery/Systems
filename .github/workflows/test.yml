@@ -1,0 +1,38 @@
+# Push to any branch except master: build and test only. No tag, no release,
+# nothing is published and nothing reaches a server (release.yml does that on
+# master). Same file in every plugin repo: keep them in sync.
+name: Test
+
+on:
+  push:
+    branches-ignore: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read # Core from GitHub Packages
+    env:
+      # Maven's "github" server (GitHub Packages, where Core is published).
+      GH_PACKAGES_USER: ${{ github.actor }}
+      GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          server-id: github
+          server-username: GH_PACKAGES_USER
+          server-password: GH_PACKAGES_TOKEN
+
+      - name: Build and test
+        run: mvn -B -ntp verify

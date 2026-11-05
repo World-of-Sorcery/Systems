@@ -14,6 +14,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
+import me.hektortm.woSSystems.utils.ColorText;
 import me.hektortm.woSSystems.utils.ConditionHandler;
 import me.hektortm.woSSystems.utils.types.ConditionType;
 import me.hektortm.woSSystems.utils.model.Condition;
@@ -22,7 +23,6 @@ import me.hektortm.woSSystems.utils.model.InteractionHologram;
 import me.hektortm.woSSystems.utils.model.InteractionKey;
 import me.hektortm.woSSystems.utils.PlaceholderResolver;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -32,8 +32,6 @@ import org.bukkit.event.player.PlayerRespawnEvent;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class HologramManager implements Listener {
 
@@ -98,9 +96,6 @@ public class HologramManager implements Listener {
         /** Returns the alignment encoded into bits 3–4 of the style flags byte. */
         public byte styleFlags() { return (byte) (value << 3); }
     }
-
-    // Matches both &#RRGGBB and #RRGGBB hex color codes (exactly 6 hex digits)
-    private static final Pattern HEX_PATTERN = Pattern.compile("&?#([A-Fa-f0-9]{6})");
 
     private final DAOHub hub;
     private final ConditionHandler conditionHandler;
@@ -299,27 +294,8 @@ public class HologramManager implements Listener {
         return resolver.resolvePlaceholders(text, player, key);
     }
 
-    /**
-     * Converts <#RRGGBB>, &#RRGGBB and #RRGGBB hex codes to the §x§R§R§G§G§B§B format that
-     * LegacyComponentSerializer understands, then converts & to §.
-     */
-    private String parseColors(String text) {
-        // Normalise <#RRGGBB> → &#RRGGBB so the existing parser handles both forms
-        text = text.replaceAll("<#([A-Fa-f0-9]{6})>", "&#$1");
-        Matcher matcher = HEX_PATTERN.matcher(text);
-        StringBuilder sb = new StringBuilder();
-        while (matcher.find()) {
-            StringBuilder replacement = new StringBuilder("§x");
-            for (char c : matcher.group(1).toCharArray()) replacement.append('§').append(c);
-            matcher.appendReplacement(sb, replacement.toString());
-        }
-        matcher.appendTail(sb);
-        return sb.toString().replace('&', '§');
-    }
-
     private Component buildLineComponent(String text, Player player, InteractionKey key) {
-        return LegacyComponentSerializer.legacySection()
-                .deserialize(parseColors(replacePlaceholders(text, player, key)));
+        return ColorText.component(replacePlaceholders(text, player, key));
     }
 
     /** Parses a settings JSON string into a JsonObject, or returns null if absent/invalid. */

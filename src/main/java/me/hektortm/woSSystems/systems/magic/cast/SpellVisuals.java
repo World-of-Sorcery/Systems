@@ -21,7 +21,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import me.hektortm.woSSystems.systems.interactions.DisplayRules;
 import me.hektortm.woSSystems.systems.interactions.DisplaySettings.Vec3;
 import me.hektortm.woSSystems.systems.magic.WandRules;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import me.hektortm.woSSystems.utils.ColorText;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.FireworkEffect;
@@ -302,7 +302,7 @@ public final class SpellVisuals implements Listener {
                     return data == null ? null : SpigotConversionUtil.fromBukkitBlockData(data).getGlobalId();
                 }
                 case "text" -> {
-                    return LegacyComponentSerializer.legacyAmpersand().deserialize(look.text());
+                    return ColorText.component(look.text());
                 }
                 default -> {
                     ItemStack item = litter.modelled(look.item(), look.model());
