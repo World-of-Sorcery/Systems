@@ -193,7 +193,7 @@ public class CitemListener implements Listener {
         e.getClickedBlock().setType(Material.AIR);
         citemDisplays.spawnPickupParticle(loc);
         p.playSound(loc, Sound.BLOCK_CHISELED_BOOKSHELF_PICKUP, 1, 1);
-        p.getInventory().addItem(citemManager.personalize(give, p));
+        me.hektortm.woSSystems.WoSSystems.getInstance().getItemDelivery().give(p, citemManager.personalize(give, p), "Picked up decoration");
     }
 
     private void handleCitemPlacement(PlayerInteractEvent e, Player p, ItemStack item, Action action) {

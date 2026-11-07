@@ -33,6 +33,13 @@ class WebhookRulesTest {
     }
 
     @Test
+    void livePassesPlayerMail() {
+        // "this player has new mail": live players must see it at once.
+        assertThat(WebhookRules.accept("player_mail", WebhookRules.refusesContent(fromEnv(Map.of("WOS_SERVER_TAG", "live"))))).isTrue();
+        assertThat(WebhookRules.accept("mail", WebhookRules.refusesContent(fromEnv(Map.of("WOS_SERVER_TAG", "live"))))).isFalse();
+    }
+
+    @Test
     void liveTakesBalance() {
         assertThat(WebhookRules.accept("player_balance", WebhookRules.refusesContent(fromEnv(Map.of("WOS_SERVER_TAG", "live"))))).isTrue();
     }

@@ -34,7 +34,7 @@ public class StashListener implements Listener {
         return !NOT_STORAGE.contains(type);
     }
 
-    static boolean isUnstashable(ItemStack item) {
+    public static boolean isUnstashable(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return false;
         ItemMeta meta = item.getItemMeta();
         return meta != null && Boolean.TRUE.equals(

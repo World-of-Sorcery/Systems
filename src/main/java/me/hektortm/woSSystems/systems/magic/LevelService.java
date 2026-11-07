@@ -61,7 +61,7 @@ public final class LevelService {
     private void levelUp(Player p, SpellDef spell, int level) {
         List<String> actions = spell.levelUpActions();
         if (actions.isEmpty()) {
-            me.hektortm.wosCore.Utils.info(p, MagicText.FILE, "level.up", "%spell%", spell.name(), "%level%", String.valueOf(level));
+            me.hektortm.wosCore.Utils.success(p, MagicText.FILE, "level.up", "%spell%", spell.name(), "%level%", String.valueOf(level));
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
         } else {
             List<String> lines = new ArrayList<>(actions.size());

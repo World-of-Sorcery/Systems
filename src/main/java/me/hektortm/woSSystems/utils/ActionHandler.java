@@ -86,6 +86,7 @@ public class ActionHandler {
         CRECIPE("crecipe"),
         LOOTTABLE("loottable"),
         QUEST("quest"),
+        MAIL("mail"),
         SPELL("spell");
 
         private final String type;
