@@ -1,0 +1,84 @@
+# /mail: the mailbox (spec docs/superpowers/specs/2026-11-06-mail-system-design.md).
+error:
+  usage:
+    general: "Usage: /mail [send|view|help]"
+    send: "Usage: /mail send <player> (a package) or /mail send <player|@p|online|all> <preset>"
+    view: "Usage: /mail view <player>"
+  unknown: "%player% has never joined."
+  unavailable: "The mailbox can't be reached right now. Try again in a moment."
+
+# What doesn't fit the inventory goes to the mailbox.
+overflow:
+  notice: "§eYour inventory was full: %count% stack(s) went to your mailbox. §7/mail"
+  dropped: "§cYour inventory was full and the mailbox could not be reached: %count% stack(s) dropped at your feet."
+
+notice:
+  join: "§eYou have %count% new mail. §7Click to open your mailbox."
+  arrived: "§eNew mail from %sender%: §f%subject%"
+  full: "§cYour mailbox is full (%count% unclaimed). Claim some mail so players can send you packages again."
+
+# The mailbox chest. The look (title, rows, buttons, colours) is set in the portal's Mail → Appearance.
+box:
+  server: "Server"
+  empty: "Your mailbox is empty."
+  from: "From: %sender%"
+  received: "Received: %date%"
+  items: "%count% item(s)"
+  status:
+    unclaimed: "Unclaimed"
+    claimed: "Claimed"
+    new: "New"
+    read: "Read"
+  hint:
+    open: "Click to open"
+
+letter:
+  from: "From: %sender%"
+  received: "Received: %date%"
+  items: "Items:"
+  unreadable: "An item that can't be shown"
+
+claim:
+  done: "§aClaimed: %subject%"
+  all: "§aClaimed %count% mail."
+  no-room: "§cMake room first: this mail needs %count% free slot(s)."
+  already: "§7This mail was already claimed."
+  hub: "§7Claim this on the main server."
+  busy: "§7Your last claim is still going."
+  failed: "§cThe mailbox could not be reached. Try again in a moment."
+  missing-citem: "§cAn item of this mail no longer exists (%id%) and was left out."
+  unreadable: "§cAn item of this mail could not be read and stays in it."
+
+delete:
+  confirm: "Delete this mail? Its items and rewards are lost."
+  yes: "§cDelete"
+  no: "Keep it"
+  done: "Mail deleted."
+  read-done: "Deleted %count% read mail."
+
+# Player mail: /mail send <player>
+send:
+  self: "§cYou can't send mail to yourself."
+  unknown: "§c%player% has never joined."
+  unstashable: "§c%item% can't be sent by mail."
+  empty: "§cPut something into the package first."
+  cooldown: "§cWait %seconds%s before sending another package."
+  full: "§c%player%'s mailbox is full."
+  done: "§aPackage sent to %player%."
+  failed: "§cThe package could not be sent; your items are back in your inventory."
+  returned: "§7Your items are back in your inventory."
+  box-title: "Package for %player%"
+  dialog-title: "Package for %player%"
+  subject: "Subject"
+  message: "Message (optional)"
+  button: "Send"
+  cancel: "Cancel"
+  default-subject: "A package from %player%"
+  preset-done: "Sent %preset% to %count% player(s)."
+  preset-unknown: "§cThere is no mail preset '%preset%' on this server."
+
+help:
+  header: "Mail Commands:"
+  send: "%cyan_300%/mail send <player> §7- Send a player a package. §8(staff: /mail send <player|@p|online|all> <preset>)"
+  view: "%cyan_300%/mail view <player> §7- Look into a player's mailbox."
+  help: "%cyan_300%/mail help §7- Display this help message."

@@ -114,6 +114,9 @@ public final class WoSSystems extends JavaPlugin {
     private static WoSSystems instance;
     private PacketEventsAPI packetEventsApi;
     private DAOHub daoHub;
+    private me.hektortm.woSSystems.systems.mail.MailClient mailClient;
+    private me.hektortm.woSSystems.systems.mail.ItemDelivery itemDelivery;
+    private me.hektortm.woSSystems.systems.mail.MailService mailService;
     private Handoff handoff;
     private WebhookServer webhookServer;
     private WoSCore core;
@@ -187,6 +190,16 @@ public final class WoSSystems extends JavaPlugin {
             // Content and player/game state come from wos-api .
             ContentRegistry content = new ContentRegistry(this);
             daoHub = new DAOHub(databaseManager, core.getApi(), content);
+            // Mail: the mailbox routes, and the one way the plugin hands out items (what doesn't fit is mailed).
+            mailClient = me.hektortm.woSSystems.systems.mail.MailClient.of(core.getApi(),
+                    task -> Bukkit.getScheduler().runTaskAsynchronously(this, task), getLogger());
+            itemDelivery = new me.hektortm.woSSystems.systems.mail.ItemDelivery(mailClient::overflow,
+                    stack -> me.hektortm.woSSystems.systems.mail.Stacks.attachment(stack,
+                            me.hektortm.woSSystems.systems.citems.CitemManager.citemIdOf(stack)),
+                    me.hektortm.woSSystems.systems.citems.CitemManager::citemIdOf,
+                    task -> Bukkit.getScheduler().runTask(this, task),
+                    (player, key, count) -> me.hektortm.wosCore.Utils.info(player, "mail", key, "%count%", String.valueOf(count)),
+                    getLogger());
             // Tab completion suggests the ids of whatever content is loaded.
             me.hektortm.woSSystems.utils.TabCompletion.contentSource(type -> {
                 var store = content.store(type);
@@ -243,6 +256,8 @@ public final class WoSSystems extends JavaPlugin {
 
         actionHandler = new ActionHandler(daoHub);
         cscreenManager = new me.hektortm.woSSystems.systems.cscreens.CscreenManager(daoHub);
+        mailService = new me.hektortm.woSSystems.systems.mail.MailService(this, daoHub, mailClient);
+        mailService.reloadSettings();
         interactionManager = new InteractionManager(daoHub);
         cooldownManager = new CooldownManager(daoHub);
         nickManager = new NicknameManager(daoHub);
@@ -289,6 +304,7 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "interactions", core);
             lang.loadLangFileExternal(this, "guis", core);
             lang.loadLangFileExternal(this, "cscreens", core);
+            lang.loadLangFileExternal(this, "mail", core);
             lang.loadLangFileExternal(this, "quests", core);
             lang.loadLangFileExternal(this, "dialogs", core);
             lang.loadLangFileExternal(this, "global_stats", core);
@@ -361,6 +377,8 @@ public final class WoSSystems extends JavaPlugin {
     public void onDisable() {
         // onEnable may have stopped early (missing WoSCore, API unreachable), so any
         // of these can still be null here.
+        // Player mail packages waiting for their dialog live only in memory: give them back first.
+        if (mailService != null) mailService.sendBox().returnAll(Bukkit::getPlayer);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (bossBarManager != null) bossBarManager.removeBossBar(p);
             if (regionBossBarManager != null) regionBossBarManager.removeBossBar(p);
@@ -516,6 +534,7 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("profile", new ProfileCommand(profileDialogs));
         cmdReg("gui", new GUICommand(daoHub));
         cmdReg("cscreen", new me.hektortm.woSSystems.systems.cscreens.cmd.CscreenCommand(cscreenManager));
+        cmdReg("mail", new me.hektortm.woSSystems.systems.mail.cmd.MailCommand(mailService, mailClient));
         cmdReg("debugcmd", new debug(daoHub));
         cmdReg("wosdebug", new DebugCommand(debugMode));
         cmdReg("woshelp", new me.hektortm.woSSystems.systems.help.StaffHelpCommand());
@@ -534,6 +553,9 @@ public final class WoSSystems extends JavaPlugin {
 
     private void registerEvents() {
         eventReg(new InterListener(daoHub));
+        eventReg(mailService);
+        eventReg(mailService == null ? null : mailService.gui());
+        eventReg(mailService == null ? null : mailService.sendBox());
         eventReg(new DropListener());
         eventReg(new HoverListener(citemManager));
         eventReg(new CitemListener(daoHub));
@@ -587,6 +609,7 @@ public final class WoSSystems extends JavaPlugin {
     }
 
     private void eventReg(Listener l) {
+        if (l == null) return;
         getServer().getPluginManager().registerEvents(l, this);
     }
 
@@ -708,6 +731,18 @@ public final class WoSSystems extends JavaPlugin {
     }
     public CitemManager getCitemManager() {
         return citemManager;
+    }
+    /** The mailbox routes of wos-api. */
+    public me.hektortm.woSSystems.systems.mail.MailClient getMailClient() {
+        return mailClient;
+    }
+    /** The mailbox in game (null before the plugin finished starting). */
+    public me.hektortm.woSSystems.systems.mail.MailService getMailService() {
+        return mailService;
+    }
+    /** How the plugin hands items to players: what doesn't fit goes to the mail. */
+    public me.hektortm.woSSystems.systems.mail.ItemDelivery getItemDelivery() {
+        return itemDelivery;
     }
     public CitemDisplays getCitemDisplays() {
         return citemDisplays;

@@ -139,6 +139,11 @@ commands:
     usage: /<command> <open|close|help> <player> [id]
     aliases: [cs]
 
+  mail:
+    description: your mailbox; send a player a package; staff send mail presets and look into mailboxes
+    usage: /<command> [send <player> | send <player|@p|online|all> <preset> | view <player> | help]
+    aliases: [mailbox]
+
   cooldown:
     description: cooldown management
     usage: /<command> <give|remove|view> <player> <id>
@@ -200,6 +205,16 @@ permissions:
     description: 'Open a custom screen for a player (/cscreen open).'
   cscreen.close:
     description: 'Close a player''s custom screen (/cscreen close).'
+  mail.use:
+    description: 'Open your own mailbox (/mail).'
+    default: true
+  mail.send:
+    description: 'Send another player a package of items with a message (/mail send <player>).'
+    default: true
+  mail.admin.send:
+    description: 'Send a mail preset to a player, everyone online or everyone (/mail send <player|online|all> <preset>). Content runs it as the console, which needs no node.'
+  mail.admin.view:
+    description: 'Look into another player''s mailbox, read-only (/mail view <player>).'
   debug.use:
     description: 'Turn on debug mode: interaction labels, raw GUI placeholders, action output (/wosdebug).'
   woshelp.use:

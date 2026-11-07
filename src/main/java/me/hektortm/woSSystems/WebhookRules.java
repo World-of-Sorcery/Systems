@@ -26,7 +26,8 @@ final class WebhookRules {
      */
     static boolean accept(String type, boolean live) {
         if (!live) return true;
-        return "player_balance".equals(type) || "player_reset".equals(type);
+        // player_mail: "this player has new mail" (mail is player state, not content).
+        return "player_balance".equals(type) || "player_reset".equals(type) || "player_mail".equals(type);
     }
 
     /**

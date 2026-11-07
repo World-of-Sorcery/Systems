@@ -62,9 +62,7 @@ public class WearListener implements Listener {
             ItemStack worn = p.getInventory().getItem(slot);
             if (!isUnwearable(worn)) return; // already taken off again
             p.getInventory().setItem(slot, null);
-            for (ItemStack rest : p.getInventory().addItem(worn).values()) {
-                p.getWorld().dropItemNaturally(p.getLocation(), rest);
-            }
+            plugin.getItemDelivery().give(p, worn, "Taken off: can't be worn");
         });
     }
 }

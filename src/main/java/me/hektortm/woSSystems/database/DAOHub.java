@@ -91,6 +91,10 @@ public class DAOHub {
         this.crecipeDAO     = new CrecipeDAO(content, api, conditionDAO, log);
         this.questStore     = new QuestStore(s);
         this.magicStores    = new me.hektortm.woSSystems.systems.magic.MagicStores(s);
+        // Mail presets: only their ids are needed in game (tab completion); the API sends them.
+        content.register(new me.hektortm.woSSystems.content.ContentStore<>("mailpresets", "Mail preset",
+                me.hektortm.woSSystems.content.ApiSource.flat(api, "/v1/content/mailpresets", "id",
+                        j -> me.hektortm.woSSystems.content.Json.str(j, "id"), log)));
         this.writer         = s.writer();
     }
     public EconomyDAO getEconomyDAO()           { return economyDAO;        }
@@ -134,6 +138,18 @@ public class DAOHub {
         // cached balance (on the main thread, like every other balance change).
         if ("player_balance".equals(type)) {
             org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> economyDAO.applyExternalChange(id));
+            return;
+        }
+        // New mail for a player (who may be online here): the notice and the sound.
+        if ("player_mail".equals(type)) {
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                if (plugin.getMailService() != null) plugin.getMailService().arrived(id);
+            });
+            return;
+        }
+        // The mailbox's look changed in the portal.
+        if ("mail".equals(type)) {
+            if (plugin.getMailService() != null) plugin.getMailService().reloadSettings();
             return;
         }
         // A staff member reset their test progress in the portal: reload their session here.

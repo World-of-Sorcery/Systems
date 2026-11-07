@@ -18,7 +18,7 @@ class QuestEventsTest {
                 "currency.balance_reached", "currency.earned", "unlockable.unlocked", "fishing.caught",
                 "crecipe.crafted", "cscreen.opened", "cscreen.button_clicked", "loottable.opened",
                 "cooldown.started", "cooldown.expired", "cosmetic.obtained", "cosmetic.equipped",
-                "quest.completed", "quest.failed");
+                "mail.claimed", "quest.completed", "quest.failed");
     }
 
     @Test

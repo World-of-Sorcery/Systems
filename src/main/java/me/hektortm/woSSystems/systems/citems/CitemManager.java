@@ -59,9 +59,9 @@ public class CitemManager {
 
 
         itemToGive.setAmount(amount);
-        t.getInventory().addItem(personalize(itemToGive, t));
+        // What doesn't fit goes to the mail (it used to be lost); the delivery reports citem.obtained.
+        me.hektortm.woSSystems.WoSSystems.getInstance().getItemDelivery().give(t, personalize(itemToGive, t), "Custom item: " + id);
         t.playSound(t.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1 ,1);
-        me.hektortm.woSSystems.systems.quests.QuestHooks.report(t, "citem", "obtained", java.util.Map.of("citem", id));
         Utils.success(s, "citems", "given", "%amount%", String.valueOf(amount), "%id%", id, "%player%", t.getName());
     }
 
@@ -241,16 +241,13 @@ public class CitemManager {
 
     /**
      * Gives {@code amount} of the custom item {@code id} without messages; what
-     * doesn't fit drops at the player's feet. False if the item doesn't exist.
+     * doesn't fit goes to the player's mailbox. False if the item doesn't exist.
      */
     public boolean addCitem(Player p, String id, int amount) {
         ItemStack item = hub.getCitemDAO().getCitem(id);
         if (item == null) return false;
         item.setAmount(amount);
-        for (ItemStack rest : p.getInventory().addItem(personalize(item, p)).values()) {
-            p.getWorld().dropItemNaturally(p.getLocation(), rest);
-        }
-        me.hektortm.woSSystems.systems.quests.QuestHooks.report(p, "citem", "obtained", java.util.Map.of("citem", id));
+        me.hektortm.woSSystems.WoSSystems.getInstance().getItemDelivery().give(p, personalize(item, p), "Custom item: " + id);
         return true;
     }
 

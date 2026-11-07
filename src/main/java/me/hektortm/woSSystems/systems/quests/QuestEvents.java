@@ -31,6 +31,7 @@ public final class QuestEvents {
             "loottable.opened",
             "cooldown.started", "cooldown.expired",
             "cosmetic.obtained", "cosmetic.equipped",
+            "mail.claimed",
             "quest.completed", "quest.failed");
 
     /** Parameters that only label the node in the portal. */

@@ -66,7 +66,7 @@ public final class MagicCommands {
         boolean changed = learn ? magic.players().learn(p.getUniqueId(), id) : magic.players().forget(p.getUniqueId(), id);
         if (!MagicCommand.answer(s)) return;
         String key = learn ? (changed ? "learned" : "already_known") : (changed ? "forgot" : "not_known");
-        Utils.info(s, MagicText.FILE, key, "%player%", p.getName(), "%spell%", name(magic, id));
+        Utils.success(s, MagicText.FILE, key, "%player%", p.getName(), "%spell%", name(magic, id));
     }
 
     private static String name(MagicSystem magic, String id) {
@@ -117,7 +117,7 @@ public final class MagicCommands {
             }
         }
         int testLevel = level;
-        Utils.info(p, MagicText.FILE, "test.loading", "%id%", id);
+        Utils.success(p, MagicText.FILE, "test.loading", "%id%", id);
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             SpellDef d;
             try {
@@ -134,7 +134,7 @@ public final class MagicCommands {
                 }
                 CastService.Result r = magic.cast().cast(p, draft, CastService.Mode.TEST, testLevel);
                 if (r == CastService.Result.CAST || r == CastService.Result.CHARGING) {
-                    Utils.info(p, MagicText.FILE, "test.cast", "%spell%", draft.name(), "%skipped%", String.valueOf(draft.warnings().size()),
+                    Utils.success(p, MagicText.FILE, "test.cast", "%spell%", draft.name(), "%skipped%", String.valueOf(draft.warnings().size()),
                             "%level%", String.valueOf(draft.at(testLevel > 0 ? testLevel : 1).level()), "%max%", String.valueOf(draft.maxLevel()));
                 } else {
                     magic.cast().explain(p, draft, r);
@@ -149,14 +149,14 @@ public final class MagicCommands {
             if (a.length == 0) {
                 List<String> all = new ArrayList<>();
                 for (SpellDef d : magic.stores().spells()) all.add(d.name() + " (" + d.id() + ")");
-                Utils.info(s, MagicText.FILE, "list.all", "%spells%", all.isEmpty() ? "-" : String.join(", ", all));
+                Utils.success(s, MagicText.FILE, "list.all", "%spells%", all.isEmpty() ? "-" : String.join(", ", all));
             }
             return;
         }
         MagicData d = magic.players().data(p);
         List<String> names = new ArrayList<>();
         if (d != null) for (String id : d.spells()) names.add(name(magic, id));
-        Utils.info(s, MagicText.FILE, names.isEmpty() ? "list.none" : "list.known", "%player%", p.getName(),
+        Utils.success(s, MagicText.FILE, names.isEmpty() ? "list.none" : "list.known", "%player%", p.getName(),
                 "%spells%", String.join(", ", names), "%mana%", d == null ? "0" : MagicRules.manaText(d.mana()),
                 "%max%", d == null ? "0" : MagicRules.manaText(d.max()));
     }
@@ -231,7 +231,7 @@ public final class MagicCommands {
         if (!MagicCommand.answer(s)) return;
         MagicData data = magic.players().data(p);
         MagicData.Progress pr = data == null ? MagicData.Progress.START : data.progress(d.id());
-        Utils.info(s, MagicText.FILE, "progress", "%player%", p.getName(), "%spell%", d.name(),
+        Utils.success(s, MagicText.FILE, "progress", "%player%", p.getName(), "%spell%", d.name(),
                 "%level%", String.valueOf(Math.min(pr.level(), d.maxLevel())), "%max%", String.valueOf(d.maxLevel()),
                 "%xp%", MagicRules.manaText(pr.xp()), "%next%", MagicRules.manaText(d.xpToNext(pr.level())));
     }
@@ -287,7 +287,7 @@ public final class MagicCommands {
         else d.setMana(apply.applyAsDouble(d.mana(), amount));
         magic.players().flush(p.getUniqueId());
         if (MagicCommand.answer(s)) {
-            Utils.info(s, MagicText.FILE, max ? "mana.max_set" : "mana.set", "%player%", p.getName(),
+            Utils.success(s, MagicText.FILE, max ? "mana.max_set" : "mana.set", "%player%", p.getName(),
                     "%mana%", MagicRules.manaText(d.mana()), "%max%", MagicRules.manaText(d.max()));
         }
     }
@@ -320,7 +320,7 @@ public final class MagicCommands {
                     }
                     MagicData d = magic.players().data(p);
                     if (MagicCommand.answer(s) && d != null && d.wand() != null) {
-                        Utils.info(s, MagicText.FILE, "wand.colour", "%player%", p.getName(), "%colour%", d.wand().color());
+                        Utils.success(s, MagicText.FILE, "wand.colour", "%player%", p.getName(), "%colour%", d.wand().color());
                     }
                 })
                 .sub("skin", Permissions.WAND_MANAGE, List.of(TabArg.PLAYER, TabArg.content("wandskins")), (s, a) -> {
@@ -344,7 +344,7 @@ public final class MagicCommands {
                         Utils.error(s, MagicText.FILE, "wand.none_for", "%player%", p.getName());
                         return;
                     }
-                    if (MagicCommand.answer(s)) Utils.info(s, MagicText.FILE, "wand.skin", "%player%", p.getName(), "%skin%", k == null ? "default" : k.displayName());
+                    if (MagicCommand.answer(s)) Utils.success(s, MagicText.FILE, "wand.skin", "%player%", p.getName(), "%skin%", k == null ? "default" : k.displayName());
                 })
                 .withHelp("magic_wand");
     }
@@ -368,7 +368,7 @@ public final class MagicCommands {
             Utils.error(s, MagicText.FILE, give ? "wand.no_citem" : "wand.none_for", "%player%", p.getName());
             return;
         }
-        if (MagicCommand.answer(s)) Utils.info(s, MagicText.FILE, give ? "wand.given" : "wand.restored", "%player%", p.getName());
+        if (MagicCommand.answer(s)) Utils.success(s, MagicText.FILE, give ? "wand.given" : "wand.restored", "%player%", p.getName());
     }
 
     // ── /spells ──

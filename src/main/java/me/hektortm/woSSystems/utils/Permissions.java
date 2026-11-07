@@ -25,6 +25,11 @@ public enum Permissions {
     CSCREEN_OPEN("cscreen.open"),
     CSCREEN_CLOSE("cscreen.close"),
 
+    MAIL_USE("mail.use"),
+    MAIL_SEND("mail.send"),
+    MAIL_ADMIN_SEND("mail.admin.send"),
+    MAIL_ADMIN_VIEW("mail.admin.view"),
+
     DEBUG_USE("debug.use"),
     WOSHELP_USE("woshelp.use"),
     // Hides /wos from players' tab completion (default false); the command refuses every
