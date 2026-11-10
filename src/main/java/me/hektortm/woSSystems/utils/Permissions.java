@@ -97,9 +97,6 @@ public enum Permissions {
     COOLDOWNS_REMOVE("cooldowns.remove"),
     COOLDOWNS_VIEW("cooldowns.view"),
 
-    TIME_DATE("time.date"),
-    TIME_FREEZE("time.freeze"),
-
     /** /debugcmd: opens the "test" dialog (a developer's test command). */
     DEBUG_TEST("wossystems.debug.use"),
 

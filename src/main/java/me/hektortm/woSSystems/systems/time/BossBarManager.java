@@ -3,27 +3,43 @@ package me.hektortm.woSSystems.systems.time;
 import me.hektortm.woSSystems.utils.Letters_bg;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
-
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.ShadowColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyFormat;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import static me.hektortm.woSSystems.utils.Letters_bg.*;
+import static me.hektortm.woSSystems.utils.Letters_bg.BORDER_LEFT;
+import static me.hektortm.woSSystems.utils.Letters_bg.BORDER_RIGHT;
+import static me.hektortm.woSSystems.utils.Letters_bg.CLOCK;
+import static me.hektortm.woSSystems.utils.Letters_bg.NEGATIVE_SPACE;
 
+/**
+ * The activity boss bar: the running activity with the time left, or the next one with a
+ * countdown (what to show is decided by {@link TimeEvents}). One bar per player, drawn in the
+ * resource pack's boxed font.
+ *
+ * <p>Boss bars stack in the order a player was given them, so this one is given at join (before
+ * the region bar) and kept for the whole visit: with nothing to show it is just empty.
+ */
 public class BossBarManager {
 
+    /** {@code [label] [clock countdown]}; without a countdown (null) just {@code [label]}. */
+    public record Entry(String label, String countdown) {
+    }
+
     private final Map<UUID, BossBar> playerBars = new HashMap<>();
-    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("(?i)&?#([A-Fa-f0-9]{6})");
-    private static final Pattern LEGACY_COLOR_PATTERN = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
 
     public void createBossBar(Player p) {
         BossBar timeBar = BossBar.bossBar(
-                Component.text(""),
+                Component.empty(),
                 1.0f,
                 BossBar.Color.WHITE,
                 BossBar.Overlay.PROGRESS
@@ -32,44 +48,37 @@ public class BossBarManager {
         playerBars.put(p.getUniqueId(), timeBar);
     }
 
-    public void updateBossBar(Player p, String time, String date, String activityName) {
+    /**
+     * Shows the entries side by side, each as {@code [label] [clock countdown]} (labels may hold
+     * colour codes, {@code &#rrggbb} and formats). {@code progress} is how full the bar is, 0 to 1.
+     * No entries: the bar is emptied.
+     */
+    public void show(Player p, List<Entry> entries, float progress) {
         BossBar bossBar = playerBars.get(p.getUniqueId());
-
         if (bossBar == null) {
             return;
         }
-        // Define the color code for the shadow-free effect (#4e5c24)
-
-        // Apply the color to the text
-        String formattedTime = applyColorAndNegativeSpace(time);
-        String formattedDate = applyColorAndNegativeSpace( date);
-        String formattedActivityName = activityName != null ? applyColorAndNegativeSpace( activityName) : null;
-
-
-        // If there is an active activity, use its name as the title; otherwise, use the time and date
-        String title = (formattedActivityName != null) ? String.format(
-                BORDER_LEFT.getLetter()+NEGATIVE_SPACE.getLetter()+CLOCK.getLetter()+ NEGATIVE_SPACE.getLetter() + "%s" + BORDER_RIGHT.getLetter()
-                        + "  " +
-                        BORDER_LEFT.getLetter() + NEGATIVE_SPACE.getLetter()+CALENDER.getLetter()+ NEGATIVE_SPACE.getLetter() + "%s" + Letters_bg.BORDER_RIGHT.getLetter()
-                        + "  " +
-                        BORDER_LEFT.getLetter() + NEGATIVE_SPACE.getLetter() + "%s" + Letters_bg.BORDER_RIGHT.getLetter(),
-                formattedTime, formattedDate, formattedActivityName) : String.format(
-                BORDER_LEFT.getLetter() + NEGATIVE_SPACE.getLetter()+ CLOCK.getLetter()+ NEGATIVE_SPACE.getLetter() + "%s" + Letters_bg.BORDER_RIGHT.getLetter()
-                        + "  " +
-                        BORDER_LEFT.getLetter() + NEGATIVE_SPACE.getLetter()+CALENDER.getLetter()+ NEGATIVE_SPACE.getLetter() + "%s" + Letters_bg.BORDER_RIGHT.getLetter(),
-                formattedTime, formattedDate);
-
-        String rawJson = String.format("""
-        [
-            {"text":"%s", "shadow_color":0}
-        ]
-        """, title);
-
-        Component component = GsonComponentSerializer.gson().deserialize(rawJson);
-        bossBar.name(component);
+        if (entries.isEmpty()) {
+            hide(p);
+            return;
+        }
+        bossBar.name(title(entries));
+        bossBar.progress(Math.max(0f, Math.min(1f, progress)));
     }
 
+    /** One entry: {@code [left] [clock right]}. */
+    public void show(Player p, String left, String right, float progress) {
+        show(p, List.of(new Entry(left, right)), progress);
+    }
 
+    /** Empties the bar (nothing is running and nothing is coming); it keeps its place on screen. */
+    public void hide(Player p) {
+        BossBar bossBar = playerBars.get(p.getUniqueId());
+        if (bossBar != null) {
+            bossBar.name(Component.empty());
+            bossBar.progress(1f);
+        }
+    }
 
     public void removeBossBar(Player p) {
         BossBar bossBar = playerBars.remove(p.getUniqueId());
@@ -78,124 +87,121 @@ public class BossBarManager {
         }
     }
 
-    private String parseUni(String s) {
-        StringBuilder result = new StringBuilder();
-
-        for (char c : s.toCharArray()) {
-            Letters_bg letterEnum = null;
-
-            // Check if the character is a letter (uppercase or lowercase)
-            if (Character.isLetter(c)) {
-                // Try to map both upper and lower case letters
-                String letter = String.valueOf(c);  // Keep the case as is (no need to convert)
-                try {
-                    letterEnum = Letters_bg.valueOf(letter);  // Directly map the letter to the enum
-                } catch (IllegalArgumentException e) {
-                    // Handle the case where no corresponding enum exists (though we assume all letters are mapped)
-                    // For example, this will never happen if all alphabetic characters are defined in your enum
-                }
-            } else if (Character.isDigit(c)) {
-                // Map digits
-                switch (c) {
-                    case '0': letterEnum = Letters_bg.ZERO; break;
-                    case '1': letterEnum = Letters_bg.ONE; break;
-                    case '2': letterEnum = Letters_bg.TWO; break;
-                    case '3': letterEnum = Letters_bg.THREE; break;
-                    case '4': letterEnum = Letters_bg.FOUR; break;
-                    case '5': letterEnum = Letters_bg.FIVE; break;
-                    case '6': letterEnum = Letters_bg.SIX; break;
-                    case '7': letterEnum = Letters_bg.SEVEN; break;
-                    case '8': letterEnum = Letters_bg.EIGHT; break;
-                    case '9': letterEnum = Letters_bg.NINE; break;
-                }
-            } else if (c == ':') {
-                // Handle colon
-                letterEnum = Letters_bg.COLON;
-            } else if (c == ' ') {
-                letterEnum = Letters_bg.SPACE;
-            } else if (c == ',') {
-                letterEnum = Letters_bg.COMMA;
-            }
-
-            // Append the mapped character or the original character if no mapping exists
-            if (letterEnum != null) {
-                result.append(letterEnum.getLetter());  // Append the Unicode representation of the letter
-            } else {
-                result.append(c);  // Keep non-mapped characters as they are
-            }
-        }
-
-        return result.toString();
+    /** The player's bar, for tests. */
+    BossBar bar(Player p) {
+        return playerBars.get(p.getUniqueId());
     }
-    private String applyColorAndNegativeSpace(String input) {
-        StringBuilder result = new StringBuilder();
 
-        // Step 1: Replace hex colors (&#rrggbb → §x§r§r§g§g§b§b)
-        Matcher hexMatcher = HEX_COLOR_PATTERN.matcher(input);
-        StringBuffer hexBuffer = new StringBuffer();
-        while (hexMatcher.find()) {
-            String hex = hexMatcher.group(1); // e.g., "ffaa00"
-            StringBuilder replacement = new StringBuilder("§x");
-            for (char c : hex.toCharArray()) {
-                replacement.append('§').append(c);
-            }
-            hexMatcher.appendReplacement(hexBuffer, Matcher.quoteReplacement(replacement.toString()));
+    /** {@link #title(List)} of one entry. */
+    static Component title(String left, String right) {
+        return title(List.of(new Entry(left, right)));
+    }
+
+    /**
+     * The bar's text: per entry {@code [label]  [clock countdown]}, entries a little further apart,
+     * in the boxed font and without a shadow (the boxes carry their own). Each box is its own
+     * piece, so a colour in a label ends with it.
+     */
+    static Component title(List<Entry> entries) {
+        String neg = NEGATIVE_SPACE.getLetter();
+        TextComponent.Builder out = Component.text().shadowColor(ShadowColor.shadowColor(0));
+        for (int i = 0; i < entries.size(); i++) {
+            Entry entry = entries.get(i);
+            out.append(Component.text((i > 0 ? "    " : "") + BORDER_LEFT.getLetter() + neg))
+                    .append(boxed(entry.label()).children())
+                    .append(Component.text(BORDER_RIGHT.getLetter()));
+            if (entry.countdown() == null) continue;
+            out.append(Component.text("  " + BORDER_LEFT.getLetter() + neg + CLOCK.getLetter() + neg))
+                    .append(boxed(entry.countdown()).children())
+                    .append(Component.text(BORDER_RIGHT.getLetter()));
         }
-        hexMatcher.appendTail(hexBuffer);
-        String coloredInput = hexBuffer.toString();
+        return out.build();
+    }
 
-        // Step 2: Replace legacy codes (&a, &l → §a, §l)
-        Matcher legacyMatcher = LEGACY_COLOR_PATTERN.matcher(coloredInput);
-        coloredInput = legacyMatcher.replaceAll("§$1");
-
-        // Step 3: Apply character mapping and preserve current formatting
-        StringBuilder currentFormat = new StringBuilder(); // Holds active formatting (e.g., §6§l)
-        char[] chars = coloredInput.toCharArray();
-
-        for (int i = 0; i < chars.length; i++) {
-            char c = chars[i];
-
-            // Handle § formatting codes
-            if (c == '§' && i + 1 < chars.length) {
-                currentFormat.append(c).append(chars[i + 1]);
-                i++; // Skip formatting code
+    /**
+     * {@code text} in the boxed font, one piece per stretch of one style. Understands what chat
+     * does: {@code &6} / {@code §6} colours, {@code &l} and the other formats, {@code &r}, and hex
+     * colours as {@code &#rrggbb}, {@code §#rrggbb} or {@code #rrggbb}. A colour ends the formats
+     * before it, as in chat.
+     */
+    private static TextComponent boxed(String text) {
+        TextComponent.Builder out = Component.text();
+        StringBuilder run = new StringBuilder();
+        Style style = Style.empty();
+        int i = 0;
+        while (i < text.length()) {
+            char c = text.charAt(i);
+            boolean code = (c == '&' || c == '§') && i + 1 < text.length();
+            TextColor hex = code ? hexAt(text, i + 1) : hexAt(text, i);
+            if (hex != null) {
+                flush(out, run, style);
+                style = Style.style(hex);
+                i += code ? 8 : 7;
                 continue;
             }
-
-            Letters_bg letterEnum = null;
-            if (Character.isLetter(c)) {
-                try {
-                    letterEnum = Letters_bg.valueOf(String.valueOf(c));
-                } catch (IllegalArgumentException ignored) {}
-            } else if (Character.isDigit(c)) {
-                letterEnum = switch (c) {
-                    case '0' -> Letters_bg.ZERO;
-                    case '1' -> Letters_bg.ONE;
-                    case '2' -> Letters_bg.TWO;
-                    case '3' -> Letters_bg.THREE;
-                    case '4' -> Letters_bg.FOUR;
-                    case '5' -> Letters_bg.FIVE;
-                    case '6' -> Letters_bg.SIX;
-                    case '7' -> Letters_bg.SEVEN;
-                    case '8' -> Letters_bg.EIGHT;
-                    case '9' -> Letters_bg.NINE;
-                    default -> null;
-                };
-            } else if (c == ' ') {
-                letterEnum = Letters_bg.SPACE;
-            } else if (c == ':') {
-                letterEnum = Letters_bg.COLON;
+            LegacyFormat format = code ? LegacyComponentSerializer.parseChar(text.charAt(i + 1)) : null;
+            if (format != null) {
+                flush(out, run, style);
+                style = apply(style, format);
+                i += 2;
+                continue;
             }
-
-            if (letterEnum != null) {
-                result.append(currentFormat).append(letterEnum.getLetter()).append(NEGATIVE_SPACE.getLetter());
-            } else {
-                result.append(currentFormat).append(c).append(NEGATIVE_SPACE.getLetter());
-            }
+            run.append(glyph(c)).append(NEGATIVE_SPACE.getLetter());
+            i++;
         }
-
-        return result.toString();
+        flush(out, run, style);
+        return out.build();
     }
 
+    private static Style apply(Style style, LegacyFormat format) {
+        if (format.reset()) return Style.empty();
+        if (format.color() != null) return Style.style(format.color());
+        if (format.decoration() != null) return style.decoration(format.decoration(), true);
+        return style;
+    }
 
+    /** The colour of a {@code #rrggbb} starting at {@code at}, or null. */
+    private static TextColor hexAt(String text, int at) {
+        if (at + 7 > text.length() || text.charAt(at) != '#') return null;
+        return TextColor.fromHexString(text.substring(at, at + 7));
+    }
+
+    private static void flush(TextComponent.Builder out, StringBuilder run, Style style) {
+        if (run.isEmpty()) return;
+        out.append(Component.text(run.toString(), style));
+        run.setLength(0);
+    }
+
+    /** The boxed glyph of a letter, digit, space or colon; any other character as it is. */
+    private static String glyph(char c) {
+        Letters_bg letter = null;
+        if (Character.isLetter(c)) {
+            try {
+                letter = Letters_bg.valueOf(String.valueOf(c));
+            } catch (IllegalArgumentException ignored) {
+                // a letter the font has no box for: drawn as it is
+            }
+        } else if (Character.isDigit(c)) {
+            letter = switch (c) {
+                case '0' -> Letters_bg.ZERO;
+                case '1' -> Letters_bg.ONE;
+                case '2' -> Letters_bg.TWO;
+                case '3' -> Letters_bg.THREE;
+                case '4' -> Letters_bg.FOUR;
+                case '5' -> Letters_bg.FIVE;
+                case '6' -> Letters_bg.SIX;
+                case '7' -> Letters_bg.SEVEN;
+                case '8' -> Letters_bg.EIGHT;
+                case '9' -> Letters_bg.NINE;
+                default -> null;
+            };
+        } else if (c == ' ') {
+            letter = Letters_bg.SPACE;
+        } else if (c == ':') {
+            letter = Letters_bg.COLON;
+        } else if (c == '|') {
+            letter = Letters_bg.PIPE;
+        }
+        return letter != null ? letter.getLetter() : String.valueOf(c);
+    }
 }

@@ -51,9 +51,6 @@ import me.hektortm.woSSystems.systems.loottables.cmd.LoottableCommand;
 import me.hektortm.woSSystems.tablist.TablistManager;
 import me.hektortm.woSSystems.systems.time.BossBarManager;
 import me.hektortm.woSSystems.systems.time.TimeEvents;
-import me.hektortm.woSSystems.systems.time.TimeManager;
-import me.hektortm.woSSystems.systems.time.cmd.Calender;
-import me.hektortm.woSSystems.systems.time.cmd.TimeCommand;
 import me.hektortm.woSSystems.systems.professions.fishing.FishingListener;
 import me.hektortm.woSSystems.systems.citems.cmd.CgiveCommand;
 import me.hektortm.woSSystems.systems.citems.cmd.CitemCommand;
@@ -142,7 +139,6 @@ public final class WoSSystems extends JavaPlugin {
     private me.hektortm.woSSystems.systems.cscreens.CscreenManager cscreenManager;
     private BossBarManager bossBarManager;
     private TimeEvents timeEvents;
-    private TimeManager timeManager;
     private RegionBossBar regionBossBarManager;
     private TablistManager tab;
     private final me.hektortm.woSSystems.tablist.Nametags nametags = new me.hektortm.woSSystems.tablist.Nametags();
@@ -239,7 +235,6 @@ public final class WoSSystems extends JavaPlugin {
         regionBossBarManager = new RegionBossBar();
         tab = new TablistManager(nametags);
         timeEvents = new TimeEvents(daoHub, bossBarManager);
-        timeManager = new TimeManager(timeEvents, daoHub);
         lang = new LangManager(core);
         log = new LogManager(lang, core);
 
@@ -305,6 +300,7 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "guis", core);
             lang.loadLangFileExternal(this, "cscreens", core);
             lang.loadLangFileExternal(this, "mail", core);
+            lang.loadLangFileExternal(this, "activities", core);
             lang.loadLangFileExternal(this, "quests", core);
             lang.loadLangFileExternal(this, "dialogs", core);
             lang.loadLangFileExternal(this, "global_stats", core);
@@ -322,18 +318,14 @@ public final class WoSSystems extends JavaPlugin {
 
         // Finalize initialization
 
-        timeManager.loadConfiguration();
-        timeManager.loadGameStateConfig();
-        timeManager.loadGameState();
-        timeManager.loadConfig();
-        timeManager.initializeMonthNames();
-        timeManager.startInGameClock();
         for (Player p : Bukkit.getOnlinePlayers()) {
             bossBarManager.removeBossBar(p);
             bossBarManager.createBossBar(p);
             regionBossBarManager.removeBossBar(p);
             regionBossBarManager.createBossBar(p);
         }
+        // Time events run on real time: the activity boss bar and the start / end interactions.
+        timeEvents.start();
         registerBasicCommands();
         registerCommands();
         registerEvents();
@@ -391,7 +383,6 @@ public final class WoSSystems extends JavaPlugin {
         }
         if (networkTablist != null) networkTablist.stop();
         nametags.clear();
-        if (timeManager != null) timeManager.saveGameState();
 //        PacketEvents.getAPI().terminate();
         if (webhookServer != null) webhookServer.stop();
         if (crecipeManager != null) crecipeManager.stop();
@@ -527,7 +518,6 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("r", new me.hektortm.woSSystems.systems.chat.cmd.ReplyCommand(msgService));
         cmdReg("loottable", new LoottableCommand(daoHub, lootTableManager));
         cmdReg("sign", new SignCommand(citemManager, ecoManager));
-        cmdReg("time", new TimeCommand(timeManager, this, lang));
         cmdReg("cosmetic", new CosmeticCommand(cosmeticManager, daoHub));
         cmdReg("badges", new QuickCommands.BadgeCommand());
         cmdReg("titles", new QuickCommands.TitleCommand());
@@ -540,7 +530,6 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("woshelp", new me.hektortm.woSSystems.systems.help.StaffHelpCommand());
         cmdReg("wos", new me.hektortm.woSSystems.core.WosConsoleCommand());
         cmdReg("cooldown", new CooldownCommand(daoHub));
-        cmdReg("calendar", new Calender());
         cmdReg("link", new LinkCommand());
         cmdReg("dialog", new me.hektortm.woSSystems.systems.dialogs.cmd.DialogCommand(daoHub));
         cmdReg("quest", new QuestCommand(questEngine));
@@ -758,9 +747,6 @@ public final class WoSSystems extends JavaPlugin {
     }
     public CosmeticManager getCosmeticManager() {
         return cosmeticManager;
-    }
-    public TimeManager getTimeManager() {
-        return timeManager;
     }
     public ProfileDialogs getProfileDialogs() {
         return profileDialogs;
