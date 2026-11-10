@@ -110,10 +110,6 @@ commands:
     description: roll loot tables for players
     permission: loottable.give
     usage: /<command> <trigger|chest|help>
-  # Time Commands
-  time:
-    description: View and manipulate the time
-    usage: /<command> [date|reload|freeze]
 # Cosmetic Commands
   cosmetic:
     description: cosmetic management
@@ -148,11 +144,6 @@ commands:
     description: cooldown management
     usage: /<command> <give|remove|view> <player> <id>
     aliases: [cd]
-
-  calendar:
-    aliases: [calender, cal]
-    description: calendar management
-    usage: /<command> <view|set> [date]
 
   link:
     description: link management
@@ -315,10 +306,6 @@ permissions:
     description: 'Remove a player''s cooldown (/cooldown remove).'
   cooldowns.view:
     description: 'See a player''s cooldowns (/cooldown view).'
-  time.date:
-    description: 'See the in-game date (/time date).'
-  time.freeze:
-    description: 'Freeze and unfreeze the in-game time (/time freeze).'
   wossystems.debug.use:
     description: 'Run the developer test command (/debugcmd).'
   quest.admin.start:

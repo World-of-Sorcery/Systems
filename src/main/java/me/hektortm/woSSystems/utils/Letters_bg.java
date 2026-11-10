@@ -71,6 +71,7 @@ public enum Letters_bg {
 
     COLON("\uE565"),
     COMMA("\uE566"),
+    PIPE("\uE912"),
 
     CLOCK("\uE567"),
     CALENDER("\uE568"),

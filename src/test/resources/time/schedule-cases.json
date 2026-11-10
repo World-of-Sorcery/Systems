@@ -1,0 +1,146 @@
+[
+  {
+    "name": "one-off inside the range",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "none", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-01T00:00:00", "to": "2026-12-01T00:00:00",
+    "starts": ["2026-11-14T20:00:00"]
+  },
+  {
+    "name": "one-off outside the range",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "none", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-12-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": []
+  },
+  {
+    "name": "started before the range, still running over midnight",
+    "schedule": { "starts_at": "2026-11-14T23:00:00", "duration_minutes": 120, "repeat": "none", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-15T00:30:00", "to": "2026-11-16T00:00:00",
+    "starts": ["2026-11-14T23:00:00"]
+  },
+  {
+    "name": "ends exactly when the range starts: not in it",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 60, "repeat": "none", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-14T21:00:00", "to": "2026-11-15T00:00:00",
+    "starts": []
+  },
+  {
+    "name": "starts exactly when the range ends: not in it",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 60, "repeat": "none", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-14T00:00:00", "to": "2026-11-14T20:00:00",
+    "starts": []
+  },
+  {
+    "name": "daily across a month end",
+    "schedule": { "starts_at": "2026-11-28T08:00:00", "duration_minutes": 30, "repeat": "daily", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-29T00:00:00", "to": "2026-12-03T00:00:00",
+    "starts": ["2026-11-29T08:00:00", "2026-11-30T08:00:00", "2026-12-01T08:00:00", "2026-12-02T08:00:00"]
+  },
+  {
+    "name": "every 3 days",
+    "schedule": { "starts_at": "2026-11-01T08:00:00", "duration_minutes": 30, "repeat": "daily", "repeat_interval": 3, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-01T00:00:00", "to": "2026-11-15T00:00:00",
+    "starts": ["2026-11-01T08:00:00", "2026-11-04T08:00:00", "2026-11-07T08:00:00", "2026-11-10T08:00:00", "2026-11-13T08:00:00"]
+  },
+  {
+    "name": "every 2 days, range starting between two occurrences",
+    "schedule": { "starts_at": "2026-11-01T08:00:00", "duration_minutes": 30, "repeat": "daily", "repeat_interval": 2, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-11-10T00:00:00", "to": "2026-11-16T00:00:00",
+    "starts": ["2026-11-11T08:00:00", "2026-11-13T08:00:00", "2026-11-15T08:00:00"]
+  },
+  {
+    "name": "weekly without weekdays: the weekday of the start (Saturday)",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-12-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": ["2026-12-05T20:00:00", "2026-12-12T20:00:00", "2026-12-19T20:00:00", "2026-12-26T20:00:00"]
+  },
+  {
+    "name": "every 2 weeks on Saturday and Sunday",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "weekly", "repeat_interval": 2, "repeat_weekdays": [6, 7], "repeat_until": null },
+    "from": "2026-11-01T00:00:00", "to": "2026-12-20T00:00:00",
+    "starts": ["2026-11-14T20:00:00", "2026-11-15T20:00:00", "2026-11-28T20:00:00", "2026-11-29T20:00:00", "2026-12-12T20:00:00", "2026-12-13T20:00:00"]
+  },
+  {
+    "name": "weekdays given out of order give the same answer",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [7, 6], "repeat_until": null },
+    "from": "2026-11-14T00:00:00", "to": "2026-11-23T00:00:00",
+    "starts": ["2026-11-14T20:00:00", "2026-11-15T20:00:00", "2026-11-21T20:00:00", "2026-11-22T20:00:00"]
+  },
+  {
+    "name": "weekly starting on a Monday but repeating on Saturday: nothing on the Monday",
+    "schedule": { "starts_at": "2026-11-09T18:00:00", "duration_minutes": 60, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [6], "repeat_until": null },
+    "from": "2026-11-01T00:00:00", "to": "2026-11-30T00:00:00",
+    "starts": ["2026-11-14T18:00:00", "2026-11-21T18:00:00", "2026-11-28T18:00:00"]
+  },
+  {
+    "name": "weekly Monday and Wednesday starting on a Wednesday: the Monday before does not exist",
+    "schedule": { "starts_at": "2026-11-11T10:00:00", "duration_minutes": 45, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [1, 3], "repeat_until": null },
+    "from": "2026-11-01T00:00:00", "to": "2026-11-24T00:00:00",
+    "starts": ["2026-11-11T10:00:00", "2026-11-16T10:00:00", "2026-11-18T10:00:00", "2026-11-23T10:00:00"]
+  },
+  {
+    "name": "every 3 weeks, range far from the start",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "weekly", "repeat_interval": 3, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2027-01-01T00:00:00", "to": "2027-02-01T00:00:00",
+    "starts": ["2027-01-16T20:00:00"]
+  },
+  {
+    "name": "monthly on the 31st skips the short months",
+    "schedule": { "starts_at": "2026-01-31T12:00:00", "duration_minutes": 60, "repeat": "monthly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-01-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": ["2026-01-31T12:00:00", "2026-03-31T12:00:00", "2026-05-31T12:00:00", "2026-07-31T12:00:00", "2026-08-31T12:00:00", "2026-10-31T12:00:00", "2026-12-31T12:00:00"]
+  },
+  {
+    "name": "monthly on the 30th skips February",
+    "schedule": { "starts_at": "2026-01-30T12:00:00", "duration_minutes": 60, "repeat": "monthly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-02-01T00:00:00", "to": "2026-04-01T00:00:00",
+    "starts": ["2026-03-30T12:00:00"]
+  },
+  {
+    "name": "every 2 months",
+    "schedule": { "starts_at": "2026-01-15T07:00:00", "duration_minutes": 60, "repeat": "monthly", "repeat_interval": 2, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-01-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": ["2026-01-15T07:00:00", "2026-03-15T07:00:00", "2026-05-15T07:00:00", "2026-07-15T07:00:00", "2026-09-15T07:00:00", "2026-11-15T07:00:00"]
+  },
+  {
+    "name": "yearly on 29 February happens in leap years only",
+    "schedule": { "starts_at": "2024-02-29T09:00:00", "duration_minutes": 60, "repeat": "yearly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2024-01-01T00:00:00", "to": "2034-01-01T00:00:00",
+    "starts": ["2024-02-29T09:00:00", "2028-02-29T09:00:00", "2032-02-29T09:00:00"]
+  },
+  {
+    "name": "yearly across the year end, the first one still running when the range starts",
+    "schedule": { "starts_at": "2025-12-31T23:00:00", "duration_minutes": 120, "repeat": "yearly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-01-01T00:00:00", "to": "2028-01-01T00:00:00",
+    "starts": ["2025-12-31T23:00:00", "2026-12-31T23:00:00", "2027-12-31T23:00:00"]
+  },
+  {
+    "name": "every 2 years",
+    "schedule": { "starts_at": "2026-06-21T12:00:00", "duration_minutes": 60, "repeat": "yearly", "repeat_interval": 2, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2027-01-01T00:00:00", "to": "2031-01-01T00:00:00",
+    "starts": ["2028-06-21T12:00:00", "2030-06-21T12:00:00"]
+  },
+  {
+    "name": "an occurrence on the last day is kept",
+    "schedule": { "starts_at": "2026-11-01T08:00:00", "duration_minutes": 30, "repeat": "daily", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": "2026-11-03" },
+    "from": "2026-11-01T00:00:00", "to": "2026-12-01T00:00:00",
+    "starts": ["2026-11-01T08:00:00", "2026-11-02T08:00:00", "2026-11-03T08:00:00"]
+  },
+  {
+    "name": "an occurrence the day after the last day is dropped",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": "2026-11-27" },
+    "from": "2026-11-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": ["2026-11-14T20:00:00", "2026-11-21T20:00:00"]
+  },
+  {
+    "name": "the last day lies before the first weekly occurrence: nothing",
+    "schedule": { "starts_at": "2026-11-09T18:00:00", "duration_minutes": 60, "repeat": "weekly", "repeat_interval": 1, "repeat_weekdays": [6], "repeat_until": "2026-11-13" },
+    "from": "2026-11-01T00:00:00", "to": "2027-01-01T00:00:00",
+    "starts": []
+  },
+  {
+    "name": "a range entirely before the start",
+    "schedule": { "starts_at": "2026-11-14T20:00:00", "duration_minutes": 90, "repeat": "daily", "repeat_interval": 1, "repeat_weekdays": [], "repeat_until": null },
+    "from": "2026-10-01T00:00:00", "to": "2026-11-01T00:00:00",
+    "starts": []
+  }
+]

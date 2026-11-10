@@ -1,0 +1,6 @@
+# Time events ("activities") in the boss bar.
+# The bar shows the running activity with the time left, or this word, the next
+# activity's name and a countdown, as "Next: Hunt | 2h 5m". Letters, digits, spaces, ":"
+# and "|" are drawn in the boxed font; other characters appear as they are.
+bar:
+  next: "Next:"

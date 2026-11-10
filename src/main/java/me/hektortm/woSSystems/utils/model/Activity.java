@@ -1,59 +1,71 @@
 package me.hektortm.woSSystems.utils.model;
 
-import me.hektortm.woSSystems.database.annotation.Column;
-import me.hektortm.woSSystems.database.annotation.Table;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.Set;
 
-@Table("activities")
+/**
+ * A time event ("activity"): it happens at a real date and time, once or on a repeat.
+ * {@code startsAt} is a wall clock time in the schedule time zone the API hands out
+ * (see {@code TimeDAO.zone()}), so "Saturdays at 20:00" stays at 20:00 across summer
+ * time changes. When it happens is worked out by {@code ActivitySchedule}.
+ */
 public class Activity extends BaseEntity {
 
-    @Column(name = "isEnabled", defaultValue = "FALSE")
+    public enum Repeat {
+        NONE, DAILY, WEEKLY, MONTHLY, YEARLY;
+
+        /** The API's lower-case name ("weekly"); null or empty is {@link #NONE}. */
+        public static Repeat of(String name) {
+            return name == null || name.isEmpty() ? NONE : valueOf(name.toUpperCase(Locale.ROOT));
+        }
+    }
+
     private final boolean isEnabled;
-
-    @Column
     private final String name;
-
-    @Column
     private final String message;
-
-    @Column(name = "isDefault", defaultValue = "FALSE")
-    private final boolean isDefault;
-
-    @Column
-    private final String date;
-
-    @Column(name = "start_time", defaultValue = "0")
-    private final int startTime;
-
-    @Column(name = "end_time", defaultValue = "0")
-    private final int endTime;
-
-    @Column(name = "start_interaction")
+    private final LocalDateTime startsAt;
+    private final int durationMinutes;
+    private final Repeat repeat;
+    private final int repeatInterval;
+    private final Set<DayOfWeek> repeatWeekdays;
+    private final LocalDate repeatUntil;
     private final String startInteraction;
-
-    @Column(name = "end_interaction")
     private final String endInteraction;
 
-    public Activity(String id, boolean isEnabled, String name, String message, boolean isDefault,
-                    String date, int startTime, int endTime, String startInteraction, String endInteraction) {
+    /**
+     * @param repeatWeekdays weekly only; empty = the weekday of {@code startsAt}
+     * @param repeatUntil    the last day an occurrence may start; null = forever
+     */
+    public Activity(String id, boolean isEnabled, String name, String message,
+                    LocalDateTime startsAt, int durationMinutes, Repeat repeat, int repeatInterval,
+                    Set<DayOfWeek> repeatWeekdays, LocalDate repeatUntil,
+                    String startInteraction, String endInteraction) {
         super(id);
         this.isEnabled        = isEnabled;
         this.name             = name;
         this.message          = message;
-        this.isDefault        = isDefault;
-        this.date             = date;
-        this.startTime        = startTime;
-        this.endTime          = endTime;
+        this.startsAt         = startsAt;
+        this.durationMinutes  = durationMinutes;
+        this.repeat           = repeat == null ? Repeat.NONE : repeat;
+        this.repeatInterval   = repeatInterval;
+        this.repeatWeekdays   = repeatWeekdays == null ? Set.of() : Set.copyOf(repeatWeekdays);
+        this.repeatUntil      = repeatUntil;
         this.startInteraction = startInteraction;
         this.endInteraction   = endInteraction;
     }
 
-    public boolean getIsEnabled()        { return isEnabled;        }
-    public String  getName()             { return name;             }
-    public String  getMessage()          { return message;          }
-    public boolean isDefault()           { return isDefault;        }
-    public String  getDate()             { return date;             }
-    public int     getStartTime()        { return startTime;        }
-    public int     getEndTime()          { return endTime;          }
-    public String  getStartInteraction() { return startInteraction; }
-    public String  getEndInteraction()   { return endInteraction;   }
+    public boolean        getIsEnabled()        { return isEnabled;        }
+    public String         getName()             { return name;             }
+    public String         getMessage()          { return message;          }
+    public LocalDateTime  getStartsAt()         { return startsAt;         }
+    public int            getDurationMinutes()  { return durationMinutes;  }
+    public Repeat         getRepeat()           { return repeat;           }
+    public int            getRepeatInterval()   { return repeatInterval;   }
+    public Set<DayOfWeek> getRepeatWeekdays()   { return repeatWeekdays;   }
+    public LocalDate      getRepeatUntil()      { return repeatUntil;      }
+    public String         getStartInteraction() { return startInteraction; }
+    public String         getEndInteraction()   { return endInteraction;   }
 }
