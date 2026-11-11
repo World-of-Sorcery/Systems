@@ -18,13 +18,18 @@ class MagicDataTest {
     @Test
     void readsTheSpellbookSettings() {
         MagicSettings s = MagicSettings.parse(JsonParser.parseString(
-                "{\"xp_bar_full\":\"bar_full\",\"xp_bar_empty\":\"bar_empty\",\"mastered_tooltip\":\"gold\"}").getAsJsonObject());
+                "{\"xp_bar_full\":\"bar_full\",\"xp_bar_empty\":\"bar_empty\",\"mastered_tooltip\":\"gold\","
+                        + "\"book_background\":\"book_bg\",\"picker_background\":\"picker_bg\"}").getAsJsonObject());
         assertThat(s.xpBarFull()).isEqualTo("bar_full");
         assertThat(s.xpBarEmpty()).isEqualTo("bar_empty");
         assertThat(s.masteredTooltip()).isEqualTo("gold");
+        assertThat(s.bookBackground()).isEqualTo("book_bg");
+        assertThat(s.pickerBackground()).isEqualTo("picker_bg");
         assertThat(START.xpBarFull()).isEmpty();
         assertThat(START.xpBarEmpty()).isEmpty();
         assertThat(START.masteredTooltip()).isEmpty();
+        assertThat(START.bookBackground()).isEmpty();
+        assertThat(START.pickerBackground()).isEmpty();
     }
 
     @Test

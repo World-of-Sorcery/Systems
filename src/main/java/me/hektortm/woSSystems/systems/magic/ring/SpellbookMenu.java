@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.magic.ring;
 
 import me.hektortm.woSSystems.WoSSystems;
+import me.hektortm.woSSystems.systems.guis.GuiBackground;
 import me.hektortm.woSSystems.systems.guis.GuiRules;
 import me.hektortm.woSSystems.systems.magic.MagicData;
 import me.hektortm.woSSystems.systems.magic.MagicRules;
@@ -72,7 +73,8 @@ public final class SpellbookMenu implements Listener {
         if (d == null) return;
         int pg = Math.floorMod(page, MagicRules.PAGES);
         Book b = new Book(p, pg);
-        b.inv = Bukkit.createInventory(b, 54, MagicText.component("book.title", "%page%", String.valueOf(pg + 1)));
+        b.inv = Bukkit.createInventory(b, 54, withBackground(magic, magic.stores().settings().bookBackground(),
+                MagicText.component("book.title", "%page%", String.valueOf(pg + 1))));
         draw(b, d);
         p.openInventory(b.inv);
     }
@@ -214,6 +216,14 @@ public final class SpellbookMenu implements Listener {
     /** {@code &} / {@code §} / hex colour text as an item line (not italic). */
     static Component color(String text) {
         return ColorText.component(text).decoration(TextDecoration.ITALIC, false);
+    }
+
+    /**
+     * {@code title} with the background glyph {@code id} (a magic setting, "" = none) behind a
+     * 6-row screen; just the title for an unknown glyph or one that isn't a 6-row background.
+     */
+    static Component withBackground(MagicSystem magic, String id, Component title) {
+        return id.isEmpty() ? title : GuiBackground.titleWith(magic.glyph(id), 6, title);
     }
 
     /** Runs a screen change on the next tick (opening an inventory inside a click event is unsafe). */

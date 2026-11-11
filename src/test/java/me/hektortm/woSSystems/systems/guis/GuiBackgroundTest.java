@@ -3,6 +3,8 @@ package me.hektortm.woSSystems.systems.guis;
 import me.hektortm.woSSystems.systems.resourcepack.Glyph;
 import me.hektortm.woSSystems.systems.resourcepack.Shift;
 import me.hektortm.woSSystems.utils.model.BackgroundRule;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GuiBackgroundTest {
@@ -105,5 +108,22 @@ class GuiBackgroundTest {
         assertTrue(GuiBackground.fits(background(0), 3), "rows 0 = made for any size");
         assertTrue(GuiBackground.fits(background(0), 6));
         assertFalse(GuiBackground.fits(new Glyph("i", "icon", 0xE901, 9, 8, 9, 0), 3));
+    }
+
+    @Test
+    void titleWithDrawsAFittingBackgroundInFrontOfTheTitle() {
+        Component title = Component.text("Spellbook");
+        String plain = PlainTextComponentSerializer.plainText().serialize(GuiBackground.titleWith(background(6), 6, title));
+        String prefix = GuiBackground.titlePrefix(background(6)).replace("&f", "").replace("&r", "");
+        assertEquals(prefix + "Spellbook", plain);
+        assertEquals(prefix + "Spellbook", PlainTextComponentSerializer.plainText().serialize(GuiBackground.titleWith(background(0), 6, title)));
+    }
+
+    @Test
+    void titleWithLeavesTheTitleAloneWhenTheGlyphDoesNotFit() {
+        Component title = Component.text("Spellbook");
+        assertSame(title, GuiBackground.titleWith(null, 6, title));
+        assertSame(title, GuiBackground.titleWith(background(3), 6, title));
+        assertSame(title, GuiBackground.titleWith(new Glyph("i", "icon", 0xE901, 9, 8, 9, 0), 6, title));
     }
 }

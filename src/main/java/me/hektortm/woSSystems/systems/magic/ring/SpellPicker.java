@@ -98,7 +98,7 @@ public final class SpellPicker implements Listener {
                 ? MagicText.component("picker.title_slot", "%page%", String.valueOf(page + 1), "%slot%", String.valueOf(pos + 1))
                 : MagicText.component("picker.title", "%key%", String.valueOf(MagicRules.keyOf(pos, wandSlot)));
         Picker h = new Picker(p, page, pos, pp, pages, shown, q);
-        h.inv = Bukkit.createInventory(h, 54, title);
+        h.inv = Bukkit.createInventory(h, 54, SpellbookMenu.withBackground(magic, magic.stores().settings().pickerBackground(), title));
 
         String[] loadout = d.loadout();
         int index = SpellbookLayout.loadoutIndex(page, pos);
