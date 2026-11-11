@@ -1,6 +1,7 @@
 package me.hektortm.woSSystems.systems.magic;
 
 import me.hektortm.woSSystems.WoSSystems;
+import me.hektortm.woSSystems.utils.ColorText;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
@@ -13,11 +14,11 @@ public final class MagicText {
 
     private MagicText() { }
 
-    /** The text of {@code key} with {@code %x%} replaced pairwise, & colours translated. */
+    /** The text of {@code key} with {@code %x%} replaced pairwise, hex and & colours translated (also in the replacements, such as a spell name). */
     public static String text(String key, String... replace) {
         String t = WoSSystems.getPlugin(WoSSystems.class).getLangManager().getMessage(FILE, key);
         for (int i = 0; i + 1 < replace.length; i += 2) t = t.replace(replace[i], replace[i + 1]);
-        return ChatColor.translateAlternateColorCodes('&', t);
+        return ChatColor.translateAlternateColorCodes('&', ColorText.hex(t));
     }
 
     public static Component component(String key, String... replace) {

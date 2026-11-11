@@ -211,6 +211,9 @@ public final class SpellDef {
         return d != null && d.isJsonPrimitive() && d.getAsJsonPrimitive().isBoolean() && d.getAsBoolean();
     }
 
+    /** The item model shown in the spellbook ("" = an enchanted book; spec 2026-11-11 §5). */
+    public String bookIcon() { return settingStr("book_icon"); }
+
     public double manaCost() { return settingNum("mana_cost"); }
 
     /** Seconds, before the cooldown attribute. */

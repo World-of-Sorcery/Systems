@@ -40,6 +40,12 @@ class SpellModelTest {
     }
 
     @Test
+    void readsTheSpellbookIcon() {
+        assertThat(spell("{\"book_icon\":\"fire_orb\"}", "{\"on_cast\":[]}").bookIcon()).isEqualTo("fire_orb");
+        assertThat(spell("{}", "{\"on_cast\":[]}").bookIcon()).isEmpty();
+    }
+
+    @Test
     void readsTheVersionAndFillsDefaults() {
         SpellDef d = spell("{\"mana_cost\":25}", "{\"on_cast\":[{\"type\":\"projectile\",\"range\":20,"
                 + "\"on_hit_entity\":[{\"type\":\"damage\"}]}]}");

@@ -36,11 +36,13 @@ public final class WandMenu implements Listener {
 
     private static final class Menu implements InventoryHolder {
         final Player player;
+        final boolean fromBook; // opened from the spellbook: picking a skin goes back there
         final List<String> skins = new ArrayList<>(); // by slot; "" = default
         Inventory inv;
 
-        Menu(Player player) {
+        Menu(Player player, boolean fromBook) {
             this.player = player;
+            this.fromBook = fromBook;
         }
 
         @Override
@@ -50,11 +52,16 @@ public final class WandMenu implements Listener {
     }
 
     public void open(Player p) {
+        open(p, false);
+    }
+
+    /** Opens the menu; {@code fromBook}: picking a skin returns to the spellbook, Escape just closes (spec 2026-11-11 §3). */
+    public void open(Player p, boolean fromBook) {
         MagicData d = magic.players().data(p);
         if (d == null || d.wand() == null) return;
         List<WandSkin> skins = new ArrayList<>(magic.stores().skins());
         skins.sort((a, b) -> a.displayName().compareToIgnoreCase(b.displayName()));
-        Menu m = new Menu(p);
+        Menu m = new Menu(p, fromBook);
         int size = Math.min(54, Math.max(9, (int) Math.ceil((skins.size() + 1) / 9.0) * 9));
         m.inv = Bukkit.createInventory(m, size, MagicText.component("wandmenu.title"));
         String current = d.wand().skin();
@@ -104,7 +111,15 @@ public final class WandMenu implements Listener {
         }
         magic.wands().setSkin(p, skin);
         p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.6f, 1.2f);
-        p.closeInventory();
+        if (m.fromBook) {
+            // Picking a skin goes back to the spellbook (one tick later: not inside a click event);
+            // Escape closes as usual (spec 2026-11-11 §3).
+            Bukkit.getScheduler().runTask(magic.plugin(), () -> {
+                if (p.isOnline()) magic.spellbook().open(p);
+            });
+        } else {
+            p.closeInventory();
+        }
     }
 
     @EventHandler
