@@ -10,6 +10,7 @@ import me.hektortm.woSSystems.systems.magic.cast.SpellLocks;
 import me.hektortm.woSSystems.systems.magic.cast.SpellVisuals;
 import me.hektortm.woSSystems.systems.magic.cast.TimedStates;
 import me.hektortm.woSSystems.systems.magic.ring.RingService;
+import me.hektortm.woSSystems.systems.magic.ring.SpellPicker;
 import me.hektortm.woSSystems.systems.magic.ring.SpellbookMenu;
 import me.hektortm.woSSystems.systems.resourcepack.Glyph;
 import me.hektortm.wosCore.WoSCore;
@@ -37,6 +38,7 @@ public final class MagicSystem {
     private final CastService cast;
     private final RingService ring;
     private final SpellbookMenu spellbook;
+    private final SpellPicker picker;
 
     public MagicSystem(WoSSystems plugin, DAOHub hub) {
         this.plugin = plugin;
@@ -55,7 +57,8 @@ public final class MagicSystem {
         this.cast = new CastService(plugin, this, deaths, levels, falls, litter, states, visuals, new SpellLocks(plugin, hub));
         this.ring = new RingService(plugin, this);
         this.spellbook = new SpellbookMenu(this);
-        for (Listener l : new Listener[]{new WandListener(plugin, wands), wandMenu, mana, deaths, ring, spellbook, cast.charges(), falls, litter, states, visuals}) {
+        this.picker = new SpellPicker(this);
+        for (Listener l : new Listener[]{new WandListener(plugin, wands), wandMenu, mana, deaths, ring, spellbook, picker, cast.charges(), falls, litter, states, visuals}) {
             Bukkit.getPluginManager().registerEvents(l, plugin);
         }
         // A wand citem or skin edited in the portal: online wands are redrawn.
@@ -100,4 +103,8 @@ public final class MagicSystem {
     public RingService ring() { return ring; }
 
     public SpellbookMenu spellbook() { return spellbook; }
+
+    public SpellPicker picker() { return picker; }
+
+    public WoSSystems plugin() { return plugin; }
 }

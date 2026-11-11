@@ -83,15 +83,39 @@ death:
 
 # The spellbook (/spells, or sneak + right-click with the wand).
 book:
-  title: "Spellbook"
-  known_lore: "&7Click, then click a ring slot below"
-  picked: "&eNow click a ring slot below"
-  more: "&7%count% more spells"
-  empty: "&8Empty slot"
-  slot_lore: "&7Page %page%, slot %slot% &8· &7right-click to empty"
-  page: "&fPage %page% &7(F flips the ring)"
-  level: "&eLevel %level%/%max% &7(%xp%/%next% XP)"
-  level_max: "&6Level %level% &7(highest)"
+  title: "Spellbook · Page %page%"
+  empty: "&8Empty"
+  key: "&7Key %key% &8· &7Click to change"
+  key_empty: "&7Key %key% &8· &7Click to choose"
+  click: "&7Click to change"
+  click_empty: "&7Click to choose"
+  skins: "&fWand skins"
+  page_next: "&fPage 2 →"
+  page_prev: "&f← Page 1"
+  level: "&bLevel %level% / %max%"
+  xp: "%bar% &7%xp% / %next% XP"
+  mastered: "&6Mastered"
+  stats: "&7Mana %mana% &8· &7Cooldown %cooldown%s"
+
+# The spell picker: opened by clicking a ring slot in the spellbook.
+picker:
+  title: "Choose a spell · Key %key%"
+  title_slot: "Choose a spell · Page %page%, slot %slot%"
+  back: "&fBack"
+  clear: "&cClear this slot"
+  prev: "&fPrevious page"
+  next: "&fNext page"
+  bound: "&eOn key %key% &8— &epicking it moves it here"
+  bound_slot: "&eOn page %page%, slot %slot% &8— &epicking it moves it here"
+  search: "&fSearch by name"
+  search_hint: "&7Click to search"
+  search_current: "&7Search: &f%query%"
+  search_none: "&cNo spells match \"%query%\""
+  search_clear: "&7Right-click to clear"
+  search_title: "Search spells"
+  search_label: "Spell name"
+  search_button: "Search"
+  search_cancel: "Cancel"
 
 wandmenu:
   title: "Your wand"

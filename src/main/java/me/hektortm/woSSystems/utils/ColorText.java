@@ -27,6 +27,15 @@ public final class ColorText {
      * LegacyComponentSerializer understands, then converts & to §.
      */
     static String legacy(String text) {
+        return hex(text).replace('&', '§');
+    }
+
+    /**
+     * Only the hex part of {@link #legacy}: {@code <#RRGGBB>}, {@code &#RRGGBB} and
+     * {@code #RRGGBB} become §x§R§R§G§G§B§B; every other {@code &} stays (for texts whose
+     * {@code &} codes are translated elsewhere, such as the magic language texts).
+     */
+    public static String hex(String text) {
         // Normalise <#RRGGBB> → &#RRGGBB so the existing parser handles both forms
         text = text.replaceAll("<#([A-Fa-f0-9]{6})>", "&#$1");
         Matcher matcher = HEX_PATTERN.matcher(text);
@@ -37,6 +46,6 @@ public final class ColorText {
             matcher.appendReplacement(sb, replacement.toString());
         }
         matcher.appendTail(sb);
-        return sb.toString().replace('&', '§');
+        return sb.toString();
     }
 }

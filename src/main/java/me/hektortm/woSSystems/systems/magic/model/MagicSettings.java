@@ -6,9 +6,12 @@ import com.google.gson.JsonObject;
 /**
  * The central magic settings ({@code GET /v1/content/magic}, the "settings" object; wos-api
  * fills every default before it stores them, the same defaults are used here for a
- * missing key). Start values apply to a player's first magic data in a realm.
+ * missing key). Start values apply to a player's first magic data in a realm. The spellbook
+ * fields (spec 2026-11-11 §8): the glyph ids of a filled and an empty XP bar segment and the
+ * tooltip style of a mastered spell; "" = the plain fallback.
  */
-public record MagicSettings(double startMana, double startMaxMana, double startManaRegen, ColorRange wandColor, boolean hubEnabled) {
+public record MagicSettings(double startMana, double startMaxMana, double startManaRegen, ColorRange wandColor, boolean hubEnabled,
+                            String xpBarFull, String xpBarEmpty, String masteredTooltip) {
 
     /** The random wand colour's range: hue 0–360, saturation and brightness 0–100 %. */
     public record ColorRange(double hueMin, double hueMax, double satMin, double satMax, double briMin, double briMax) { }
@@ -22,7 +25,13 @@ public record MagicSettings(double startMana, double startMaxMana, double startM
         return new MagicSettings(num(s, "start_mana", 100), num(s, "start_max_mana", 100), num(s, "start_mana_regen", 2),
                 new ColorRange(num(c, "hue_min", 0), num(c, "hue_max", 360), num(c, "sat_min", 50), num(c, "sat_max", 100),
                         num(c, "bri_min", 60), num(c, "bri_max", 100)),
-                s.has("hub_enabled") && s.get("hub_enabled").isJsonPrimitive() && s.get("hub_enabled").getAsBoolean());
+                s.has("hub_enabled") && s.get("hub_enabled").isJsonPrimitive() && s.get("hub_enabled").getAsBoolean(),
+                str(s, "xp_bar_full"), str(s, "xp_bar_empty"), str(s, "mastered_tooltip"));
+    }
+
+    private static String str(JsonObject o, String key) {
+        JsonElement v = o.get(key);
+        return v != null && v.isJsonPrimitive() && v.getAsJsonPrimitive().isString() ? v.getAsString().trim() : "";
     }
 
     private static double num(JsonObject o, String key, double fallback) {
