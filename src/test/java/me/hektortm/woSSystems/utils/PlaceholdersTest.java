@@ -74,6 +74,18 @@ class PlaceholdersTest {
     }
 
     @Test
+    void textTokens() {
+        assertThat(Placeholders.parse("text:fontline_red:Quest Complete!"))
+                .isEqualTo(new Placeholders.Token("text:fontline_red:Quest Complete!", "text", "fontline_red", "Quest Complete!"));
+        assertThat(Placeholders.parse("text:ft:")).isEqualTo(new Placeholders.Token("text:ft:", "text", "ft", ""));
+        assertThat(Placeholders.parse("text:ft")).isNull();
+        assertThat(Placeholders.parse("text:Bad Sheet:x")).isNull();
+        assertThat(Placeholders.replace("A {text:ft:Hi: you} B",
+                t -> "text".equals(t.namespace()) ? "[" + t.key() + "|" + t.id() + "]" : null))
+                .isEqualTo("A [ft|Hi: you] B");
+    }
+
+    @Test
     void oldTokensUnchanged() {
         assertThat(Placeholders.parse("player_name")).isEqualTo(new Placeholders.Token("player_name", "player_name", null, null));
         assertThat(Placeholders.parse("stats.amount:x")).isEqualTo(new Placeholders.Token("stats.amount:x", "stats", "amount", "x"));

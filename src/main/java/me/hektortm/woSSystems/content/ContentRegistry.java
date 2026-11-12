@@ -21,6 +21,8 @@ import java.util.logging.Logger;
  */
 public final class ContentRegistry {
     private static final int PRELOAD_ATTEMPTS = 5;
+    /** The webhook id that means "every entity of this type changed": the store loads again. */
+    static final String RELOAD_ALL = "*";
 
     private final Plugin plugin;
     private final Logger log;
@@ -81,6 +83,19 @@ public final class ContentRegistry {
             return;
         }
         String title;
+        if (RELOAD_ALL.equals(id)) {
+            // Many entities changed at once (a big glyph sheet): the whole store again.
+            try {
+                store.preload();
+                title = "§aReloaded " + store.size() + " " + store.label() + "s";
+                log.info("[Content] " + type + ": all reloaded (" + store.size() + ")");
+            } catch (ApiException e) {
+                log.warning("[Content] reload of all " + type + " failed: " + e.getMessage());
+                title = "§cReload failed: " + store.label();
+            }
+            notify(editor, title, type);
+            return;
+        }
         try {
             ContentStore.Reload r = store.reload(id);
             title = switch (r) {

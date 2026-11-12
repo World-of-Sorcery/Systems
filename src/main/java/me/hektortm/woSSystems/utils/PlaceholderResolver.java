@@ -111,6 +111,7 @@ public class PlaceholderResolver {
             case "citems" -> token.id() == null ? null : citem(token.key(), token.id());
             case "spells" -> player == null || token.id() == null || plugin.getMagic() == null ? null : spell(token.key(), token.id(), player);
             case "glyph" -> glyph(token.id());
+            case "text" -> hub.getGlyphDAO().sheetText(token.key(), token.id());
             case "shift" -> shift(token.id());
             default -> null;
         };
