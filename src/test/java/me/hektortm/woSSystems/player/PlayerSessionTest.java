@@ -32,6 +32,8 @@ class PlayerSessionTest {
               "nickname": "Stevie",
               "cooldowns": [{"cooldown_id": "chest", "started_at": "2026-01-01T10:00:00Z"}],
               "local_cooldowns": [{"cooldown_id": "lever", "interaction_key": "world,1,2,3", "started_at": "2026-01-01T11:00:00Z"}],
+              "timers": [{"timer_id": "parkour1", "started_at": "2026-01-01T12:00:00Z"}],
+              "timer_bests": [{"timer_id": "parkour1", "best_ms": 83459}],
               "profile": {"background": "bg", "background_id": "e", "picture": null, "picture_id": null, "bio": "Hi!"},
               "showcase": [{"slot": 0, "citem_id": "sword"}, {"slot": 2, "citem_id": "tome"}],
               "quests": [{"quest_id": "intro", "status": "active", "active_nodes": ["n1"]}],
@@ -48,6 +50,8 @@ class PlayerSessionTest {
                 PlayerSession.cosmeticKey(CosmeticType.TITLE, "hero"));
         assertThat(s.equippedCosmetics).containsExactly(java.util.Map.entry(CosmeticType.BADGE, "mage"));
         assertThat(s.nickname()).isEqualTo("Stevie");
+        assertThat(s.timers).containsEntry("parkour1", Instant.parse("2026-01-01T12:00:00Z"));
+        assertThat(s.timerBests).containsEntry("parkour1", 83459L);
         assertThat(s.cooldowns).containsEntry("chest", Instant.parse("2026-01-01T10:00:00Z"));
         assertThat(s.localCooldowns).containsEntry(PlayerSession.localCooldownKey("lever", "world,1,2,3"),
                 Instant.parse("2026-01-01T11:00:00Z"));

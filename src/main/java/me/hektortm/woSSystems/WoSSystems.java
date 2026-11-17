@@ -128,6 +128,7 @@ public final class WoSSystems extends JavaPlugin {
     private UnlockableManager unlockableManager;
     private ActionHandler actionHandler;
     private InteractionManager interactionManager;
+    private me.hektortm.woSSystems.systems.leaderboards.LeaderboardActions leaderboardActions;
     private PlaceholderResolver resolver;
     private ConditionHandler conditionHandler;
     private me.hektortm.woSSystems.systems.crecipes.CrecipeManager crecipeManager;
@@ -257,6 +258,12 @@ public final class WoSSystems extends JavaPlugin {
         mailService.reloadSettings();
         interactionManager = new InteractionManager(daoHub);
         cooldownManager = new CooldownManager(daoHub);
+        // Leaderboards: changes go to the API, then to the other servers of the realm (Redis; nothing without it).
+        java.util.concurrent.Executor onMain = task -> getServer().getScheduler().runTask(this, task);
+        leaderboardActions = new me.hektortm.woSSystems.systems.leaderboards.LeaderboardActions(daoHub.getLeaderboardDAO(),
+                daoHub.getTimerDAO(), daoHub.getSessions(), daoHub.getWriter(), core.network(), WoSCore.identity().realm(), onMain);
+        new me.hektortm.woSSystems.systems.leaderboards.NetworkLeaderboards(WoSCore.identity().id(), WoSCore.identity().realm(), onMain,
+                leaderboardActions::clearSource, daoHub.getLeaderboardDAO()::refresh).register(core.network());
         nickManager = new NicknameManager(daoHub);
         profileDialogs = new ProfileDialogs(daoHub, nickManager);
         chatManager = new ChatManager(daoHub, nickManager, getPlaceholderResolver(), profileDialogs);
@@ -301,6 +308,8 @@ public final class WoSSystems extends JavaPlugin {
             lang.loadLangFileExternal(this, "interactions", core);
             lang.loadLangFileExternal(this, "guis", core);
             lang.loadLangFileExternal(this, "cscreens", core);
+            lang.loadLangFileExternal(this, "timers", core);
+            lang.loadLangFileExternal(this, "leaderboards", core);
             lang.loadLangFileExternal(this, "mail", core);
             lang.loadLangFileExternal(this, "activities", core);
             lang.loadLangFileExternal(this, "quests", core);
@@ -352,6 +361,11 @@ public final class WoSSystems extends JavaPlugin {
             networkTablist.start();
         }
         cooldownManager.start();
+        new me.hektortm.woSSystems.systems.timers.TimerManager(daoHub.getTimerDAO()).start();
+        // Leaderboards: read off the main thread every 30 s, and at once after a new best time here.
+        daoHub.getLeaderboardDAO().useExecutor(task -> getServer().getScheduler().runTaskAsynchronously(this, task));
+        daoHub.getTimerDAO().onNewBest(id -> daoHub.getLeaderboardDAO().refreshSource("timer", id));
+        getServer().getScheduler().runTaskTimerAsynchronously(this, daoHub.getLeaderboardDAO()::refreshAll, 20L, 600L);
         crecipeManager.start();
         dailyReset.startResetTimer();
 
@@ -526,6 +540,8 @@ public final class WoSSystems extends JavaPlugin {
         cmdReg("profile", new ProfileCommand(profileDialogs));
         cmdReg("gui", new GUICommand(daoHub));
         cmdReg("cscreen", new me.hektortm.woSSystems.systems.cscreens.cmd.CscreenCommand(cscreenManager));
+        cmdReg("timer", new me.hektortm.woSSystems.systems.timers.cmd.TimerCommand(daoHub.getTimerDAO()));
+        cmdReg("leaderboard", new me.hektortm.woSSystems.systems.leaderboards.cmd.LeaderboardCommand(daoHub.getLeaderboardDAO(), leaderboardActions));
         cmdReg("mail", new me.hektortm.woSSystems.systems.mail.cmd.MailCommand(mailService, mailClient));
         cmdReg("debugcmd", new debug(daoHub));
         cmdReg("wosdebug", new DebugCommand(debugMode));
@@ -761,6 +777,9 @@ public final class WoSSystems extends JavaPlugin {
     }
     public InteractionManager getInteractionManager() {
         return interactionManager;
+    }
+    public me.hektortm.woSSystems.systems.leaderboards.LeaderboardActions getLeaderboardActions() {
+        return leaderboardActions;
     }
     public GUIManager getGuiManager() {
         return guiManager;

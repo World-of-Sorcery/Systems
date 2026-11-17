@@ -1,0 +1,26 @@
+# /timer: timers that count up (built in the portal).
+error:
+  offline: "%player% is not online."
+  unknown: "There is no timer '%id%'."
+  not-running: "%player% has no running timer '%id%'."
+  usage:
+    general: "Usage: /timer <start|stop|cancel|resetbest|view|help>"
+    start: "Usage: /timer start <player> <id>"
+    stop: "Usage: /timer stop <player> <id>"
+    cancel: "Usage: /timer cancel <player> <id>"
+    resetbest: "Usage: /timer resetbest <player> <id>"
+    view: "Usage: /timer view <player> <id>"
+started: "Started the timer %id% for %player%."
+stopped: "Stopped %player%'s timer %id% at %time%."
+cancelled: "Cancelled %player%'s timer %id%."
+best-reset: "Forgot %player%'s best time of %id%."
+view: "%player% - %id%: running %running%, best %best%"
+
+help:
+  header: "Timer Commands:"
+  start: "%cyan_300%/timer start <player> <id> §7- Start a timer for a player."
+  stop: "%cyan_300%/timer stop <player> <id> §7- Stop a timer; a new best time is saved."
+  cancel: "%cyan_300%/timer cancel <player> <id> §7- Stop a timer without saving a time."
+  resetbest: "%cyan_300%/timer resetbest <player> <id> §7- Forget a player's best time."
+  view: "%cyan_300%/timer view <player> <id> §7- See a player's running time and best time."
+  help: "%cyan_300%/timer help §7- Display this help message."

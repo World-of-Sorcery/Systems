@@ -40,6 +40,12 @@ public final class PlayerSession {
     public final Map<String, Instant> cooldowns = new ConcurrentHashMap<>();
     /** {@link #localCooldownKey} → start. */
     public final Map<String, Instant> localCooldowns = new ConcurrentHashMap<>();
+    /** Running timer id → start (saved, dropped once older than the timer's max duration). */
+    public final Map<String, Instant> timers = new ConcurrentHashMap<>();
+    /** Timer id → the player's best time in ms in this realm. */
+    public final Map<String, Long> timerBests = new ConcurrentHashMap<>();
+    /** Timer id → the time in ms of the run that stopped last ({@code {timers.last:<id>}}); not saved. */
+    public final Map<String, Long> lastRuns = new ConcurrentHashMap<>();
     /** Quest id → the quest engine's saved state document. */
     public final Map<String, JsonObject> quests = new ConcurrentHashMap<>();
     public final Set<String> completedQuests = ConcurrentHashMap.newKeySet();
@@ -108,6 +114,10 @@ public final class PlayerSession {
         for (JsonObject c : objects(json, "cooldowns")) {
             s.cooldowns.put(Json.str(c, "cooldown_id"), Instant.parse(Json.str(c, "started_at")));
         }
+        for (JsonObject t : objects(json, "timers")) {
+            s.timers.put(Json.str(t, "timer_id"), Instant.parse(Json.str(t, "started_at")));
+        }
+        for (JsonObject t : objects(json, "timer_bests")) s.timerBests.put(Json.str(t, "timer_id"), Json.lng(t, "best_ms", 0));
         for (JsonObject c : objects(json, "local_cooldowns")) {
             s.localCooldowns.put(localCooldownKey(Json.str(c, "cooldown_id"), Json.str(c, "interaction_key")),
                     Instant.parse(Json.str(c, "started_at")));

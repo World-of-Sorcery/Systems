@@ -1,0 +1,27 @@
+# /leaderboard: leaderboards of a stat or a timer (built in the portal).
+error:
+  unknown: "There is no leaderboard '%id%'."
+  usage:
+    general: "Usage: /leaderboard <lock|unlock|reset|end|show|help>"
+    lock: "Usage: /leaderboard lock <id>"
+    unlock: "Usage: /leaderboard unlock <id>"
+    reset: "Usage: /leaderboard reset <id>"
+    end: "Usage: /leaderboard end <id>"
+    show: "Usage: /leaderboard show <id>"
+done:
+  lock: "Locking the leaderboard %id%."
+  unlock: "Unlocking the leaderboard %id%."
+  reset: "Resetting the leaderboard %id%."
+  end: "Ending the leaderboard %id%: rewards are mailed, then it resets."
+show:
+  live: "Leaderboard %id%:"
+  locked: "Leaderboard %id% (locked):"
+
+help:
+  header: "Leaderboard Commands:"
+  lock: "%cyan_300%/leaderboard lock <id> §7- Freeze a leaderboard."
+  unlock: "%cyan_300%/leaderboard unlock <id> §7- Unfreeze a leaderboard."
+  reset: "%cyan_300%/leaderboard reset <id> §7- Clear its stat or best times for everyone."
+  end: "%cyan_300%/leaderboard end <id> §7- Mail the rewards, then reset."
+  show: "%cyan_300%/leaderboard show <id> §7- Show a leaderboard in chat."
+  help: "%cyan_300%/leaderboard help §7- Display this help message."

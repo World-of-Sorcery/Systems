@@ -81,6 +81,16 @@ public final class ApiWriter {
         });
     }
 
+    /**
+     * Runs {@code task} on the write thread once every write queued before it
+     * has been sent: a read that must see those writes (a leaderboard after a
+     * new best time) starts from here, not from another thread that could
+     * overtake them.
+     */
+    public void afterWrites(Runnable task) {
+        AsyncWriteQueue.submit(task::run);
+    }
+
     /** Convenience body: {@code body("value", 5, "temp", true)} → {"value":5,"temp":true}. */
     public static Map<String, Object> body(Object... keyValues) {
         Map<String, Object> m = new java.util.LinkedHashMap<>();

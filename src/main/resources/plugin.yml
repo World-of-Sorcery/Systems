@@ -135,6 +135,14 @@ commands:
     usage: /<command> <open|close|help> <player> [id]
     aliases: [cs]
 
+  timer:
+    description: timers that count up (built in the portal)
+    usage: /<command> <start|stop|cancel|resetbest|view|help> <player> <id>
+
+  leaderboard:
+    description: leaderboards of a stat or a timer (built in the portal)
+    usage: /<command> <lock|unlock|reset|end|show|help> <id>
+
   mail:
     description: your mailbox; send a player a package; staff send mail presets and look into mailboxes
     usage: /<command> [send <player> | send <player|@p|online|all> <preset> | view <player> | help]
@@ -196,6 +204,26 @@ permissions:
     description: 'Open a custom screen for a player (/cscreen open).'
   cscreen.close:
     description: 'Close a player''s custom screen (/cscreen close).'
+  timers.start:
+    description: 'Start a timer for a player (/timer start).'
+  timers.stop:
+    description: 'Stop a player''s timer and save the time if it is their best (/timer stop).'
+  timers.cancel:
+    description: 'Stop a player''s timer without saving a time (/timer cancel).'
+  timers.resetbest:
+    description: 'Forget a player''s best time of a timer (/timer resetbest).'
+  timers.view:
+    description: 'See a player''s running timer and best time (/timer view).'
+  leaderboard.lock:
+    description: 'Freeze a leaderboard: nobody new gets in, no score changes on it (/leaderboard lock).'
+  leaderboard.unlock:
+    description: 'Unfreeze a leaderboard (/leaderboard unlock).'
+  leaderboard.reset:
+    description: 'Reset a leaderboard: its stat or best times are cleared for every player of the realm (/leaderboard reset).'
+  leaderboard.end:
+    description: 'End a leaderboard round: mail the rewards, then reset it (/leaderboard end).'
+  leaderboard.show:
+    description: 'Show a leaderboard in chat (/leaderboard show).'
   mail.use:
     description: 'Open your own mailbox (/mail).'
     default: true

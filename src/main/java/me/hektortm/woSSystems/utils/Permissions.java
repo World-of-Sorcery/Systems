@@ -25,6 +25,18 @@ public enum Permissions {
     CSCREEN_OPEN("cscreen.open"),
     CSCREEN_CLOSE("cscreen.close"),
 
+    TIMERS_START("timers.start"),
+    TIMERS_STOP("timers.stop"),
+    TIMERS_CANCEL("timers.cancel"),
+    TIMERS_RESETBEST("timers.resetbest"),
+    TIMERS_VIEW("timers.view"),
+
+    LEADERBOARD_LOCK("leaderboard.lock"),
+    LEADERBOARD_UNLOCK("leaderboard.unlock"),
+    LEADERBOARD_RESET("leaderboard.reset"),
+    LEADERBOARD_END("leaderboard.end"),
+    LEADERBOARD_SHOW("leaderboard.show"),
+
     MAIL_USE("mail.use"),
     MAIL_SEND("mail.send"),
     MAIL_ADMIN_SEND("mail.admin.send"),
