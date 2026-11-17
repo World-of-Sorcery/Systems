@@ -39,7 +39,13 @@ public class GlyphDAO {
                 Json.integer(j, "ascent", 0), Json.integer(j, "width", 0),
                 Json.integer(j, "rows", 0), Json.integer(j, "offset_x", 0),
                 blankToNull(Json.str(j, "sheet", null)), blankToNull(Json.str(j, "letter", null)),
-                Json.bool(j, "letters_touch", false));
+                lettersOverlap(j));
+    }
+
+    /** A sheet's letter overlap (0–2 px); an API from before letters_overlap sends only letters_touch (1 px). */
+    static int lettersOverlap(JsonObject j) {
+        if (j.has("letters_overlap")) return Math.max(0, Json.integer(j, "letters_overlap", 0));
+        return Json.bool(j, "letters_touch", false) ? 1 : 0;
     }
 
     @Nullable

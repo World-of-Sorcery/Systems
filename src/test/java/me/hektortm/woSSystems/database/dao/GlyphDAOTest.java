@@ -27,7 +27,13 @@ class GlyphDAOTest {
         var g = GlyphDAO.map(json("{\"id\":\"ft_a\",\"kind\":\"icon\",\"codepoint\":59648,\"sheet\":\"ft\",\"letter\":\"A\",\"letters_touch\":true}"));
         assertThat(g.sheet()).isEqualTo("ft");
         assertThat(g.letter()).isEqualTo("A");
-        assertThat(g.lettersTouch()).isTrue();
+        assertThat(g.lettersOverlap()).isEqualTo(1);
+    }
+
+    @Test
+    void readsTheLetterOverlapBeforeTheOldTouchFlag() {
+        assertThat(GlyphDAO.map(json("{\"id\":\"ft_a\",\"codepoint\":59648,\"sheet\":\"ft\",\"letters_overlap\":2,\"letters_touch\":true}")).lettersOverlap()).isEqualTo(2);
+        assertThat(GlyphDAO.map(json("{\"id\":\"ft_a\",\"codepoint\":59648,\"sheet\":\"ft\"}")).lettersOverlap()).isZero();
     }
 
     @Test
