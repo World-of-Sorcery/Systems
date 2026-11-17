@@ -15,8 +15,15 @@ class LeaderboardPlaceholdersTest {
     private static final Leaderboard DEF = new Leaderboard("b", "stat", "brew", 3, "%rank% %name%", "%rank% -");
     private static final Board BOARD = new Board(false, List.of(new Board.Entry(1, ALEX, "Alex", 9), new Board.Entry(2, SAM, "Sam", 5)));
 
+    private static final UUID ROBIN = UUID.fromString("00000000-0000-0000-0000-000000000007");
+
+    /** The players' own ranks the API answered: Robin is 7th, below the 3 shown. */
+    private static Integer rankOf(String board, UUID player) {
+        return ROBIN.equals(player) ? Integer.valueOf(7) : null;
+    }
+
     private static String value(String key, String id, UUID viewer) {
-        return LeaderboardPlaceholders.value(key, id, Map.of("b", DEF)::get, x -> BOARD, viewer);
+        return LeaderboardPlaceholders.value(key, id, Map.of("b", DEF)::get, x -> BOARD, LeaderboardPlaceholdersTest::rankOf, viewer);
     }
 
     @Test
@@ -40,6 +47,11 @@ class LeaderboardPlaceholdersTest {
         assertThat(value("lines", "b", null)).isEqualTo("1 Alex\n2 Sam\n3 -");
         assertThat(value("rank", "b", SAM)).isEqualTo("2");
         assertThat(value("rank", "b", UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void aPlayersOwnRankShowsBelowTheShownRanks() {
+        assertThat(value("rank", "b", ROBIN)).isEqualTo("7");
     }
 
     @Test

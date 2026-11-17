@@ -44,7 +44,7 @@ public final class LeaderboardActions {
     public boolean run(String verb, String id) {
         if (boards.get(id) == null) return false;
         writer.post("/v1/server/leaderboards/" + seg(id) + "/" + verb, ApiWriter.body(), answer -> mainThread.execute(() -> {
-            boards.apply(id, Board.parse(answer));
+            boards.applyChange(id, Board.parse(answer));
             if (verb.equals("reset") || verb.equals("end")) clearSource(id);
             NetworkLeaderboards.publish(bus, realm, id, verb);
         }));

@@ -113,7 +113,7 @@ public class PlaceholderResolver {
                     : String.valueOf(plugin.getEcoManager().getCurrencyBalance(player.getUniqueId(), token.id()));
             case "cooldowns" -> player == null || token.id() == null ? null : cooldown(token.key(), token.id(), player, binding);
             case "leaderboard" -> token.id() == null ? null : me.hektortm.woSSystems.systems.leaderboards.LeaderboardPlaceholders.value(
-                    token.key(), token.id(), hub.getLeaderboardDAO()::get, hub.getLeaderboardDAO()::board,
+                    token.key(), token.id(), hub.getLeaderboardDAO()::get, hub.getLeaderboardDAO()::board, hub.getLeaderboardDAO()::rankOf,
                     player == null ? null : player.getUniqueId());
             case "timers" -> player == null || token.id() == null ? null : me.hektortm.woSSystems.systems.timers.TimerPlaceholders.value(token.key(),
                     hub.getTimerDAO().runningMillis(player, token.id()), hub.getTimerDAO().best(player, token.id()),

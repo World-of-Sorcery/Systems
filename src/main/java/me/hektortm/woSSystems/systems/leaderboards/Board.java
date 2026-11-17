@@ -21,6 +21,22 @@ public record Board(boolean locked, List<Entry> entries) {
         return null;
     }
 
+    /** The API's {@code {"ranks": [{uuid, rank, value}]}} as player → own rank; unreadable rows are left out. */
+    public static java.util.Map<UUID, Integer> parseRanks(@Nullable JsonElement answer) {
+        java.util.Map<UUID, Integer> out = new java.util.HashMap<>();
+        if (answer == null || !answer.isJsonObject()) return out;
+        for (JsonElement el : Json.array(answer.getAsJsonObject(), "ranks")) {
+            if (!el.isJsonObject()) continue;
+            JsonObject r = el.getAsJsonObject();
+            try {
+                out.put(UUID.fromString(Json.str(r, "uuid")), Json.integer(r, "rank", 0));
+            } catch (IllegalArgumentException | NullPointerException ignored) {
+                // a broken row is skipped
+            }
+        }
+        return out;
+    }
+
     /** The API's answer as a board; anything unreadable is {@link #EMPTY} (an unreadable entry is left out). */
     public static Board parse(@Nullable JsonElement answer) {
         if (answer == null || !answer.isJsonObject()) return EMPTY;
