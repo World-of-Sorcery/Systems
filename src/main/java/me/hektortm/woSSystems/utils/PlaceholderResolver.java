@@ -28,6 +28,10 @@ import java.util.Locale;
  *   <li>{@code {cooldowns.duration:<id>}} ({@code HH:MM:SS} left), {@code {cooldowns.seconds:<id>}}</li>
  *   <li>{@code {cooldowns.local_duration:<id>}}, {@code {cooldowns.local_seconds:<id>}}: the cooldown at
  *       one bound block / NPC; only where that binding is known (an interaction's holograms and commands)</li>
+ *   <li>{@code {timers.duration|seconds|best|last:<id>}}: the running timer ({@code m:ss.cc} / whole
+ *       seconds), the player's best time, the run that stopped last; empty when there is none</li>
+ *   <li>{@code {leaderboard.name|uuid|value:<id>:<rank>}}, {@code {leaderboard.lines|locked|rank:<id>}}:
+ *       a leaderboard as this server last read it ({@code LeaderboardPlaceholders})</li>
  *   <li>{@code {citems.name|lore|material|model|tooltip:<id>}}: a custom item's data</li>
  *   <li>{@code {<constant id>}}: a constant's value (which may hold placeholders itself)</li>
  * </ul>
@@ -108,6 +112,12 @@ public class PlaceholderResolver {
             case "economy" -> player == null || token.id() == null || !"balance".equals(token.key()) ? null
                     : String.valueOf(plugin.getEcoManager().getCurrencyBalance(player.getUniqueId(), token.id()));
             case "cooldowns" -> player == null || token.id() == null ? null : cooldown(token.key(), token.id(), player, binding);
+            case "leaderboard" -> token.id() == null ? null : me.hektortm.woSSystems.systems.leaderboards.LeaderboardPlaceholders.value(
+                    token.key(), token.id(), hub.getLeaderboardDAO()::get, hub.getLeaderboardDAO()::board,
+                    player == null ? null : player.getUniqueId());
+            case "timers" -> player == null || token.id() == null ? null : me.hektortm.woSSystems.systems.timers.TimerPlaceholders.value(token.key(),
+                    hub.getTimerDAO().runningMillis(player, token.id()), hub.getTimerDAO().best(player, token.id()),
+                    hub.getTimerDAO().lastRun(player, token.id()));
             // A custom item's name and lore are stored as typed, so their own placeholders are filled in here.
             case "citems" -> token.id() == null ? null : nested(citem(token.key(), token.id()), player, binding, depth);
             case "spells" -> player == null || token.id() == null || plugin.getMagic() == null ? null : spell(token.key(), token.id(), player);

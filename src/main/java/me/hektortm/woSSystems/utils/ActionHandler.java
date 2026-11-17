@@ -87,7 +87,8 @@ public class ActionHandler {
         LOOTTABLE("loottable"),
         QUEST("quest"),
         MAIL("mail"),
-        SPELL("spell");
+        SPELL("spell"),
+        TIMER("timer");
 
         private final String type;
         SourceType(String type) {
@@ -178,6 +179,12 @@ public class ActionHandler {
             cmd = Maths.fill(CscreenRules.fillInputs(resolver.resolvePlaceholders(cmd, player, key), inputs));
             String parsedCommand = cmd.replace("@p", player.getName());
             if (debugging) player.sendMessage(DebugFormat.command(written, parsedCommand));
+            // "mail send {leaderboard.uuid:b:3} gold" with no third place must not run with the player word missing.
+            if (hasEmptyLeaderboardTarget(written, token -> resolver.resolvePlaceholders(token, player, key))) {
+                plugin.writeLog("ActionHandler", Level.WARNING, "skipped (a leaderboard rank in it is empty): " + written);
+                plugin.getDebugMode().tell(player, DebugFormat.note("skipped: a leaderboard rank in it is empty"));
+                continue;
+            }
             if (cmd.startsWith("send_message")) {
                 String message = argument(cmd, "send_message");
                 if (ClickableMessage.hasLinks(message)) player.sendMessage(clickable(player, message, sourceType, sourceID, key));
@@ -222,6 +229,27 @@ public class ActionHandler {
                     plugin.writeLog("ActionHandler", Level.WARNING, "cooldown action must be 'cooldown give|remove @p <id> [%local%]': " + cmd);
                 } else {
                     runCooldown(player, cooldown, key);
+                }
+                continue;
+            }
+            // timer start|stop|cancel @p <id>
+            if (cmd.equals("timer") || cmd.startsWith("timer ")) {
+                TimerAction timer = timerAction(cmd);
+                if (timer == null) {
+                    plugin.writeLog("ActionHandler", Level.WARNING, "timer action must be 'timer start|stop|cancel @p <id>': " + cmd);
+                } else {
+                    me.hektortm.woSSystems.systems.timers.TimerActions.run(hub.getTimerDAO(), player, timer.verb(), timer.id(), key);
+                }
+                continue;
+            }
+            // leaderboard lock|unlock|reset|end <id>: sent off the main thread, the list goes on at once.
+            if (cmd.equals("leaderboard") || cmd.startsWith("leaderboard ")) {
+                LeaderboardAction board = leaderboardAction(cmd);
+                if (board == null) {
+                    plugin.writeLog("ActionHandler", Level.WARNING, "leaderboard action must be 'leaderboard lock|unlock|reset|end <id>': " + cmd);
+                } else if (!plugin.getLeaderboardActions().run(board.verb(), board.id())) {
+                    plugin.writeLog("ActionHandler", Level.WARNING, "leaderboard action for an unknown leaderboard: " + board.id());
+                    plugin.getDebugMode().tell(player, DebugFormat.note("unknown leaderboard " + board.id()));
                 }
                 continue;
             }
@@ -308,6 +336,51 @@ public class ActionHandler {
             if (sourceType == SourceType.DIALOG) Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand));
             else Bukkit.dispatchCommand(Bukkit.getConsoleSender(), parsedCommand);
         }
+    }
+
+    /** A leaderboard token that names a player: {@code {leaderboard.name|uuid:<id>:<rank>}}. */
+    private static final java.util.regex.Pattern LEADERBOARD_TARGET =
+            java.util.regex.Pattern.compile("\\{leaderboard\\.(?:name|uuid):[A-Za-z0-9_.:/-]+}");
+
+    /**
+     * Whether {@code written} names a player through a leaderboard rank that
+     * {@code resolve} fills in as empty (nobody holds it). Such an action is skipped.
+     */
+    static boolean hasEmptyLeaderboardTarget(String written, java.util.function.Function<String, String> resolve) {
+        if (!written.contains("{leaderboard.")) return false;
+        java.util.regex.Matcher m = LEADERBOARD_TARGET.matcher(written);
+        while (m.find()) {
+            String value = resolve.apply(m.group());
+            if (value != null && value.isBlank()) return true;
+        }
+        return false;
+    }
+
+    /** A {@code leaderboard} action: lock, unlock, reset or end a board (the realm's, not the player's). */
+    record LeaderboardAction(String verb, String id) {}
+
+    /** {@code leaderboard lock|unlock|reset|end <id>} as an action, or null if it isn't one. */
+    static @Nullable LeaderboardAction leaderboardAction(String cmd) {
+        String[] parts = cmd.trim().split("\\s+");
+        if (parts.length < 3 || !parts[0].equals("leaderboard")) return null;
+        String verb = parts[1].toLowerCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("lock", "unlock", "reset", "end").contains(verb)) return null;
+        return new LeaderboardAction(verb, parts[2]);
+    }
+
+    /** A {@code timer} action: start, stop or cancel the acting player's timer. */
+    record TimerAction(String verb, String id) {}
+
+    /**
+     * {@code timer start|stop|cancel @p <id>} as an action, or null if it isn't
+     * one. The player word is ignored: it is always the acting player.
+     */
+    static @Nullable TimerAction timerAction(String cmd) {
+        String[] parts = cmd.trim().split("\\s+");
+        if (parts.length < 4 || !parts[0].equals("timer")) return null;
+        String verb = parts[1].toLowerCase(java.util.Locale.ROOT);
+        if (!verb.equals("start") && !verb.equals("stop") && !verb.equals("cancel")) return null;
+        return new TimerAction(verb, parts[3]);
     }
 
     /** A {@code cooldown} action: start (give) or remove the cooldown, everywhere or only at this binding (local). */

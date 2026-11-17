@@ -149,6 +149,38 @@ class ActionHandlerArgumentTest {
     }
 
     @Test
+    void timerActionParses() {
+        assertThat(ActionHandler.timerAction("timer start @p parkour1")).isEqualTo(new ActionHandler.TimerAction("start", "parkour1"));
+        assertThat(ActionHandler.timerAction("timer STOP @p parkour1")).isEqualTo(new ActionHandler.TimerAction("stop", "parkour1"));
+        assertThat(ActionHandler.timerAction("timer cancel @p parkour1")).isEqualTo(new ActionHandler.TimerAction("cancel", "parkour1"));
+        assertThat(ActionHandler.timerAction("timer stop @p")).isNull();
+        assertThat(ActionHandler.timerAction("timer pause @p x")).isNull();
+        assertThat(ActionHandler.timerAction("timers start @p x")).isNull();
+    }
+
+    @Test
+    void leaderboardActionParses() {
+        assertThat(ActionHandler.leaderboardAction("leaderboard end brewing")).isEqualTo(new ActionHandler.LeaderboardAction("end", "brewing"));
+        assertThat(ActionHandler.leaderboardAction("leaderboard LOCK brewing")).isEqualTo(new ActionHandler.LeaderboardAction("lock", "brewing"));
+        assertThat(ActionHandler.leaderboardAction("leaderboard unlock b")).isEqualTo(new ActionHandler.LeaderboardAction("unlock", "b"));
+        assertThat(ActionHandler.leaderboardAction("leaderboard reset b")).isEqualTo(new ActionHandler.LeaderboardAction("reset", "b"));
+        assertThat(ActionHandler.leaderboardAction("leaderboard stop x")).isNull();
+        assertThat(ActionHandler.leaderboardAction("leaderboard end")).isNull();
+        assertThat(ActionHandler.leaderboardAction("leaderboards end x")).isNull();
+    }
+
+    @Test
+    void emptyLeaderboardTargetSkipsCommand() {
+        java.util.function.Function<String, String> noThird = t -> t.contains(":3}") ? "" : "00000000-0000-0000-0000-000000000001";
+        assertThat(ActionHandler.hasEmptyLeaderboardTarget("mail send {leaderboard.uuid:b:3} gold", noThird)).isTrue();
+        assertThat(ActionHandler.hasEmptyLeaderboardTarget("mail send {leaderboard.uuid:b:1} gold", noThird)).isFalse();
+        assertThat(ActionHandler.hasEmptyLeaderboardTarget("msg {leaderboard.name:b:3} hi", noThird)).isTrue();
+        // only name / uuid name a player; an empty value elsewhere is just text
+        assertThat(ActionHandler.hasEmptyLeaderboardTarget("send_message {leaderboard.value:b:3}", noThird)).isFalse();
+        assertThat(ActionHandler.hasEmptyLeaderboardTarget("cgive @p wand", noThird)).isFalse();
+    }
+
+    @Test
     void isEmptyWithoutText() {
         assertThat(ActionHandler.argument("send_message", "send_message")).isEmpty();
         assertThat(ActionHandler.argument("empty_line", "empty_line")).isEmpty();

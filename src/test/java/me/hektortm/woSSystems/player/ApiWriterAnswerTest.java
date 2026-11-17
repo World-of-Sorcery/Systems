@@ -36,6 +36,22 @@ class ApiWriterAnswerTest {
     }
 
     @Test
+    void aTaskAfterWritesRunsOnceTheEarlierWritesAreSent() throws Exception {
+        List<String> calls = new CopyOnWriteArrayList<>();
+        ApiWriter w = new ApiWriter((method, path, body, headers) -> {
+            Thread.sleep(50); // a slow API: the task must still wait for this write
+            calls.add(method + " " + path);
+            return null;
+        }, LOG, new FrozenPlayers(LOG));
+
+        w.put("/v1/players/00000000-0000-0000-0000-000000000001/timers/pk/best", ApiWriter.body("best_ms", 9000));
+        w.afterWrites(() -> calls.add("refresh"));
+        AsyncWriteQueue.barrier().get(5, TimeUnit.SECONDS);
+
+        assertThat(calls).containsExactly("PUT /v1/players/00000000-0000-0000-0000-000000000001/timers/pk/best", "refresh");
+    }
+
+    @Test
     void aFailedDeltaIsNotRetried() throws Exception {
         List<String> calls = new CopyOnWriteArrayList<>();
         ApiWriter w = new ApiWriter((method, path, body, headers) -> {

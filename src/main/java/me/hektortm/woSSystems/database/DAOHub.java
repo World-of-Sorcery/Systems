@@ -45,6 +45,8 @@ public class DAOHub {
     private final GUIDAO guiDAO;
     private final CscreenDAO cscreenDAO;
     private final CooldownDAO cooldownDAO;
+    private final TimerDAO timerDAO;
+    private final LeaderboardDAO leaderboardDAO;
     private final TimeDAO timeDAO;
     private final ConstantDAO constantDAO;
     private final GlyphDAO glyphDAO;
@@ -81,6 +83,8 @@ public class DAOHub {
         this.guiDAO         = new GUIDAO(content, api, conditionDAO, log);
         this.cscreenDAO     = new CscreenDAO(content, api, conditionDAO, log);
         this.cooldownDAO    = new CooldownDAO(s);
+        this.timerDAO       = new TimerDAO(s);
+        this.leaderboardDAO = new LeaderboardDAO(s);
         this.timeDAO        = new TimeDAO(content, api, log);
         this.citemDAO       = new CitemDAO(s);
         this.constantDAO    = new ConstantDAO(content, api, log);
@@ -109,6 +113,8 @@ public class DAOHub {
     public GUIDAO getGuiDAO()                   { return guiDAO;            }
     public CscreenDAO getCscreenDAO()           { return cscreenDAO;        }
     public CooldownDAO getCooldownDAO()         { return cooldownDAO;       }
+    public TimerDAO getTimerDAO()               { return timerDAO;          }
+    public LeaderboardDAO getLeaderboardDAO()   { return leaderboardDAO;    }
     public TimeDAO getTimeDAO()                 { return timeDAO;           }
     public CitemDAO getCitemDAO()               { return citemDAO;          }
     public ConstantDAO getConstantDAO()         { return constantDAO;       }
