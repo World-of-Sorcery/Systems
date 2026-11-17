@@ -2,6 +2,7 @@ package me.hektortm.woSSystems.systems.mail;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
+import me.hektortm.woSSystems.WoSSystems;
 import me.hektortm.woSSystems.database.DAOHub;
 import me.hektortm.woSSystems.systems.guis.GuiRules;
 import me.hektortm.woSSystems.systems.mail.model.Mail;
@@ -47,14 +48,17 @@ final class MailItems {
         if (icon == null) return null;
         String id = icon.id().trim();
         return switch (icon.kind()) {
-            case "citem" -> {
-                ItemStack c = hub.getCitemDAO().getCitem(id);
-                yield c == null ? null : c.clone();
-            }
+            case "citem" -> citem(id);
             case "head" -> head(id);
             case "model" -> model(id);
             default -> material(id, 1);
         };
+    }
+
+    /** A fresh copy of the custom item with the placeholders that need no player filled in; null if unknown. */
+    @Nullable
+    private ItemStack citem(String id) {
+        return WoSSystems.getInstance().getCitemManager().personalize(hub.getCitemDAO().getCitem(id), null);
     }
 
     @Nullable
@@ -109,9 +113,8 @@ final class MailItems {
     ItemStack attachment(MailAttachment a) {
         return switch (a.kind()) {
             case "citem" -> {
-                ItemStack c = hub.getCitemDAO().getCitem(a.id());
+                ItemStack c = citem(a.id());
                 if (c == null) yield null;
-                c = c.clone();
                 c.setAmount(Math.max(1, a.amount()));
                 yield c;
             }

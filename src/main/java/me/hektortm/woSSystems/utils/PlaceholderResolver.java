@@ -108,13 +108,20 @@ public class PlaceholderResolver {
             case "economy" -> player == null || token.id() == null || !"balance".equals(token.key()) ? null
                     : String.valueOf(plugin.getEcoManager().getCurrencyBalance(player.getUniqueId(), token.id()));
             case "cooldowns" -> player == null || token.id() == null ? null : cooldown(token.key(), token.id(), player, binding);
-            case "citems" -> token.id() == null ? null : citem(token.key(), token.id());
+            // A custom item's name and lore are stored as typed, so their own placeholders are filled in here.
+            case "citems" -> token.id() == null ? null : nested(citem(token.key(), token.id()), player, binding, depth);
             case "spells" -> player == null || token.id() == null || plugin.getMagic() == null ? null : spell(token.key(), token.id(), player);
             case "glyph" -> glyph(token.id());
             case "text" -> hub.getGlyphDAO().sheetText(token.key(), token.id());
             case "shift" -> shift(token.id());
             default -> null;
         };
+    }
+
+    /** A value that may hold placeholders itself (a constant, a custom item's lore), filled in up to {@link #MAX_DEPTH}. */
+    @Nullable
+    private String nested(@Nullable String value, @Nullable Player player, @Nullable InteractionKey binding, int depth) {
+        return value == null || depth >= MAX_DEPTH ? value : resolve(value, player, binding, depth + 1);
     }
 
     private String bare(String name, @Nullable Player player, @Nullable InteractionKey binding, int depth) {
@@ -134,8 +141,7 @@ public class PlaceholderResolver {
             }
             default: {
                 Constant constant = hub.getConstantDAO().getConstant(name);
-                if (constant == null || constant.getValue() == null) return null;
-                return depth < MAX_DEPTH ? resolve(constant.getValue(), player, binding, depth + 1) : constant.getValue();
+                return constant == null ? null : nested(constant.getValue(), player, binding, depth);
             }
         }
     }

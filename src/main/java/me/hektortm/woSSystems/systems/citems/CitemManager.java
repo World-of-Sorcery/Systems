@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Transformation;
+import org.jetbrains.annotations.Nullable;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
@@ -141,8 +142,12 @@ public class CitemManager {
     /**
      * The item with the placeholders of its name and lore filled in for
      * {@code p} (changed in place). An item without placeholders is left as it is.
+     * Without a player only the placeholders that need none are filled in
+     * ({@code {text:…}}, {@code {glyph:…}}, constants …); player ones stay as written.
+     * Every stack a player sees or gets should pass through here: the cached item
+     * from {@code CitemDAO.getCitem} still shows its placeholders as typed.
      */
-    public ItemStack personalize(ItemStack item, Player p) {
+    public ItemStack personalize(ItemStack item, @Nullable Player p) {
         if (item == null || !item.hasItemMeta() || !hasPlaceholders(item)) return item;
         ItemMeta meta = item.getItemMeta();
         PersistentDataContainer data = meta.getPersistentDataContainer();
@@ -163,7 +168,7 @@ public class CitemManager {
     }
 
     /** One lore page of an item (its pages as stored on it), with placeholders filled in for {@code p}. */
-    public List<Component> lorePage(String pagesJson, int page, boolean font, Player p) {
+    public List<Component> lorePage(String pagesJson, int page, boolean font, @Nullable Player p) {
         JsonArray pages = JsonParser.parseString(pagesJson).getAsJsonArray();
         List<String> lines = new ArrayList<>();
         if (page >= 0 && page < pages.size() && pages.get(page).isJsonArray()) {

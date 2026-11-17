@@ -40,7 +40,7 @@ public class FishingListener implements Listener {
                     String id = fishingItem.getCitem();
 
                     if (hub.getCitemDAO().citemExists(id)) {
-                        ItemStack citem = hub.getCitemDAO().getCitem(id);
+                        ItemStack citem = plugin.getCitemManager().personalize(hub.getCitemDAO().getCitem(id), player);
 
                         if (citem != null) {
                             caughtItemEntity.setItemStack(citem);

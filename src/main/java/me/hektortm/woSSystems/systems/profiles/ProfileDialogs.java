@@ -282,8 +282,10 @@ public class ProfileDialogs {
         return items;
     }
 
+    /** The custom item with the placeholders that need no player filled in (its tooltip shows); null if unknown. */
     private ItemStack citem(String id) {
-        return id == null ? null : hub.getCitemDAO().getCitem(id);
+        return id == null ? null : me.hektortm.woSSystems.WoSSystems.getInstance().getCitemManager()
+                .personalize(hub.getCitemDAO().getCitem(id), null);
     }
 
     private Component cosmetic(Player p, CosmeticType type) {
