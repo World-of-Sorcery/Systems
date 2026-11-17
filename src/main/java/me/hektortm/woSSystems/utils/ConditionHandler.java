@@ -24,7 +24,6 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.logging.Level;
 
 /**
@@ -137,14 +136,8 @@ public class ConditionHandler {
                 case "global_stats_less_than":          return stats.getGlobalStatValue(condition.getValue()) < amount(condition);
                 case "global_stats_equal_to":           return  stats.getGlobalStatValue(condition.getValue()) == amount(condition);
 
-                case "is_in_region":
-                                                        Map<UUID, String> playerRegions = plugin.getPlayerRegions();
-                                                        String regionId = playerRegions.get(player.getUniqueId());
-                                                        return regionId != null && regionId.equalsIgnoreCase(condition.getValue());
-                case "is_not_in_region":
-                                                        Map<UUID, String> playerRegionsNot = plugin.getPlayerRegions();
-                                                        String regionIdNot = playerRegionsNot.get(player.getUniqueId());
-                                                        return regionIdNot == null || !regionIdNot.equalsIgnoreCase(condition.getValue());
+                case "is_in_region":                    return isInRegion(player, condition.getValue());
+                case "is_not_in_region":                return !isInRegion(player, condition.getValue());
 
                 case "has_active_cooldown":             return isCooldownActive(player, condition.getValue());
                 case "has_not_active_cooldown":         return !isCooldownActive(player, condition.getValue());
@@ -239,8 +232,8 @@ public class ConditionHandler {
                 case "global_stats_greater_than", "global_stats_less_than", "global_stats_equal_to" ->
                         "is " + stats.getGlobalStatValue(id);
                 case "is_in_region", "is_not_in_region" -> {
-                    String region = plugin.getPlayerRegions().get(player.getUniqueId());
-                    yield region == null ? "in no region" : "in " + region;
+                    List<String> regions = plugin.getPlayerRegions().get(player.getUniqueId());
+                    yield regions == null || regions.isEmpty() ? "in no region" : "in " + String.join(", ", regions);
                 }
                 case "has_active_cooldown", "has_not_active_cooldown" -> {
                     Long left = hub.getCooldownDAO().getRemainingSeconds(player, id);
@@ -390,6 +383,12 @@ public class ConditionHandler {
      */
     public boolean isCooldownActive(OfflinePlayer oP, String cooldownId) {
         return hub.getCooldownDAO().getRemainingSeconds(oP, cooldownId) != null;
+    }
+
+    /** True when the player stands in the region, also when it is an outer region of a nested set. */
+    private boolean isInRegion(OfflinePlayer oP, String regionId) {
+        List<String> regions = plugin.getPlayerRegions().get(oP.getUniqueId());
+        return regions != null && regions.stream().anyMatch(id -> id.equalsIgnoreCase(regionId));
     }
 
     /**

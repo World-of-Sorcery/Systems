@@ -91,6 +91,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -157,7 +158,8 @@ public final class WoSSystems extends JavaPlugin {
     public static StringFlag DISPLAY_NAME;
     public static StringFlag ENTER_INTERACTION;
     public static StringFlag LEAVE_INTERACTION;
-    public final Map<UUID, String> playerRegions = new HashMap<>();
+    /** player → every WorldGuard region they stand in, most specific first (see {@code RegionHandler}). */
+    public final Map<UUID, List<String>> playerRegions = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -796,9 +798,15 @@ public final class WoSSystems extends JavaPlugin {
         return lootTableManager;
     }
 
-    /** @return the shared map of player UUID to their current WorldGuard region name */
-    public Map<UUID, String> getPlayerRegions() {
+    /** @return player UUID → every WorldGuard region they stand in, most specific first */
+    public Map<UUID, List<String>> getPlayerRegions() {
         return playerRegions;
+    }
+
+    /** @return the most specific region the player stands in (highest priority, child before parent), or null */
+    public String getPlayerRegion(UUID player) {
+        List<String> regions = playerRegions.get(player);
+        return regions == null || regions.isEmpty() ? null : regions.get(0);
     }
 
 }

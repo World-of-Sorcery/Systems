@@ -29,7 +29,7 @@ public class FishingListener implements Listener {
     public void onFish(PlayerFishEvent event) {
         if (event.getState() == PlayerFishEvent.State.CAUGHT_FISH) {
             Player player = event.getPlayer();
-            String region = plugin.getPlayerRegions().get(player.getUniqueId());
+            String region = plugin.getPlayerRegion(player.getUniqueId());
             String rarity = getRandomRarity();
             event.setExpToDrop(0);
             try {
