@@ -18,6 +18,16 @@ class GlyphDAOTest {
         var g = GlyphDAO.map(json("{\"id\":\"bg\",\"kind\":\"background\",\"codepoint\":59648,\"width\":176,\"rows\":6,\"offset_x\":3}"));
         assertThat(g.character()).isEqualTo("");
         assertThat(g.offsetX()).isEqualTo(3);
+        assertThat(g.sheet()).isNull();
+        assertThat(g.letter()).isNull();
+    }
+
+    @Test
+    void mapsASheetCell() {
+        var g = GlyphDAO.map(json("{\"id\":\"ft_a\",\"kind\":\"icon\",\"codepoint\":59648,\"sheet\":\"ft\",\"letter\":\"A\",\"letters_touch\":true}"));
+        assertThat(g.sheet()).isEqualTo("ft");
+        assertThat(g.letter()).isEqualTo("A");
+        assertThat(g.lettersTouch()).isTrue();
     }
 
     @Test

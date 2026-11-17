@@ -84,7 +84,8 @@ public class Chest extends SubCommand {
 
         for (LoottableItem item : items) {
             if (item.getType() == LoottableItemType.CITEM) {
-                ItemStack i = hub.getCitemDAO().getCitem(item.getValue());
+                ItemStack i = me.hektortm.woSSystems.WoSSystems.getInstance().getCitemManager()
+                        .personalize(hub.getCitemDAO().getCitem(item.getValue()), target);
                 if (i == null) {
                     Utils.error(target, "loottables", "error.item", "%id%", item.getValue());
                     continue;

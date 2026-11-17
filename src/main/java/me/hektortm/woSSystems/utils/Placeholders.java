@@ -11,13 +11,15 @@ import java.util.regex.Pattern;
  *
  * <p>A token is {@code {name}}, {@code {namespace.key}} or
  * {@code {namespace.key:id}}: letters, digits and {@code _} (the id may also
- * hold {@code - . : /}). Anything else between braces, like the JSON of a
+ * hold {@code - . : /}); also {@code {glyph:id}}, {@code {shift:n}} and
+ * {@code {text:sheet:words}} (namespace text, key the sheet, id the words).
+ * Anything else between braces, like the JSON of a
  * {@code tellraw} command, is left as it is, and so is a token whose lookup
  * returns {@code null} (unknown, so a typo stays visible).</p>
  */
 public final class Placeholders {
 
-    private static final Pattern TOKEN = Pattern.compile("(glyph|shift):[A-Za-z0-9_-]+|[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+(:[A-Za-z0-9_.:/-]+)?)?");
+    private static final Pattern TOKEN = Pattern.compile("(glyph|shift):[A-Za-z0-9_-]+|text:[a-z0-9_]+:[^{}]*|[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+(:[A-Za-z0-9_.:/-]+)?)?");
 
     /** A token split into its parts; {@code key} and {@code id} are null when absent. */
     public record Token(String raw, String namespace, String key, String id) {
@@ -33,6 +35,11 @@ public final class Placeholders {
         if (raw.startsWith("glyph:") || raw.startsWith("shift:")) {
             int c = raw.indexOf(':');
             return new Token(raw, raw.substring(0, c), "", raw.substring(c + 1));
+        }
+        if (raw.startsWith("text:")) {
+            // {text:sheet:words}: key is the glyph sheet, id the words (anything but braces).
+            int c = raw.indexOf(':', 5);
+            return new Token(raw, "text", raw.substring(5, c), raw.substring(c + 1));
         }
         int dot = raw.indexOf('.');
         if (dot < 0) return new Token(raw, raw, null, null);
