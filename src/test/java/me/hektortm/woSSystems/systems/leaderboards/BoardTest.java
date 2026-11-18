@@ -25,6 +25,14 @@ class BoardTest {
     }
 
     @Test
+    void parsesPlayerRanks() {
+        assertThat(Board.parseRanks(JsonParser.parseString("""
+            {"ranks": [{"uuid": "00000000-0000-0000-0000-000000000003", "rank": 7, "value": 2}, {"uuid": "nope", "rank": 1}]}""")))
+                .containsExactly(java.util.Map.entry(UUID.fromString("00000000-0000-0000-0000-000000000003"), 7));
+        assertThat(Board.parseRanks(null)).isEmpty();
+    }
+
+    @Test
     void malformedIsEmpty() {
         assertThat(Board.parse(null)).isEqualTo(Board.EMPTY);
         assertThat(Board.parse(JsonParser.parseString("[1, 2]"))).isEqualTo(Board.EMPTY);

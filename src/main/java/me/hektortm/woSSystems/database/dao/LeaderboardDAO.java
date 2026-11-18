@@ -4,13 +4,16 @@ import me.hektortm.woSSystems.content.ApiSource;
 import me.hektortm.woSSystems.content.ContentStore;
 import me.hektortm.woSSystems.content.Json;
 import me.hektortm.woSSystems.player.ApiServices;
+import me.hektortm.woSSystems.player.PlayerSessions;
 import me.hektortm.woSSystems.systems.leaderboards.Board;
 import me.hektortm.woSSystems.utils.model.Leaderboard;
 import me.hektortm.wosCore.api.ApiException;
 import me.hektortm.wosCore.api.WosApi;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
@@ -20,21 +23,26 @@ import static me.hektortm.woSSystems.player.ApiWriter.seg;
 
 /**
  * Leaderboards: definitions from {@code /v1/content/leaderboards}, and each
- * board as this server's realm sees it ({@code /v1/server/leaderboards/<id>}),
- * kept in memory. Placeholders read only that copy, so a hologram never waits
- * on the API; the copy is refreshed off the main thread every 30 seconds and
- * after every change made on this server or announced by another.
+ * board as this server's realm sees it ({@code /v1/server/leaderboards/<id>})
+ * plus the own rank of each player online here ({@code …/ranks}), kept in
+ * memory. Placeholders read only that copy, so a hologram never waits on the
+ * API; the copy is refreshed off the main thread every 30 seconds and after
+ * every change made on this server or announced by another.
  */
 public class LeaderboardDAO {
     private final ContentStore<Leaderboard> store;
     private final WosApi api;
+    private final PlayerSessions sessions;
     private final Logger log;
     private final Map<String, Board> boards = new ConcurrentHashMap<>();
+    /** Board id → online player → own rank (also below the shown ranks). */
+    private final Map<String, Map<UUID, Integer>> ranks = new ConcurrentHashMap<>();
     /** Runs a blocking read off the main thread (set at enable; direct in tests). */
     private volatile Executor async = Runnable::run;
 
     public LeaderboardDAO(ApiServices s) {
         this.api = s.api();
+        this.sessions = s.sessions();
         this.log = s.log();
         this.store = s.content().register(new ContentStore<>("leaderboards", "Leaderboard",
                 ApiSource.flat(s.api(), "/v1/content/leaderboards", "id", j -> new Leaderboard(
@@ -54,8 +62,13 @@ public class LeaderboardDAO {
         return boards.getOrDefault(id, Board.EMPTY);
     }
 
-    /** The player's rank in the cached board, or null when they are not on it. */
+    /**
+     * The player's own rank, also below the ranks the board shows (read for the
+     * players online here); null when they have none or it was not read yet.
+     */
     public @Nullable Integer rankOf(String id, UUID uuid) {
+        Integer own = ranks.getOrDefault(id, Map.of()).get(uuid);
+        if (own != null) return own;
         for (Board.Entry e : board(id).entries()) if (e.uuid().equals(uuid)) return e.rank();
         return null;
     }
@@ -64,10 +77,19 @@ public class LeaderboardDAO {
         boards.put(id, board);
     }
 
+    /** A board this server just changed (lock, reset, end …): show its answer, forget the old ranks, read them again. */
+    public void applyChange(String id, Board board) {
+        boards.put(id, board);
+        ranks.remove(id);
+        refresh(id);
+    }
+
     /** Reads every defined board again. Blocking: call off the main thread. */
     public void refreshAll() {
-        boards.keySet().retainAll(store.asMap().keySet());
-        for (String id : store.asMap().keySet()) read(id);
+        Set<String> defined = store.asMap().keySet();
+        boards.keySet().retainAll(defined);
+        ranks.keySet().retainAll(defined);
+        for (String id : defined) read(id);
     }
 
     /** Reads one board again, off the main thread. */
@@ -83,8 +105,15 @@ public class LeaderboardDAO {
     }
 
     private void read(String id) {
+        String path = "/v1/server/leaderboards/" + seg(id);
         try {
-            boards.put(id, Board.parse(api.getJson("/v1/server/leaderboards/" + seg(id))));
+            boards.put(id, Board.parse(api.getJson(path)));
+            List<String> online = sessions.onlineIds().stream().map(UUID::toString).toList();
+            if (online.isEmpty()) {
+                ranks.remove(id);
+            } else {
+                ranks.put(id, Board.parseRanks(api.send("POST", path + "/ranks", Map.of("uuids", online))));
+            }
         } catch (ApiException | IllegalStateException e) {
             log.fine("[Leaderboards] could not read " + id + ": " + e.getMessage());
         }

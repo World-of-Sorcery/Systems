@@ -11,15 +11,20 @@ import java.util.function.Function;
  * <ul>
  *   <li>{@code name|uuid|value:<id>:<rank>}: who holds the rank and their value; empty when nobody does</li>
  *   <li>{@code lines:<id>}: the board's lines; {@code locked:<id>}: true / false;
- *       {@code rank:<id>}: the viewing player's rank, empty when they are not on the board</li>
+ *       {@code rank:<id>}: the viewing player's own rank (also below the shown ranks), empty without points</li>
  * </ul>
  * Null (left as written) for an unknown leaderboard or key.
  */
 public final class LeaderboardPlaceholders {
     private LeaderboardPlaceholders() {}
 
+    /**
+     * @param rankOf a player's own rank on a board (board id, player), also below the
+     *               shown ranks; null when they have none (no points yet, or not read yet)
+     */
     public static @Nullable String value(String key, String id, Function<String, Leaderboard> defs,
-                                         Function<String, Board> boards, @Nullable UUID viewer) {
+                                         Function<String, Board> boards, java.util.function.BiFunction<String, UUID, Integer> rankOf,
+                                         @Nullable UUID viewer) {
         int colon = id.indexOf(':');
         String boardId = colon < 0 ? id : id.substring(0, colon);
         Leaderboard def = defs.apply(boardId);
@@ -39,6 +44,8 @@ public final class LeaderboardPlaceholders {
             case "locked" -> String.valueOf(board.locked());
             case "rank" -> {
                 if (viewer == null) yield "";
+                Integer own = rankOf.apply(boardId, viewer);
+                if (own != null && own > 0) yield String.valueOf(own);
                 for (Board.Entry e : board.entries()) if (e.uuid().equals(viewer)) yield String.valueOf(e.rank());
                 yield "";
             }
